@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"strings"
 	"sync"
 	"time"
 
@@ -108,7 +109,7 @@ func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
 		return
 	}
-	userOK := subtle.ConstantTimeCompare([]byte(creds.Username), []byte(sv.username)) == 1
+	userOK := subtle.ConstantTimeCompare([]byte(strings.ToLower(creds.Username)), []byte(strings.ToLower(sv.username))) == 1
 	passOK := subtle.ConstantTimeCompare([]byte(creds.Password), []byte(sv.password)) == 1
 	if !userOK || !passOK {
 		http.Error(w, `{"error":"wrong username or password"}`, http.StatusUnauthorized)
