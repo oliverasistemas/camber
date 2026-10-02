@@ -7,6 +7,7 @@ import { Columns } from './charts/Columns'
 import { HBars } from './charts/HBars'
 import { StatusStrip } from './charts/StatusStrip'
 import { Panel } from './Panel'
+import { Logo } from './Logo'
 import { money, moneyFull, int, pct, monthLabel, quarterLabel, axisMoney } from './format'
 
 const ORDINAL = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-4)', 'var(--ord-5)']
@@ -123,7 +124,10 @@ export default function App() {
   if (!data) {
     return (
       <div className="app">
-        <h1 className="deal-name">Camber Credit 2026-1</h1>
+        <div className="brand-row">
+          <Logo />
+          <h1 className="deal-name">Camber Credit 2026-1</h1>
+        </div>
         <p className="deal-sub">{error || 'Loading pool data…'}</p>
       </div>
     )
@@ -138,7 +142,10 @@ export default function App() {
     <div className="app">
       <header className="masthead">
         <div>
-          <h1 className="deal-name">Camber Credit 2026-1</h1>
+          <div className="brand-row">
+            <Logo />
+            <h1 className="deal-name">Camber Credit 2026-1</h1>
+          </div>
           <p className="deal-sub">
             Auto-lease pool servicing report for the August 31, 2026 cutoff
             <button className="sign-out" onClick={signOut}>

@@ -1,4 +1,5 @@
 import { FormEvent, useState } from 'react'
+import { Logo } from './Logo'
 
 export function Login({ onSignedIn }: { onSignedIn: () => void }) {
   const [username, setUsername] = useState('')
@@ -33,6 +34,7 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
   return (
     <div className="login-wrap">
       <form className="login" onSubmit={submit}>
+        <Logo />
         <h1 className="deal-name">Camber Credit 2026-1</h1>
         <p className="deal-sub">Sign in to open the pool servicing report</p>
         <label className="login-field">

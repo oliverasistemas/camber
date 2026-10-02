@@ -93,6 +93,20 @@ body {
 
 /* ---------- masthead ---------- */
 
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.logo-mark {
+  display: inline-block;
+  flex: none;
+  height: 34px;
+  aspect-ratio: 1028 / 1197;
+  background: var(--brand);
+}
+
 .masthead {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -177,6 +191,12 @@ body {
 
 .login .deal-name {
   font-size: 24px;
+}
+
+.login .logo-mark {
+  display: block;
+  height: 30px;
+  margin-bottom: 16px;
 }
 
 .login .deal-sub {
@@ -819,6 +839,12 @@ body {
   }
   .deal-name {
     font-size: 23px;
+  }
+  .brand-row {
+    gap: 10px;
+  }
+  .logo-mark {
+    height: 25px;
   }
   .deal-sub {
     margin-bottom: 20px;
