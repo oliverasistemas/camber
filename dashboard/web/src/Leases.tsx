@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { LeaseList } from './types'
 import { int, money, moneyFull, dateLabel, monthFull, quarterLabel } from './format'
+import { useMediaQuery } from './useWidth'
 
 const STATUS_NAMES: Record<string, string> = { '0': 'Active', '1': 'In inventory', '2': 'Sold' }
 const BUCKET_NAMES: Record<string, string> = {
@@ -90,6 +91,7 @@ export function Leases({ query, onUnauthorized }: { query: string; onUnauthorize
 
   const limit = data?.limit ?? 50
   const total = data?.total ?? 0
+  const narrow = useMediaQuery('(max-width: 680px)')
 
   return (
     <div className="app">
@@ -109,7 +111,52 @@ export function Leases({ query, onUnauthorized }: { query: string; onUnauthorize
 
       {error && <p className="deal-sub">{error}</p>}
 
-      {data && (
+      {data && narrow && (
+        <section className={loading ? 'panel loading' : 'panel'}>
+          <div className="sort-row">
+            <label>
+              Sort by
+              <select
+                value={sort}
+                onChange={(e) => (window.location.hash = withParams({ sort: e.target.value, offset: null }))}
+              >
+                {COLS.filter((c) => c.sort).map((c) => (
+                  <option key={c.sort} value={c.sort}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="dir-btn"
+              onClick={() => (window.location.hash = withParams({ dir: dir === 'desc' ? 'asc' : 'desc', offset: null }))}
+            >
+              {dir === 'desc' ? '↓ High to low' : '↑ Low to high'}
+            </button>
+          </div>
+          <div className="lease-cards">
+            {data.rows.map((r) => (
+              <a key={r.leaseId} className="lease-card" href={`#/lease/${r.leaseId}`}>
+                <span className="lc-top">
+                  <span className="lc-id">{r.leaseId}</span>
+                  <span className="lc-pv">{r.pv !== null ? moneyFull(r.pv) : '—'}</span>
+                </span>
+                <span className="lc-desc">{r.description}</span>
+                <span className="lc-meta">
+                  <span>{r.statusName}</span>
+                  {r.daysDelinquent > 0 && <span className="lc-late">{int(r.daysDelinquent)} days past due</span>}
+                  <span>Matures {dateLabel(r.maturityDate)}</span>
+                  <span>{moneyFull(r.paymentRegular)}/mo</span>
+                </span>
+              </a>
+            ))}
+            {data.rows.length === 0 && <p className="lease-empty">No leases match this slice.</p>}
+          </div>
+          {total > limit && <Pager offset={offset} limit={limit} total={total} withParams={withParams} />}
+        </section>
+      )}
+
+      {data && !narrow && (
         <section className={loading ? 'panel loading' : 'panel'}>
           <table className="viz-table lease-table">
             <thead>
@@ -161,25 +208,39 @@ export function Leases({ query, onUnauthorized }: { query: string; onUnauthorize
               )}
             </tbody>
           </table>
-          {total > limit && (
-            <div className="pager">
-              <span>
-                {int(offset + 1)}–{int(Math.min(offset + limit, total))} of {int(total)}
-              </span>
-              <button disabled={offset === 0} onClick={() => (window.location.hash = withParams({ offset: String(Math.max(0, offset - limit)) }))}>
-                ← Previous
-              </button>
-              <button disabled={offset + limit >= total} onClick={() => (window.location.hash = withParams({ offset: String(offset + limit) }))}>
-                Next →
-              </button>
-            </div>
-          )}
+          {total > limit && <Pager offset={offset} limit={limit} total={total} withParams={withParams} />}
         </section>
       )}
 
       <p className="footer-note">
         Par values are the present value of remaining lease cash flows at a 9% discount rate, as of August 31, 2026.
       </p>
+    </div>
+  )
+}
+
+function Pager({
+  offset,
+  limit,
+  total,
+  withParams,
+}: {
+  offset: number
+  limit: number
+  total: number
+  withParams: (changes: Record<string, string | null>) => string
+}) {
+  return (
+    <div className="pager">
+      <span>
+        {int(offset + 1)}–{int(Math.min(offset + limit, total))} of {int(total)}
+      </span>
+      <button disabled={offset === 0} onClick={() => (window.location.hash = withParams({ offset: String(Math.max(0, offset - limit)) }))}>
+        ← Previous
+      </button>
+      <button disabled={offset + limit >= total} onClick={() => (window.location.hash = withParams({ offset: String(offset + limit) }))}>
+        Next →
+      </button>
     </div>
   )
 }
