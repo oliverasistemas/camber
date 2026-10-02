@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Dashboard, Filters } from './types'
+import { Login } from './Login'
 import { Columns } from './charts/Columns'
 import { HBars } from './charts/HBars'
 import { StatusStrip } from './charts/StatusStrip'
@@ -33,9 +34,11 @@ export default function App() {
   const [data, setData] = useState<Dashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [authed, setAuthed] = useState(true) // optimistic; a 401 flips it
   const [filters, setFilters] = useState<Filters>({ obligor: '', condition: '', eligible: '' })
 
   useEffect(() => {
+    if (!authed) return
     const params = new URLSearchParams()
     if (filters.obligor) params.set('obligor', filters.obligor)
     if (filters.condition) params.set('condition', filters.condition)
@@ -43,16 +46,32 @@ export default function App() {
     setLoading(true)
     fetch(`/api/dashboard?${params}`)
       .then((r) => {
+        if (r.status === 401) {
+          setAuthed(false)
+          return null
+        }
         if (!r.ok) throw new Error(`API returned ${r.status}`)
         return r.json()
       })
-      .then((d: Dashboard) => {
-        setData(d)
-        setError('')
+      .then((d: Dashboard | null) => {
+        if (d) {
+          setData(d)
+          setError('')
+        }
       })
       .catch(() => setError('The pool data is unavailable. Start the API with: go run ./dashboard/api'))
       .finally(() => setLoading(false))
-  }, [filters])
+  }, [filters, authed])
+
+  async function signOut() {
+    await fetch('/api/logout', { method: 'POST' })
+    setData(null)
+    setAuthed(false)
+  }
+
+  if (!authed) {
+    return <Login onSignedIn={() => setAuthed(true)} />
+  }
 
   if (!data) {
     return (
@@ -69,7 +88,12 @@ export default function App() {
       <header className="masthead">
         <div>
           <h1 className="deal-name">Camber Credit 2026-1</h1>
-          <p className="deal-sub">Auto-lease pool servicing report for the August 31, 2026 cutoff</p>
+          <p className="deal-sub">
+            Auto-lease pool servicing report for the August 31, 2026 cutoff
+            <button className="sign-out" onClick={signOut}>
+              Sign out
+            </button>
+          </p>
           <div className="hero-value">{money(s.pvEligible)}</div>
           <div className="hero-label">Eligible collateral par value at the 9% discount rate</div>
           <div className="hero-context">

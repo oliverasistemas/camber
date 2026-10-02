@@ -20,6 +20,19 @@ cd web && npm run build            # open http://localhost:8080
 Configuration: `DATABASE_URL` overrides the default
 `postgres://<user>@localhost:5432/camber`; `ADDR` overrides `:8080`.
 
+## Sign-in
+
+The dashboard sits behind a basic username/password login. Credentials are
+plain text, set via `DASH_USER` and `DASH_PASS`; the defaults (when the env
+vars are unset) are `camber` / `lease-tape-2026`.
+
+`POST /api/login` checks the credentials and sets an `HttpOnly` session
+cookie (random token, held in memory — restarting the API signs everyone
+out); `POST /api/logout` clears it; `GET /api/dashboard` requires it.
+
+This is development-grade on purpose: plain-text credentials, no TLS, no
+rate limiting, no persistence. Don't expose it beyond localhost as-is.
+
 ## API
 
 One endpoint drives the whole page so every chart agrees on the slice:

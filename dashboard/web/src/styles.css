@@ -22,6 +22,7 @@
   /* brand — chrome only, never a chart mark */
   --brand: #1b4636;
   --brand-wash: rgba(27, 70, 54, 0.08);
+  --brand-contrast: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,6 +46,7 @@
     --ord-5: #184f95;
     --brand: #7fb59e;
     --brand-wash: rgba(127, 181, 158, 0.12);
+    --brand-contrast: #0b0b0b;
   }
 }
 :root[data-theme='dark'] {
@@ -67,6 +69,7 @@
   --ord-5: #184f95;
   --brand: #7fb59e;
   --brand-wash: rgba(127, 181, 158, 0.12);
+  --brand-contrast: #0b0b0b;
 }
 
 * {
@@ -151,6 +154,101 @@ body {
 .tile-note {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* ---------- login ---------- */
+
+.login-wrap {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.login {
+  width: 100%;
+  max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--ring);
+  border-top: 3px solid var(--brand);
+  border-radius: 4px;
+  padding: 30px 32px 32px;
+}
+
+.login .deal-name {
+  font-size: 24px;
+}
+
+.login .deal-sub {
+  margin-bottom: 24px;
+}
+
+.login-field {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-bottom: 14px;
+}
+
+.login-field input {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--page);
+  border: 1px solid var(--ring);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.login-field input:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.login-error {
+  color: #d03b3b;
+  font-size: 13px;
+  margin: 2px 0 12px;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-contrast);
+  background: var(--brand);
+  border: 0;
+  border-radius: 4px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.login-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sign-out {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: none;
+  border: 1px solid var(--ring);
+  border-radius: 4px;
+  padding: 2px 10px;
+  margin-left: 14px;
+  cursor: pointer;
+}
+
+.sign-out:hover {
+  background: var(--brand-wash);
+  color: var(--ink);
 }
 
 /* ---------- status strip ---------- */
