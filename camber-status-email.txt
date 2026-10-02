@@ -1,0 +1,36 @@
+Subject: Camber software development — status assessment
+
+Russell,
+
+Below is a summary of my assessment of the current state of the Camber software development effort with The Reporting Co (TRC).
+
+WHAT HAS BEEN DELIVERED
+
+The design phase is complete: TRC has delivered a functional requirements specification (FRS 1.1) and an AWS architecture diagram. The documented design is an event-driven AWS platform (API Gateway, Lambda, Step Functions, SNS/SQS, Aurora PostgreSQL, S3) that receives loan applications, maps the data, submits it to Karus for scoring, and returns the response to the loan source. These documents are the only deliverables received so far.
+
+CURRENT STATUS
+
+- The project has not yet transitioned from the build phase to a working demo that the NALN and Camber teams can use. As of today, no end-to-end demonstration of the system has taken place.
+
+- Per the Wednesday, Sept 30 meeting with NALN, Kim was scheduled to test the system with 12 loans today (Friday, Oct 2). I have not yet received confirmation that this test ran or its results. If it did run, the logical next step is to increase the number and variety of requests to evaluate how closely the system's outputs match the credit criteria.
+
+- I cannot assess execution against plan because I have not seen the original delivery schedule. If one exists, comparing it against actual progress would make delivery status objective rather than anecdotal.
+
+WHAT CANNOT CURRENTLY BE VERIFIED
+
+TRC has not provided access to the source code repositories or to the AWS account where the infrastructure runs. As a result, the following cannot be independently assessed at this time:
+
+- Code quality and test coverage
+- Observability (logging, monitoring, alerting)
+- CI/CD pipelines and deployment practices
+- Infrastructure as code
+
+To date, the only verifiable deliverables are the design documents.
+
+RECOMMENDATION
+
+Start the process now of having Camber own its source code repositories and the AWS account the infrastructure runs on. This is standard practice when development is outsourced: Camber is paying for the system and should hold the assets. It would also give us the visibility needed to evaluate the work in detail and to monitor how the system behaves in operation.
+
+Happy to discuss any of this in more detail.
+
+[Your name]

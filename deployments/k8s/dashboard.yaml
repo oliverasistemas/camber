@@ -1,0 +1,90 @@
+# The dashboard: one container serving both the API (under /api) and the
+# built SPA (everything else) — see dashboard/Dockerfile for why they ship
+# together. Connects in-cluster to the "postgres" Service via DATABASE_URL
+# from camber-secrets. External traffic arrives via the Ingress
+# (camber.inmatics.io); the Service stays ClusterIP.
+#
+# The image lives in ECR; kustomize rewrites the name/tag, and the node pulls
+# with the "ecr-creds" imagePullSecret (an ECR token, refreshed by the
+# ecr-creds-refresh CronJob).
+apiVersion: v1
+kind: Service
+metadata:
+  name: camber-dashboard
+  labels:
+    app: camber-dashboard
+spec:
+  selector:
+    app: camber-dashboard
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: camber-dashboard
+  labels:
+    app: camber-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: camber-dashboard
+  template:
+    metadata:
+      labels:
+        app: camber-dashboard
+    spec:
+      nodeSelector:
+        inmatics.io/role: qa
+      imagePullSecrets:
+        - name: ecr-creds
+      containers:
+        - name: dashboard
+          image: camber/dashboard:1.0.0
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: camber-secrets
+                  key: DATABASE_URL
+            - name: DASH_USER
+              valueFrom:
+                secretKeyRef:
+                  name: camber-secrets
+                  key: DASH_USER
+            - name: DASH_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: camber-secrets
+                  key: DASH_PASS
+          # main.go pings the DB at startup and exits if it is unreachable,
+          # so a pod that is Ready has a working pool. /api/health touches
+          # nothing but the process.
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true

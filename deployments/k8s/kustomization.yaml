@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Everything runs in its own "camber" namespace on the aws009 cluster, pinned
+# to the QA node (aws009, inmatics.io/role=qa) — the prod node stays dedicated
+# to paying inmatics customers, and the QA stack there was scaled down.
+# DNS: camber.inmatics.io CNAME aws009.inmatics.io (../dns/camber.json).
+
+namespace: camber
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - dashboard.yaml
+  - ingress.yaml
+  - ecr-creds-refresh.yaml
+
+images:
+  # The tag the cluster runs. deployments/push-dashboard.sh pushes new tags
+  # (ECR repo is immutable-tags); bump newTag here and re-apply to ship.
+  - name: camber/dashboard
+    newName: 032401303688.dkr.ecr.us-east-1.amazonaws.com/camber/dashboard
+    newTag: "1.0.0"

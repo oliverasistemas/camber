@@ -1,0 +1,14 @@
+{
+  "Comment": "camber.inmatics.io -> aws009 (cluster QA node; camber namespace runs there)",
+  "Changes": [
+    {
+      "Action": "UPSERT",
+      "ResourceRecordSet": {
+        "Name": "camber.inmatics.io.",
+        "Type": "CNAME",
+        "TTL": 300,
+        "ResourceRecords": [{ "Value": "aws009.inmatics.io" }]
+      }
+    }
+  ]
+}

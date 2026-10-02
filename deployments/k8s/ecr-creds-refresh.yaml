@@ -1,0 +1,82 @@
+# Keeps the "ecr-creds" pull secret alive: ECR login tokens expire after 12
+# hours, so every 8 hours a Job fetches a fresh one and patches it in place.
+# Same mechanism as the inmatics namespaces (deployments/k8s/base/
+# ecr-creds-refresh.yaml there); the "ecr-refresh-aws" Secret (AWS key pair)
+# is copied into this namespace by create-secrets.sh.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ecr-creds-refresher
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ecr-creds-refresher
+rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    resourceNames: [ecr-creds]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ecr-creds-refresher
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ecr-creds-refresher
+subjects:
+  - kind: ServiceAccount
+    name: ecr-creds-refresher
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecr-creds-refresh
+spec:
+  schedule: "0 */8 * * *"
+  concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          nodeSelector:
+            inmatics.io/role: qa
+          serviceAccountName: ecr-creds-refresher
+          restartPolicy: OnFailure
+          containers:
+            - name: refresh
+              image: public.ecr.aws/aws-cli/aws-cli:latest
+              envFrom:
+                - secretRef:
+                    name: ecr-refresh-aws
+              env:
+                - name: AWS_REGION
+                  value: us-east-1
+                - name: ECR_REGISTRY
+                  value: 032401303688.dkr.ecr.us-east-1.amazonaws.com
+              command: [/bin/sh, -ec]
+              args:
+                - |
+                  TOKEN=$(aws ecr get-login-password --region "$AWS_REGION")
+                  AUTH=$(printf 'AWS:%s' "$TOKEN" | base64 -w0)
+                  CFG=$(printf '{"auths":{"%s":{"auth":"%s"}}}' "$ECR_REGISTRY" "$AUTH" | base64 -w0)
+                  SA=/var/run/secrets/kubernetes.io/serviceaccount
+                  curl -sSf --cacert "$SA/ca.crt" \
+                    -H "Authorization: Bearer $(cat "$SA/token")" \
+                    -H "Content-Type: application/merge-patch+json" \
+                    -X PATCH \
+                    "https://kubernetes.default.svc/api/v1/namespaces/$(cat "$SA/namespace")/secrets/ecr-creds" \
+                    -d "{\"data\":{\".dockerconfigjson\":\"$CFG\"}}" >/dev/null
+                  echo "ecr-creds refreshed"
+              resources:
+                requests:
+                  cpu: 10m
+                  memory: 32Mi
+                limits:
+                  memory: 128Mi

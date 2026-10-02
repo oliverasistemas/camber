@@ -1,0 +1,93 @@
+# Plain PostgreSQL for the camber dashboard (schema camber_credit, see ../../sql).
+#
+# Runs on the inmatics QA node (aws009) in the aws009 cluster — see the
+# nodeSelector. In-cluster clients use the ClusterIP Service "postgres" on
+# 5432; there is no hostPort, the database is not reachable from outside the
+# cluster (use kubectl port-forward for ad-hoc psql).
+#
+# Storage: hostPath on the node at /srv/camber-pgdata. Single-node-pinned, so
+# no PV/StorageClass indirection; PGDATA is a subdirectory because the
+# postgres entrypoint refuses a non-empty data directory root.
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      nodeSelector:
+        inmatics.io/role: qa
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - name: postgres
+              containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: camber-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: camber-secrets
+                  key: POSTGRES_DB
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: camber-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "pg_isready -U \"$POSTGRES_USER\" -d \"$POSTGRES_DB\""]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          # The dataset is tiny (2,228 leases); keep requests small, the QA
+          # node is memory-tight.
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: pgdata
+          hostPath:
+            path: /srv/camber-pgdata
+            type: DirectoryOrCreate
