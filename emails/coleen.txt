@@ -1,0 +1,21 @@
+Colleen Stabler <colleen@thereportingco.com>
+Archivos adjuntos
+lun, 14 sept, 16:05
+para mí, Thomas, Brad, russell
+
+Parece que este mensaje está en inglés
+Hi Adolfo,
+
+It was good to meet you today, and I look forward to working together. Please find attached
+a connection guide for our sandbox account. It includes everything you need to get started: the sandbox endpoint, your dedicated API key, and mTLS client certificate.
+
+I'm also including a sample JSON application payload you can use as a starting point for your first test submission. Note: the sample JSON has a fixed applicationId, so please update it to a new value before each test submission to avoid it being treated as a duplicate.
+
+Let me know if you have any questions.
+
+Best,
+--
+Colleen Stabler
+Principal Data Architect | thereportingco.com
+
+Confidentiality Note: This email and any attachments are intend

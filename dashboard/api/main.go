@@ -1,0 +1,319 @@
+// Camber Credit 2026-1 pool dashboard API.
+// Serves aggregated views of the camber_credit schema (see ../../sql) and,
+// when ../web/dist exists, the built dashboard.
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/user"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+const asofDate = "2026-08-31"
+
+type summary struct {
+	TotalLeases  int     `json:"totalLeases"`
+	Active       int     `json:"active"`
+	Inventory    int     `json:"inventory"`
+	Sold         int     `json:"sold"`
+	PVTotal      float64 `json:"pvTotal"`
+	PVEligible   float64 `json:"pvEligible"`
+	Collections  float64 `json:"collections"`
+	Proceeds     float64 `json:"proceeds"`
+	Delinquent30 int     `json:"delinquent30"`
+}
+
+type statusRow struct {
+	Code  int     `json:"code"`
+	Name  string  `json:"name"`
+	Count int     `json:"count"`
+	PV    float64 `json:"pv"`
+}
+
+type bucketRow struct {
+	Bucket string  `json:"bucket"`
+	Count  int     `json:"count"`
+	PV     float64 `json:"pv"`
+}
+
+type monthRow struct {
+	Month    string  `json:"month"`
+	Count    int     `json:"count"`
+	Proceeds float64 `json:"proceeds"`
+}
+
+type typeRow struct {
+	Type     string  `json:"type"`
+	Count    int     `json:"count"`
+	Proceeds float64 `json:"proceeds"`
+}
+
+type quarterRow struct {
+	Quarter string  `json:"quarter"`
+	Count   int     `json:"count"`
+	PV      float64 `json:"pv"`
+}
+
+type yearRow struct {
+	Year  int     `json:"year"`
+	Count int     `json:"count"`
+	PV    float64 `json:"pv"`
+}
+
+type dashboard struct {
+	AsOf                string      `json:"asOf"`
+	Summary             summary     `json:"summary"`
+	Status              []statusRow `json:"status"`
+	Delinquency         []bucketRow `json:"delinquency"`
+	TerminationsByMonth []monthRow  `json:"terminationsByMonth"`
+	TerminationsByType  []typeRow   `json:"terminationsByType"`
+	Runoff              []quarterRow `json:"runoff"`
+	ModelYears          []yearRow   `json:"modelYears"`
+}
+
+type server struct{ db *pgxpool.Pool }
+
+// filterClause builds the WHERE tail shared by every query from the
+// whitelisted query params. Values are passed as bind parameters.
+func filterClause(r *http.Request) (string, []any) {
+	clause := fmt.Sprintf("s.asof_date = DATE '%s'", asofDate)
+	var args []any
+	add := func(cond string, v any) {
+		args = append(args, v)
+		clause += fmt.Sprintf(" AND %s $%d", cond, len(args))
+	}
+	if v := r.URL.Query().Get("obligor"); v == "B" || v == "P" {
+		add("l.obligor_type =", v)
+	}
+	if v := r.URL.Query().Get("condition"); v == "N" || v == "U" {
+		add("l.new_used =", v)
+	}
+	if r.URL.Query().Get("eligible") == "1" {
+		clause += " AND s.is_eligible_collateral"
+	}
+	return clause, args
+}
+
+const fromBase = `
+FROM camber_credit.leases l
+JOIN camber_credit.lease_snapshots s ON s.lease_id = l.lease_id
+JOIN camber_credit.vehicles v ON v.vin = l.vin
+LEFT JOIN camber_credit.lease_valuations pv ON pv.lease_id = l.lease_id AND pv.asof_date = s.asof_date
+WHERE `
+
+func (sv *server) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	where, args := filterClause(r)
+	d := dashboard{AsOf: asofDate}
+
+	err := sv.db.QueryRow(ctx, `
+SELECT count(*),
+       count(*) FILTER (WHERE s.status_code = 0),
+       count(*) FILTER (WHERE s.status_code = 1),
+       count(*) FILTER (WHERE s.status_code = 2),
+       COALESCE(sum(pv.pv_total), 0),
+       COALESCE(sum(pv.pv_eligible_collateral), 0),
+       COALESCE(sum(s.period_payment_collected), 0),
+       COALESCE(sum(s.net_sales_proceeds), 0),
+       count(*) FILTER (WHERE s.status_code = 0 AND s.days_delinquent > 30)
+`+fromBase+where, args...).Scan(
+		&d.Summary.TotalLeases, &d.Summary.Active, &d.Summary.Inventory,
+		&d.Summary.Sold, &d.Summary.PVTotal, &d.Summary.PVEligible,
+		&d.Summary.Collections, &d.Summary.Proceeds, &d.Summary.Delinquent30)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	// Status composition
+	rows, err := sv.db.Query(ctx, `
+SELECT s.status_code,
+       (SELECT name FROM camber_credit.lease_status_types t WHERE t.status_code = s.status_code),
+       count(*), COALESCE(sum(pv.pv_total), 0)
+`+fromBase+where+`
+GROUP BY s.status_code ORDER BY s.status_code`, args...)
+	if err == nil {
+		for rows.Next() {
+			var x statusRow
+			if err = rows.Scan(&x.Code, &x.Name, &x.Count, &x.PV); err != nil {
+				break
+			}
+			d.Status = append(d.Status, x)
+		}
+		rows.Close()
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	// Delinquency buckets, active leases only
+	rows, err = sv.db.Query(ctx, `
+SELECT bucket, count(*), COALESCE(sum(pv_total), 0) FROM (
+  SELECT CASE
+           WHEN s.days_delinquent = 0 THEN 'Current'
+           WHEN s.days_delinquent <= 30 THEN '1–30 days'
+           WHEN s.days_delinquent <= 60 THEN '31–60 days'
+           WHEN s.days_delinquent <= 90 THEN '61–90 days'
+           ELSE '90+ days'
+         END AS bucket,
+         CASE
+           WHEN s.days_delinquent = 0 THEN 0
+           WHEN s.days_delinquent <= 30 THEN 1
+           WHEN s.days_delinquent <= 60 THEN 2
+           WHEN s.days_delinquent <= 90 THEN 3
+           ELSE 4
+         END AS ord,
+         pv.pv_total
+  `+fromBase+where+` AND s.status_code = 0
+) b GROUP BY bucket, ord ORDER BY ord`, args...)
+	if err == nil {
+		for rows.Next() {
+			var x bucketRow
+			if err = rows.Scan(&x.Bucket, &x.Count, &x.PV); err != nil {
+				break
+			}
+			d.Delinquency = append(d.Delinquency, x)
+		}
+		rows.Close()
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	// Vehicle sales by month
+	rows, err = sv.db.Query(ctx, `
+SELECT s.sold_month, count(*), COALESCE(sum(s.net_sales_proceeds), 0)
+`+fromBase+where+` AND s.sold_month IS NOT NULL
+GROUP BY s.sold_month ORDER BY s.sold_month`, args...)
+	if err == nil {
+		for rows.Next() {
+			var x monthRow
+			if err = rows.Scan(&x.Month, &x.Count, &x.Proceeds); err != nil {
+				break
+			}
+			d.TerminationsByMonth = append(d.TerminationsByMonth, x)
+		}
+		rows.Close()
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	// Termination types
+	rows, err = sv.db.Query(ctx, `
+SELECT s.termination_type::text, count(*), COALESCE(sum(s.net_sales_proceeds), 0)
+`+fromBase+where+` AND s.termination_type IS NOT NULL AND s.status_code <> 0
+GROUP BY s.termination_type ORDER BY count(*) DESC`, args...)
+	if err == nil {
+		for rows.Next() {
+			var x typeRow
+			if err = rows.Scan(&x.Type, &x.Count, &x.Proceeds); err != nil {
+				break
+			}
+			d.TerminationsByType = append(d.TerminationsByType, x)
+		}
+		rows.Close()
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	// Maturity runoff of active collateral
+	rows, err = sv.db.Query(ctx, `
+SELECT to_char(l.maturity_date, 'YYYY "Q"Q'), count(*), COALESCE(sum(pv.pv_total), 0)
+`+fromBase+where+` AND s.status_code = 0
+GROUP BY 1 ORDER BY 1`, args...)
+	if err == nil {
+		for rows.Next() {
+			var x quarterRow
+			if err = rows.Scan(&x.Quarter, &x.Count, &x.PV); err != nil {
+				break
+			}
+			d.Runoff = append(d.Runoff, x)
+		}
+		rows.Close()
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	// Model-year mix of active collateral
+	rows, err = sv.db.Query(ctx, `
+SELECT v.model_year, count(*), COALESCE(sum(pv.pv_total), 0)
+`+fromBase+where+` AND s.status_code = 0
+GROUP BY v.model_year ORDER BY v.model_year`, args...)
+	if err == nil {
+		for rows.Next() {
+			var x yearRow
+			if err = rows.Scan(&x.Year, &x.Count, &x.PV); err != nil {
+				break
+			}
+			d.ModelYears = append(d.ModelYears, x)
+		}
+		rows.Close()
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(d)
+}
+
+func httpError(w http.ResponseWriter, err error) {
+	log.Printf("query error: %v", err)
+	http.Error(w, `{"error":"query failed"}`, http.StatusInternalServerError)
+}
+
+func defaultDSN() string {
+	if dsn := os.Getenv("DATABASE_URL"); dsn != "" {
+		return dsn
+	}
+	u, _ := user.Current()
+	name := "postgres"
+	if u != nil {
+		name = u.Username
+	}
+	return fmt.Sprintf("postgres://%s@localhost:5432/camber", name)
+}
+
+func main() {
+	addr := os.Getenv("ADDR")
+	if addr == "" {
+		addr = ":8080"
+	}
+	db, err := pgxpool.New(context.Background(), defaultDSN())
+	if err != nil {
+		log.Fatalf("db config: %v", err)
+	}
+	if err := db.Ping(context.Background()); err != nil {
+		log.Fatalf("db ping: %v", err)
+	}
+	sv := &server{db: db}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/dashboard", sv.handleDashboard)
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte("ok"))
+	})
+	if st, err := os.Stat("../web/dist"); err == nil && st.IsDir() {
+		mux.Handle("GET /", http.FileServer(http.Dir("../web/dist")))
+	}
+
+	log.Printf("camber dashboard api on %s", addr)
+	log.Fatal(http.ListenAndServe(addr, mux))
+}

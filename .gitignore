@@ -1,0 +1,9 @@
+# local Claude Code settings
+.claude/settings.local.json
+.idea/
+
+# build artifacts
+dashboard/web/node_modules/
+dashboard/web/dist/
+nohup.out
+dashboard/web/tsconfig.tsbuildinfo

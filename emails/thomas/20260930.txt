@@ -1,0 +1,9 @@
+Hello Camber team
+
+As part of our ongoing testing in preparation for going live Colleen used Karus's "go ahead" to run some load testing earlier today. Attached is a summary of the results. Note, this is purely stress testing. Not qualitative.
+
+Best,
+
+Thomas Morris
+
+CEO | thereportingco.com

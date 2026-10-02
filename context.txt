@@ -1,0 +1,44 @@
+@Thomas @Colleen @olivera.adolfo - I don't want to distract from the NALN underwriting integration work, but attached is the updated WPM - Loan Boarding Data Template (v3.1) file that I received from Westlake today.
+I plan to provide this file to NALN so they can begin mapping their system fields to the WPM template.
+
+Westlake clarified that the previous file we received in April (also attached - WPM - Daily Datafeed Template (2026.04.21)) outlines the data that partners like Camber can retrieve from WPM for collateral servicing data.
+oBrad and Adolfo
+
+Here are the Zoom notes from today's meeting with Bobby and the Karus team. I'll send the Calendly notes over as well. The TU data issue stems primarily from a product version difference between the TU version NALN is operating from and the TU production version Karus trained on. They assume the data is likely the same, only the field names differ. The plan that seemed the best fit was for NALN to pass the TU product and version details in the payload. Karus will create a parser for the version NALN uses. Then when NALN or another originator comes along with a newer version, Karus will create a parser for that version that maps back to their internal schema. My opinion is, this places the conversion where it should reside, with Karus and it was their suggestion. I think they realized this will be an issue they need to accommodate going forward.
+
+Happy to hop on a call tomorrow if needed.
+Meeting summary
+
+
+Quick recap
+The meeting focused on resolving discrepancies between the TransUnion credit report data formats used by Bobby’s team and those expected by Paul and Thomas Muha for their application schema. Bobby explained that the field names and structure in the trade lines data he received from TransUnion did not match what Paul and Thomas Muha’s system expected, and that his version of the TransUnion product (2.28) was older than theirs (2.37). The group compared example JSON and XML responses and requests, and Paul noted that the underlying data seemed to be present but required mapping due to different field names and structures. They discussed whether to send the full raw TransUnion response or just the relevant portions, with concerns raised about including sensitive account information. The conversation also covered the importance of maintainability versus speed, the need to include product and version information in the payload, and the potential for future version changes to require new parsing logic. Thomas Morris emphasized the need to avoid becoming a complex translation layer and to ensure that any solution remained maintainable over time.
+
+Next steps
+Bobby
+Check with Marco to clarify if sending the full TransUnion XML response (with sensitive info removed) is permissible.
+Modify the JSON object sent to include the TransUnion product and version number, and, if allowed, include the modified raw response.
+Provide test cases that include bankruptcy, public records, and inquiries data.
+Paul
+Dig up and send the XSD for the TransUnion version (2.37) they are using.
+Thomas Morris
+Provide updates back to Adolfo and the Camber team regarding the decision and plan.
+Discuss with Brad and team about maintaining a sandbox environment for ongoing testing.
+Thomas Muha
+Create a parser for the TransUnion data based on the version and product information provided by Bobby.
+Summary
+Transunion Fields Alignment Discussion
+The meeting focused on discussing alignment issues with Transunion fields, where Bobby reported finding different field names and layouts compared to what the application schema expects. Thomas Morris and Bobby had previously met to discuss this topic, and Bobby had been reviewing the data since their last call. The team decided to go through the fields piece by piece, with Thomas Muha being asked to share his screen to review the details.
+
+TransUnion Data Format Discrepancies
+The team discussed data format differences between their systems when accessing TransUnion credit bureau data. Bobby identified issues with trade line data structure, noting that their system receives a flat JSON object while the team's system has complex objects with additional details like bureau name and SEG ID. Paul agreed to share an example XML request sent to TransUnion to help reconcile the differences, and Bobby offered to provide the full XML response from TransUnion for comparison.
+
+TransUnion Credit Report XML Discrepancies
+The team discussed differences in TransUnion credit report XML requests, specifically noting version discrepancies between 2.28 and 2.37. Paul and Bobby confirmed they use product code 07000, but different versions could be causing issues. The group decided to include the entire TransUnion response in the application rather than just specific fields, allowing the receiving team to parse out the necessary data. Thomas Morris noted the need for input from Canberra regarding this approach.
+
+Data Format Compatibility Discussion
+The team discussed data format differences between what Bobby's system receives and what Paul's team needs for their application. Paul identified structural and naming differences in field formats, though the underlying data appears to be the same. Bobby explained that the current version being pulled (2.27) is significantly outdated compared to what Paul's team uses, creating version compatibility issues. The team agreed to defer the final decision on how to handle these differences until Thomas Morris consults with Adolfo and the Canberra team about the best approach, considering both speed and long-term maintainability.
+
+TransUnion Data Versioning Strategy
+The team discussed how to handle versioning and data mapping for TransUnion (TU) data processing. Paul explained that while version updates would require remapping efforts, the key focus should be on ensuring the necessary 10-15 fields for each trade line are correctly mapped regardless of version. The group agreed on two potential approaches: either send the full raw response including version information (though this would include sensitive account details), or modify the payload to include just the version and product information. Bobby will consult with Marco about sending the full response, with Plan B being to add version attributes to the current JSON object structure. Thomas Muha estimated it would take about a day to create a new parser once the version information is received, and the team confirmed that their sandbox environment would remain continuously available for testing.
+
+Attendees: Thomas Morris (Organizer), Paul Kostoff (External), Thomas Muha (External), Colleen Stabler, Thomas Morris's Calendly Nоtеtаkеr (External), Bobby (External)
