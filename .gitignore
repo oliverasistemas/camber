@@ -7,3 +7,4 @@ dashboard/web/node_modules/
 dashboard/web/dist/
 nohup.out
 dashboard/web/tsconfig.tsbuildinfo
+dashboard/api/api
