@@ -11,7 +11,7 @@ const COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)']
  * 2px surface gaps between segments, rounded outer data-ends only.
  * Legend beneath carries identity; in-segment % labels only where they fit.
  */
-export function StatusStrip({ status }: { status: StatusRow[] }) {
+export function StatusStrip({ status, onSelect }: { status: StatusRow[]; onSelect?: (code: number) => void }) {
   const [ref, width] = useWidth<HTMLDivElement>()
   const [tip, setTip] = useState<TipState | null>(null)
   const total = status.reduce((a, s) => a + s.count, 0)
@@ -56,13 +56,25 @@ export function StatusStrip({ status }: { status: StatusRow[] }) {
               </text>
             )}
             <rect
-              className="hit"
+              className={onSelect ? 'hit clickable' : 'hit'}
               x={s.x}
               y={0}
               width={Math.max(s.w, 24)}
               height={H}
               tabIndex={0}
-              aria-label={`${s.name}: ${int(s.count)} leases, ${money(s.pv)} par value`}
+              role={onSelect ? 'button' : undefined}
+              aria-label={`${s.name}: ${int(s.count)} leases, ${money(s.pv)} par value${onSelect ? '. View leases' : ''}`}
+              onClick={onSelect ? () => onSelect(s.code) : undefined}
+              onKeyDown={
+                onSelect
+                  ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        onSelect(s.code)
+                      }
+                    }
+                  : undefined
+              }
               onPointerEnter={() =>
                 setTip({
                   x: s.x + s.w / 2,

@@ -9,15 +9,19 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/user"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -73,14 +77,73 @@ type yearRow struct {
 }
 
 type dashboard struct {
-	AsOf                string      `json:"asOf"`
-	Summary             summary     `json:"summary"`
-	Status              []statusRow `json:"status"`
-	Delinquency         []bucketRow `json:"delinquency"`
-	TerminationsByMonth []monthRow  `json:"terminationsByMonth"`
-	TerminationsByType  []typeRow   `json:"terminationsByType"`
+	AsOf                string       `json:"asOf"`
+	Summary             summary      `json:"summary"`
+	Status              []statusRow  `json:"status"`
+	Delinquency         []bucketRow  `json:"delinquency"`
+	TerminationsByMonth []monthRow   `json:"terminationsByMonth"`
+	TerminationsByType  []typeRow    `json:"terminationsByType"`
 	Runoff              []quarterRow `json:"runoff"`
-	ModelYears          []yearRow   `json:"modelYears"`
+	ModelYears          []yearRow    `json:"modelYears"`
+}
+
+type leaseRow struct {
+	LeaseID        int64    `json:"leaseId"`
+	VIN            string   `json:"vin"`
+	ModelYear      int      `json:"modelYear"`
+	Description    string   `json:"description"`
+	StatusCode     int      `json:"statusCode"`
+	StatusName     string   `json:"statusName"`
+	ObligorType    string   `json:"obligorType"`
+	NewUsed        string   `json:"newUsed"`
+	DaysDelinquent int      `json:"daysDelinquent"`
+	MaturityDate   string   `json:"maturityDate"`
+	PaymentRegular float64  `json:"paymentRegular"`
+	PV             *float64 `json:"pv"`
+	IsEligible     bool     `json:"isEligible"`
+}
+
+type leaseList struct {
+	Total   int        `json:"total"`
+	PVTotal float64    `json:"pvTotal"`
+	Offset  int        `json:"offset"`
+	Limit   int        `json:"limit"`
+	Rows    []leaseRow `json:"rows"`
+}
+
+type leaseDetail struct {
+	LeaseID                int64    `json:"leaseId"`
+	VIN                    string   `json:"vin"`
+	NewUsed                string   `json:"newUsed"`
+	OpenClosed             string   `json:"openClosed"`
+	ObligorType            string   `json:"obligorType"`
+	IsExtended             bool     `json:"isExtended"`
+	TermMonths             int      `json:"termMonths"`
+	LeaseDate              string   `json:"leaseDate"`
+	MaturityDate           string   `json:"maturityDate"`
+	OrigCost               float64  `json:"origCost"`
+	ContractResidual       float64  `json:"contractResidual"`
+	PaymentRegular         float64  `json:"paymentRegular"`
+	ALGModel               string   `json:"algModel"`
+	LeaseDCF               float64  `json:"leaseDcf"`
+	ModelYear              int      `json:"modelYear"`
+	Description            string   `json:"description"`
+	FuelType               string   `json:"fuelType"`
+	StatusCode             *int     `json:"statusCode"`
+	StatusName             *string  `json:"statusName"`
+	TerminationType        *string  `json:"terminationType"`
+	TerminationTiming      *string  `json:"terminationTiming"`
+	SoldMonth              *string  `json:"soldMonth"`
+	NetSalesProceeds       *float64 `json:"netSalesProceeds"`
+	PeriodPaymentCollected *float64 `json:"periodPaymentCollected"`
+	DaysDelinquent         *int     `json:"daysDelinquent"`
+	PaymentsRemaining      *int     `json:"paymentsRemaining"`
+	IsEligible             *bool    `json:"isEligible"`
+	DiscountRate           *float64 `json:"discountRate"`
+	PVTotal                *float64 `json:"pvTotal"`
+	PVContractResidual     *float64 `json:"pvContractResidual"`
+	PVEligible             *float64 `json:"pvEligible"`
+	PVTotalPrior           *float64 `json:"pvTotalPrior"`
 }
 
 type server struct {
@@ -363,6 +426,190 @@ GROUP BY v.model_year ORDER BY v.model_year`, args...)
 	json.NewEncoder(w).Encode(d)
 }
 
+var (
+	soldMonthRe = regexp.MustCompile(`^\d{4}-\d{2}$`)
+	quarterRe   = regexp.MustCompile(`^\d{4} Q[1-4]$`)
+)
+
+var terminationTypes = map[string]bool{
+	"Early Payoff":                 true,
+	"Purchase Option Exercised":    true,
+	"Repossession / Default":       true,
+	"Voluntary Return at Maturity": true,
+}
+
+var delinquencyBuckets = map[string]string{
+	"current": "s.days_delinquent = 0",
+	"1-30":    "s.days_delinquent BETWEEN 1 AND 30",
+	"31-60":   "s.days_delinquent BETWEEN 31 AND 60",
+	"61-90":   "s.days_delinquent BETWEEN 61 AND 90",
+	"90+":     "s.days_delinquent > 90",
+}
+
+var leaseSortCols = map[string]string{
+	"id":         "l.lease_id",
+	"pv":         "pv.pv_total",
+	"delinquent": "s.days_delinquent",
+	"maturity":   "l.maturity_date",
+	"payment":    "l.payment_regular",
+}
+
+// leaseFilterClause extends the dashboard filters with the drill-down
+// parameters used when a chart segment is opened as a lease list. Every
+// parameter is whitelisted; values travel as bind parameters.
+func leaseFilterClause(r *http.Request) (string, []any) {
+	clause, args := filterClause(r)
+	q := r.URL.Query()
+	add := func(cond string, v any) {
+		args = append(args, v)
+		clause += fmt.Sprintf(" AND %s $%d", cond, len(args))
+	}
+	if v := q.Get("status"); v == "0" || v == "1" || v == "2" {
+		add("s.status_code =", v)
+	}
+	if cond, ok := delinquencyBuckets[q.Get("bucket")]; ok {
+		clause += " AND " + cond
+	}
+	if v := q.Get("soldMonth"); soldMonthRe.MatchString(v) {
+		add("s.sold_month =", v)
+	}
+	if v := q.Get("termination"); terminationTypes[v] {
+		clause += " AND s.status_code <> 0"
+		args = append(args, v)
+		clause += fmt.Sprintf(" AND s.termination_type = $%d::camber_credit.lease_termination_type", len(args))
+	}
+	if v := q.Get("maturityQuarter"); quarterRe.MatchString(v) {
+		add(`to_char(l.maturity_date, 'YYYY "Q"Q') =`, v)
+	}
+	if v := q.Get("modelYear"); v != "" {
+		if y, err := strconv.Atoi(v); err == nil && y > 1980 && y < 2100 {
+			add("v.model_year =", y)
+		}
+	}
+	if v := q.Get("modelYearMax"); v != "" {
+		if y, err := strconv.Atoi(v); err == nil && y > 1980 && y < 2100 {
+			add("v.model_year <=", y)
+		}
+	}
+	return clause, args
+}
+
+func (sv *server) handleLeases(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	q := r.URL.Query()
+	where, args := leaseFilterClause(r)
+
+	sortCol, ok := leaseSortCols[q.Get("sort")]
+	if !ok {
+		sortCol = "pv.pv_total"
+	}
+	dir := "DESC"
+	if q.Get("dir") == "asc" {
+		dir = "ASC"
+	}
+	limit := 50
+	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v >= 1 && v <= 200 {
+		limit = v
+	}
+	offset := 0
+	if v, err := strconv.Atoi(q.Get("offset")); err == nil && v >= 0 {
+		offset = v
+	}
+
+	out := leaseList{Offset: offset, Limit: limit, Rows: []leaseRow{}}
+	err := sv.db.QueryRow(ctx,
+		`SELECT count(*), COALESCE(sum(pv.pv_total), 0) `+fromBase+where, args...,
+	).Scan(&out.Total, &out.PVTotal)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+
+	listArgs := append(args, limit, offset)
+	rows, err := sv.db.Query(ctx, fmt.Sprintf(`
+SELECT l.lease_id, v.vin, v.model_year, v.description,
+       s.status_code,
+       (SELECT name FROM camber_credit.lease_status_types t WHERE t.status_code = s.status_code),
+       l.obligor_type, l.new_used, s.days_delinquent,
+       to_char(l.maturity_date, 'YYYY-MM-DD'), l.payment_regular,
+       pv.pv_total, s.is_eligible_collateral
+%s%s
+ORDER BY %s %s NULLS LAST, l.lease_id
+LIMIT $%d OFFSET $%d`, fromBase, where, sortCol, dir, len(listArgs)-1, len(listArgs)), listArgs...)
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var x leaseRow
+		if err := rows.Scan(&x.LeaseID, &x.VIN, &x.ModelYear, &x.Description,
+			&x.StatusCode, &x.StatusName, &x.ObligorType, &x.NewUsed,
+			&x.DaysDelinquent, &x.MaturityDate, &x.PaymentRegular,
+			&x.PV, &x.IsEligible); err != nil {
+			httpError(w, err)
+			return
+		}
+		out.Rows = append(out.Rows, x)
+	}
+	if err := rows.Err(); err != nil {
+		httpError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
+}
+
+func (sv *server) handleLease(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"bad lease id"}`, http.StatusBadRequest)
+		return
+	}
+	var d leaseDetail
+	err = sv.db.QueryRow(ctx, `
+SELECT l.lease_id, l.vin, l.new_used, l.open_closed, l.obligor_type, l.is_extended,
+       l.lease_term_months, to_char(l.lease_date, 'YYYY-MM-DD'),
+       to_char(l.maturity_date, 'YYYY-MM-DD'), l.orig_cost,
+       l.contract_residual_value, l.payment_regular, l.alg_model_used, l.lease_dcf,
+       v.model_year, v.description, v.fuel_type::text,
+       s.status_code,
+       (SELECT name FROM camber_credit.lease_status_types t WHERE t.status_code = s.status_code),
+       s.termination_type::text, s.termination_timing_category::text,
+       s.sold_month, s.net_sales_proceeds, s.period_payment_collected,
+       s.days_delinquent, s.payments_remaining, s.is_eligible_collateral,
+       pv1.discount_rate, pv1.pv_total, pv1.pv_contract_residual, pv1.pv_eligible_collateral,
+       pv0.pv_total
+FROM camber_credit.leases l
+JOIN camber_credit.vehicles v ON v.vin = l.vin
+LEFT JOIN camber_credit.lease_snapshots s ON s.lease_id = l.lease_id AND s.asof_date = DATE '`+asofDate+`'
+LEFT JOIN camber_credit.lease_valuations pv1 ON pv1.lease_id = l.lease_id AND pv1.asof_date = DATE '`+asofDate+`'
+LEFT JOIN camber_credit.lease_valuations pv0 ON pv0.lease_id = l.lease_id AND pv0.asof_date = DATE '2025-10-31'
+WHERE l.lease_id = $1`, id).Scan(
+		&d.LeaseID, &d.VIN, &d.NewUsed, &d.OpenClosed, &d.ObligorType, &d.IsExtended,
+		&d.TermMonths, &d.LeaseDate, &d.MaturityDate, &d.OrigCost,
+		&d.ContractResidual, &d.PaymentRegular, &d.ALGModel, &d.LeaseDCF,
+		&d.ModelYear, &d.Description, &d.FuelType,
+		&d.StatusCode, &d.StatusName, &d.TerminationType, &d.TerminationTiming,
+		&d.SoldMonth, &d.NetSalesProceeds, &d.PeriodPaymentCollected,
+		&d.DaysDelinquent, &d.PaymentsRemaining, &d.IsEligible,
+		&d.DiscountRate, &d.PVTotal, &d.PVContractResidual, &d.PVEligible,
+		&d.PVTotalPrior)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			http.Error(w, `{"error":"lease not found"}`, http.StatusNotFound)
+			return
+		}
+		httpError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(d)
+}
+
 func httpError(w http.ResponseWriter, err error) {
 	log.Printf("query error: %v", err)
 	http.Error(w, `{"error":"query failed"}`, http.StatusInternalServerError)
@@ -407,6 +654,8 @@ func main() {
 	mux.HandleFunc("POST /api/logout", sv.handleLogout)
 	mux.HandleFunc("GET /api/me", sv.handleMe)
 	mux.HandleFunc("GET /api/dashboard", sv.requireAuth(sv.handleDashboard))
+	mux.HandleFunc("GET /api/leases", sv.requireAuth(sv.handleLeases))
+	mux.HandleFunc("GET /api/leases/{id}", sv.requireAuth(sv.handleLease))
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("ok"))
 	})

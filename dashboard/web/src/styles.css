@@ -401,6 +401,10 @@ body {
   cursor: default;
 }
 
+.hit.clickable {
+  cursor: pointer;
+}
+
 .axis-text {
   fill: var(--muted);
   font-size: 11px;
@@ -480,6 +484,32 @@ body {
   white-space: nowrap;
 }
 
+.hbar-btn {
+  display: block;
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.hbar-btn:hover .hbar-bar {
+  opacity: 0.82;
+}
+
+.hbar-btn:hover .hbar-label {
+  color: var(--ink);
+}
+
+.hbar-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* ---------- table view ---------- */
 
 .viz-table {
@@ -505,6 +535,138 @@ body {
 .viz-table th.num,
 .viz-table td.num {
   text-align: right;
+}
+
+.viz-table tr.row-link {
+  cursor: pointer;
+}
+
+.viz-table tr.row-link:hover td {
+  background: var(--brand-wash);
+}
+
+.viz-table tr.row-link:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+/* ---------- lease list & detail ---------- */
+
+.crumb {
+  display: inline-block;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+.crumb:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.crumb-btn {
+  font: inherit;
+  font-size: 13px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lease-table a {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lease-table a:hover {
+  text-decoration: underline;
+}
+
+:root[data-theme='dark'] .lease-table a {
+  color: var(--series-1);
+}
+
+.th-sort {
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink-2);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.th-sort:hover {
+  color: var(--ink);
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.pager span {
+  margin-right: auto;
+}
+
+.pager button {
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: none;
+  border: 1px solid var(--ring);
+  border-radius: 4px;
+  padding: 3px 12px;
+  cursor: pointer;
+}
+
+.pager button:hover:not(:disabled) {
+  background: var(--brand-wash);
+  color: var(--ink);
+}
+
+.pager button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.detail-grid {
+  margin-top: 24px;
+}
+
+.dl {
+  margin: 10px 0 2px;
+}
+
+.dl-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--grid);
+}
+
+.dl-row:last-child {
+  border-bottom: 0;
+}
+
+.dl-row dt {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.dl-row dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .footer-note {

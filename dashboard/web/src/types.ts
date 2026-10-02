@@ -58,6 +58,65 @@ export interface Dashboard {
   modelYears: YearRow[]
 }
 
+export interface LeaseListRow {
+  leaseId: number
+  vin: string
+  modelYear: number
+  description: string
+  statusCode: number
+  statusName: string
+  obligorType: string
+  newUsed: string
+  daysDelinquent: number
+  maturityDate: string
+  paymentRegular: number
+  pv: number | null
+  isEligible: boolean
+}
+
+export interface LeaseList {
+  total: number
+  pvTotal: number
+  offset: number
+  limit: number
+  rows: LeaseListRow[]
+}
+
+export interface LeaseDetail {
+  leaseId: number
+  vin: string
+  newUsed: string
+  openClosed: string
+  obligorType: string
+  isExtended: boolean
+  termMonths: number
+  leaseDate: string
+  maturityDate: string
+  origCost: number
+  contractResidual: number
+  paymentRegular: number
+  algModel: string
+  leaseDcf: number
+  modelYear: number
+  description: string
+  fuelType: string
+  statusCode: number | null
+  statusName: string | null
+  terminationType: string | null
+  terminationTiming: string | null
+  soldMonth: string | null
+  netSalesProceeds: number | null
+  periodPaymentCollected: number | null
+  daysDelinquent: number | null
+  paymentsRemaining: number | null
+  isEligible: boolean | null
+  discountRate: number | null
+  pvTotal: number | null
+  pvContractResidual: number | null
+  pvEligible: number | null
+  pvTotalPrior: number | null
+}
+
 export interface Filters {
   obligor: '' | 'B' | 'P'
   condition: '' | 'N' | 'U'

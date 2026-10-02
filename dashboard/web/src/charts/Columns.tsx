@@ -22,12 +22,15 @@ export function Columns({
   height = 210,
   formatTick,
   directLabel,
+  onSelect,
 }: {
   items: ColumnItem[]
   height?: number
   formatTick: (v: number) => string
   /** formatted value placed on the cap of the tallest column */
   directLabel: (v: number) => string
+  /** when set, columns become clickable (Enter/Space from the keyboard) */
+  onSelect?: (index: number) => void
 }) {
   const [ref, width] = useWidth<HTMLDivElement>()
   const [tip, setTip] = useState<TipState | null>(null)
@@ -88,13 +91,25 @@ export function Columns({
         {items.map((d, i) => (
           <rect
             key={d.label}
-            className="hit"
+            className={onSelect ? 'hit clickable' : 'hit'}
             x={m.left + band * i}
             y={m.top}
             width={band}
             height={innerH}
             tabIndex={0}
-            aria-label={`${d.tipTitle ?? d.label}: ${d.tipRows.map((r) => `${r.v} ${r.k}`).join(', ')}`}
+            role={onSelect ? 'button' : undefined}
+            aria-label={`${d.tipTitle ?? d.label}: ${d.tipRows.map((r) => `${r.v} ${r.k}`).join(', ')}${onSelect ? '. View leases' : ''}`}
+            onClick={onSelect ? () => onSelect(i) : undefined}
+            onKeyDown={
+              onSelect
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      onSelect(i)
+                    }
+                  }
+                : undefined
+            }
             onPointerEnter={() => {
               setHover(i)
               setTip({ x: m.left + band * i + band / 2, y: y(d.value), title: d.tipTitle ?? d.label, rows: d.tipRows })

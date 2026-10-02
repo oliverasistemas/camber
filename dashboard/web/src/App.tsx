@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Dashboard, Filters } from './types'
 import { Login } from './Login'
+import { Leases } from './Leases'
+import { LeaseView } from './LeaseView'
 import { Columns } from './charts/Columns'
 import { HBars } from './charts/HBars'
 import { StatusStrip } from './charts/StatusStrip'
@@ -8,6 +10,25 @@ import { Panel } from './Panel'
 import { money, moneyFull, int, pct, monthLabel, quarterLabel, axisMoney } from './format'
 
 const ORDINAL = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-4)', 'var(--ord-5)']
+
+/** Dashboard bucket labels → /api/leases bucket param. */
+const BUCKET_PARAM: Record<string, string> = {
+  Current: 'current',
+  '1–30 days': '1-30',
+  '31–60 days': '31-60',
+  '61–90 days': '61-90',
+  '90+ days': '90+',
+}
+
+function useHash(): string {
+  const [hash, setHash] = useState(window.location.hash)
+  useEffect(() => {
+    const fn = () => setHash(window.location.hash)
+    window.addEventListener('hashchange', fn)
+    return () => window.removeEventListener('hashchange', fn)
+  }, [])
+  return hash
+}
 
 /** The pre-2018 tail is a handful of leases — fold it so the chart keeps its room. */
 function foldOldYears(years: { year: number; count: number; pv: number }[]) {
@@ -36,9 +57,17 @@ export default function App() {
   const [error, setError] = useState('')
   const [authed, setAuthed] = useState(true) // optimistic; a 401 flips it
   const [filters, setFilters] = useState<Filters>({ obligor: '', condition: '', eligible: '' })
+  const hash = useHash()
+  const leaseMatch = hash.match(/^#\/lease\/(\d+)/)
+  const onLeaseList = hash.startsWith('#/leases')
+  const onDashboard = !leaseMatch && !onLeaseList
 
   useEffect(() => {
-    if (!authed) return
+    window.scrollTo(0, 0)
+  }, [hash])
+
+  useEffect(() => {
+    if (!authed || !onDashboard) return
     const params = new URLSearchParams()
     if (filters.obligor) params.set('obligor', filters.obligor)
     if (filters.condition) params.set('condition', filters.condition)
@@ -61,7 +90,17 @@ export default function App() {
       })
       .catch(() => setError('The pool data is unavailable. Start the API with: go run ./dashboard/api'))
       .finally(() => setLoading(false))
-  }, [filters, authed])
+  }, [filters, authed, onDashboard])
+
+  /** Open the lease list for a chart slice, carrying the global filters. */
+  function drill(extra: Record<string, string>) {
+    const p = new URLSearchParams()
+    if (filters.obligor) p.set('obligor', filters.obligor)
+    if (filters.condition) p.set('condition', filters.condition)
+    if (filters.eligible) p.set('eligible', filters.eligible)
+    for (const [k, v] of Object.entries(extra)) p.set(k, v)
+    window.location.hash = `#/leases?${p}`
+  }
 
   async function signOut() {
     await fetch('/api/logout', { method: 'POST' })
@@ -71,6 +110,14 @@ export default function App() {
 
   if (!authed) {
     return <Login onSignedIn={() => setAuthed(true)} />
+  }
+
+  if (leaseMatch) {
+    return <LeaseView id={leaseMatch[1]} onUnauthorized={() => setAuthed(false)} />
+  }
+
+  if (onLeaseList) {
+    return <Leases query={hash.split('?')[1] ?? ''} onUnauthorized={() => setAuthed(false)} />
   }
 
   if (!data) {
@@ -83,6 +130,10 @@ export default function App() {
   }
 
   const s = data.summary
+  const pastDue = data.delinquency.filter((b) => b.bucket !== 'Current')
+  const yearCols = foldOldYears(data.modelYears)
+  const yearDrill = (label: string) =>
+    label === '≤ 2017' ? drill({ status: '0', modelYearMax: '2017' }) : drill({ status: '0', modelYear: label })
   return (
     <div className="app">
       <header className="masthead">
@@ -112,7 +163,7 @@ export default function App() {
       <section className="strip-section" aria-label="Pool composition">
         <h2 className="strip-title">Pool by lease status</h2>
         <div className={loading ? 'panel loading' : undefined} style={{ border: 0, padding: 0, background: 'none' }}>
-          <StatusStrip status={data.status} />
+          <StatusStrip status={data.status} onSelect={(code) => drill({ status: String(code) })} />
         </div>
       </section>
 
@@ -150,6 +201,7 @@ export default function App() {
           table={{
             cols: [{ name: 'Month' }, { name: 'Vehicles sold', numeric: true }, { name: 'Net proceeds', numeric: true }],
             rows: data.terminationsByMonth.map((m) => [monthLabel(m.month), int(m.count), moneyFull(m.proceeds)]),
+            onRow: (i) => drill({ soldMonth: data.terminationsByMonth[i].month }),
           }}
         >
           <Columns
@@ -164,6 +216,7 @@ export default function App() {
             }))}
             formatTick={axisMoney}
             directLabel={money}
+            onSelect={(i) => drill({ soldMonth: data.terminationsByMonth[i].month })}
           />
         </Panel>
 
@@ -174,6 +227,7 @@ export default function App() {
           table={{
             cols: [{ name: 'Outcome' }, { name: 'Leases', numeric: true }, { name: 'Net proceeds', numeric: true }],
             rows: data.terminationsByType.map((t) => [t.type, int(t.count), moneyFull(t.proceeds)]),
+            onRow: (i) => drill({ termination: data.terminationsByType[i].type }),
           }}
         >
           <HBars
@@ -182,6 +236,7 @@ export default function App() {
               value: t.count,
               note: `leases, ${money(t.proceeds)} proceeds`,
             }))}
+            onSelect={(i) => drill({ termination: data.terminationsByType[i].type })}
           />
         </Panel>
 
@@ -194,23 +249,23 @@ export default function App() {
           table={{
             cols: [{ name: 'Days past due' }, { name: 'Leases', numeric: true }, { name: 'Par value', numeric: true }],
             rows: data.delinquency.map((b) => [b.bucket, int(b.count), moneyFull(b.pv)]),
+            onRow: (i) => drill({ status: '0', bucket: BUCKET_PARAM[data.delinquency[i].bucket] }),
           }}
         >
           <Columns
-            items={data.delinquency
-              .filter((b) => b.bucket !== 'Current')
-              .map((b, i) => ({
-                label: b.bucket,
-                value: b.count,
-                color: ORDINAL[(i + 1) % ORDINAL.length],
-                tipTitle: `${b.bucket} past due`,
-                tipRows: [
-                  { k: 'leases', v: int(b.count) },
-                  { k: 'par value', v: money(b.pv) },
-                ],
-              }))}
+            items={pastDue.map((b, i) => ({
+              label: b.bucket,
+              value: b.count,
+              color: ORDINAL[(i + 1) % ORDINAL.length],
+              tipTitle: `${b.bucket} past due`,
+              tipRows: [
+                { k: 'leases', v: int(b.count) },
+                { k: 'par value', v: money(b.pv) },
+              ],
+            }))}
             formatTick={(v) => int(v)}
             directLabel={int}
+            onSelect={(i) => drill({ status: '0', bucket: BUCKET_PARAM[pastDue[i].bucket] })}
           />
         </Panel>
 
@@ -221,6 +276,7 @@ export default function App() {
           table={{
             cols: [{ name: 'Maturity quarter' }, { name: 'Leases', numeric: true }, { name: 'Par value', numeric: true }],
             rows: data.runoff.map((q) => [q.quarter, int(q.count), moneyFull(q.pv)]),
+            onRow: (i) => drill({ status: '0', maturityQuarter: data.runoff[i].quarter }),
           }}
         >
           <Columns
@@ -235,6 +291,7 @@ export default function App() {
             }))}
             formatTick={axisMoney}
             directLabel={money}
+            onSelect={(i) => drill({ status: '0', maturityQuarter: data.runoff[i].quarter })}
           />
         </Panel>
 
@@ -245,10 +302,11 @@ export default function App() {
           table={{
             cols: [{ name: 'Model year' }, { name: 'Leases', numeric: true }, { name: 'Par value', numeric: true }],
             rows: data.modelYears.map((y) => [y.year, int(y.count), moneyFull(y.pv)]),
+            onRow: (i) => drill({ status: '0', modelYear: String(data.modelYears[i].year) }),
           }}
         >
           <Columns
-            items={foldOldYears(data.modelYears).map((y) => ({
+            items={yearCols.map((y) => ({
               label: y.label,
               value: y.count,
               tipTitle: y.label === '≤ 2017' ? 'Model years 2017 and older' : `Model year ${y.label}`,
@@ -259,13 +317,15 @@ export default function App() {
             }))}
             formatTick={(v) => int(v)}
             directLabel={int}
+            onSelect={(i) => yearDrill(yearCols[i].label)}
           />
         </Panel>
       </div>
 
       <p className="footer-note">
         Par values are the present value of remaining lease cash flows at a 9% discount rate, as of August 31, 2026.
-        Source: camber_credit schema, lease tape distributed August 2026.
+        Source: camber_credit schema, lease tape distributed August 2026. Click any chart segment or table row to open
+        the underlying leases.
       </p>
     </div>
   )

@@ -35,7 +35,7 @@ rate limiting, no persistence. Don't expose it beyond localhost as-is.
 
 ## API
 
-One endpoint drives the whole page so every chart agrees on the slice:
+One endpoint drives the whole dashboard page so every chart agrees on the slice:
 
 ```
 GET /api/dashboard?obligor=B|P&condition=N|U&eligible=1
@@ -45,6 +45,26 @@ Returns pool summary, status composition, delinquency buckets (active leases),
 vehicle sales by month, termination outcomes, maturity runoff, and model-year
 mix — all scoped by the optional filters. Par values are 9% DCF present values
 as of 2026-08-31 from `lease_valuations`.
+
+Two more endpoints drive the drill-down from a chart segment to a lease:
+
+```
+GET /api/leases?<dashboard filters>
+      &status=0|1|2                  # lease status code
+      &bucket=current|1-30|31-60|61-90|90+
+      &soldMonth=YYYY-MM
+      &termination=<termination type name>
+      &maturityQuarter=YYYY QN
+      &modelYear=YYYY | modelYearMax=YYYY
+      &sort=id|pv|delinquent|maturity|payment & dir=asc|desc
+      &limit=1..200 & offset=N
+GET /api/leases/{id}
+```
+
+The list returns `{total, pvTotal, offset, limit, rows}` for the slice; the
+detail returns the full tape row for one lease (contract, vehicle, servicing
+snapshot, and both valuations — the same fields as `v_lease_tape`). All
+parameters are whitelisted; values travel as bind parameters.
 
 ## Frontend notes
 
@@ -57,3 +77,8 @@ as of 2026-08-31 from `lease_valuations`.
   reduced opacity while a filter refetches.
 - Dark mode follows `prefers-color-scheme`; a `data-theme="light|dark"`
   attribute on `<html>` overrides it.
+- Drill-down: every chart segment and table row opens the underlying lease
+  list (`#/leases?…`), and each lease links to its detail page
+  (`#/lease/<id>`). Routing is hash-based so the Go file server needs no
+  SPA fallback; list state (slice, sort, page) lives in the URL and the
+  global obligor/condition/eligible filters carry into the drill.

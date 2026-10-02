@@ -3,6 +3,8 @@ import { ReactNode, useState } from 'react'
 export interface TableSpec {
   cols: { name: string; numeric?: boolean }[]
   rows: (string | number)[][]
+  /** when set, table rows drill into their slice */
+  onRow?: (index: number) => void
 }
 
 /**
@@ -54,7 +56,19 @@ export function Panel({
           </thead>
           <tbody>
             {table.rows.map((r, i) => (
-              <tr key={i}>
+              <tr
+                key={i}
+                className={table.onRow ? 'row-link' : undefined}
+                tabIndex={table.onRow ? 0 : undefined}
+                onClick={table.onRow ? () => table.onRow!(i) : undefined}
+                onKeyDown={
+                  table.onRow
+                    ? (e) => {
+                        if (e.key === 'Enter') table.onRow!(i)
+                      }
+                    : undefined
+                }
+              >
                 {r.map((cell, j) => (
                   <td key={j} className={table.cols[j].numeric ? 'num' : undefined}>
                     {cell}

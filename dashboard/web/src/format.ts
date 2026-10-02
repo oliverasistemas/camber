@@ -30,6 +30,20 @@ export function quarterLabel(q: string): string {
   return `${qq} ${y.slice(2)}`
 }
 
+/** '2027-08-05' → 'Aug 5, 2027' */
+export function dateLabel(iso: string): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return `${names[m - 1]} ${d}, ${y}`
+}
+
+/** '2026-05' → 'May 2026' */
+export function monthFull(ym: string): string {
+  const [y, m] = ym.split('-').map(Number)
+  const names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+  return `${names[m - 1]} ${y}`
+}
+
 /** Clean axis ticks: 0..max covered by ~4 steps of 1/2/2.5/5 × 10^k */
 export function niceTicks(max: number, count = 4): number[] {
   if (max <= 0) return [0]
