@@ -24,7 +24,7 @@ Configuration: `DATABASE_URL` overrides the default
 
 The dashboard sits behind a basic username/password login. Credentials are
 plain text, set via `DASH_USER` and `DASH_PASS`; the defaults (when the env
-vars are unset) are `camber` / `lease-tape-2026`.
+vars are unset) are `russell` / `camber2026`.
 
 `POST /api/login` checks the credentials and sets an `HttpOnly` session
 cookie (random token, held in memory — restarting the API signs everyone

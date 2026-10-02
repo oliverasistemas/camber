@@ -393,11 +393,11 @@ func main() {
 	}
 	username := os.Getenv("DASH_USER")
 	if username == "" {
-		username = "camber"
+		username = "russell"
 	}
 	password := os.Getenv("DASH_PASS")
 	if password == "" {
-		password = "lease-tape-2026"
+		password = "camber2026"
 	}
 	sv := &server{db: db, username: username, password: password, sessions: map[string]bool{}}
 
