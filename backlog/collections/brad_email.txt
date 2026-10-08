@@ -1,0 +1,17 @@
+Hi Adolfo,
+
+Sharing a few items that we discussed on our call this afternoon:
+Vervent daily servicer reports:
+Asset Summary: Information about vehicles in our portfolio.
+Contract Summary: Information about the customer and lease contracts.
+Transaction History: Lease-level transactions, which include cash and non-cash transactions.
+Vervent Data Dictionary: Data dictionary we received from Vervent, which includes information for certain reports (e.g., Contract Summary) and descriptions for values used in fields within these reports (e.g., Lease Status).
+Copart Reports:
+Copart is the recovery and remarketing partner we have used since taking control of the portfolio in February to pick up vehicles from lessees, complete inspections, and sell the vehicles at auction.
+We are in the process of transitioning our recovery and remarketing efforts to Manheim, which will come with new recurring reporting deliverables that we will define.
+Camber Sales & Inventory Report: A report we just started receiving weekly from Copart, which contains information on vehicles in inventory and vehicles that have sold.
+Copart Portal Inventory Report: Data on Camber vehicles pulled from the portal that I shared on our call. This report contains different information than the "Camber Sales & Inventory Report" because our portal access limits what we can download.
+Please let me know if you have any questions. I'm happy to schedule a follow-up call to review any of these reports in more detail.
+
+Thank you,
+Brad

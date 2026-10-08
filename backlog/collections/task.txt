@@ -1,0 +1,12 @@
+Description:
+We need to create a data pipeline
+
+Steps
+1 Read Verbent (loan servicer) files from sFTP, lets start with collections
+2 Read more verbent files
+3 Apply overrides, for example some times the vehicle was sold and the price amount informed by Vernet is different than the one that is on Copart (https://www.copart.com/) file
+4 generate loan tape
+5 import loan tape into dashboard
+
+Input: Brad email and spread sheet.
+Output: Postgres tables
