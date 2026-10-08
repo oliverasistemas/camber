@@ -3,6 +3,7 @@ import { Dashboard, Filters } from './types'
 import { Login } from './Login'
 import { Leases } from './Leases'
 import { LeaseView } from './LeaseView'
+import { CollectionsView } from './CollectionsView'
 import { Columns } from './charts/Columns'
 import { HBars } from './charts/HBars'
 import { StatusStrip } from './charts/StatusStrip'
@@ -59,9 +60,10 @@ export default function App() {
   const [authed, setAuthed] = useState(true) // optimistic; a 401 flips it
   const [filters, setFilters] = useState<Filters>({ obligor: '', condition: '', eligible: '' })
   const hash = useHash()
-  const leaseMatch = hash.match(/^#\/lease\/(\d+)/)
+  const collectionsMatch = hash.match(/^#\/lease\/(\d+)\/collections/)
+  const leaseMatch = collectionsMatch ? null : hash.match(/^#\/lease\/(\d+)/)
   const onLeaseList = hash.startsWith('#/leases')
-  const onDashboard = !leaseMatch && !onLeaseList
+  const onDashboard = !collectionsMatch && !leaseMatch && !onLeaseList
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -111,6 +113,10 @@ export default function App() {
 
   if (!authed) {
     return <Login onSignedIn={() => setAuthed(true)} />
+  }
+
+  if (collectionsMatch) {
+    return <CollectionsView id={collectionsMatch[1]} onUnauthorized={() => setAuthed(false)} />
   }
 
   if (leaseMatch) {

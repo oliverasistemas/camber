@@ -115,6 +115,8 @@ export function LeaseView({ id, onUnauthorized }: { id: string; onUnauthorized: 
       <h1 className="deal-name">Lease {d.leaseId}</h1>
       <p className="deal-sub">
         {d.description} · {d.vin} · <strong>{d.statusName ?? 'No snapshot'}</strong>
+        {' · '}
+        <a href={`#/lease/${d.leaseId}/collections`}>Monthly collections →</a>
       </p>
 
       <div className="grid detail-grid">

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -144,6 +145,28 @@ type leaseDetail struct {
 	PVContractResidual     *float64 `json:"pvContractResidual"`
 	PVEligible             *float64 `json:"pvEligible"`
 	PVTotalPrior           *float64 `json:"pvTotalPrior"`
+}
+
+// collectionsMonth is one month of servicing collections for a lease. From
+// the pipeline's camber_credit.loan_tape when present; the snapshots fallback
+// fills only month, payment, daysDelinquent and statusCode.
+type collectionsMonth struct {
+	Month             string   `json:"month"`
+	TotalCashFlow     *float64 `json:"totalCashFlow"`
+	PropertyTax       *float64 `json:"propertyTax"`
+	SalesTax          *float64 `json:"salesTax"`
+	Payment           *float64 `json:"payment"` // excl. property & sales tax
+	EOLCollections    *float64 `json:"eolCollections"`
+	PastDue           *float64 `json:"pastDue"`
+	DaysDelinquent    *int     `json:"daysDelinquent"`
+	CumulativePayment *float64 `json:"cumulativePayment"` // pool start through month end
+	StatusCode        *int     `json:"statusCode"`
+}
+
+type leaseCollections struct {
+	LeaseID int64              `json:"leaseId"`
+	Source  string             `json:"source"` // "loan_tape" | "snapshots"
+	Months  []collectionsMonth `json:"months"`
 }
 
 type server struct {
@@ -610,6 +633,84 @@ WHERE l.lease_id = $1`, id).Scan(
 	json.NewEncoder(w).Encode(d)
 }
 
+// handleLeaseCollections returns the month-by-month collections history for
+// one lease. The rich source is the pipeline-built camber_credit.loan_tape;
+// on databases that only carry the distribution-tape load (no loan_tape), it
+// degrades to the per-snapshot payment figures.
+func (sv *server) handleLeaseCollections(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		http.Error(w, `{"error":"bad lease id"}`, http.StatusBadRequest)
+		return
+	}
+	var exists bool
+	if err := sv.db.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM camber_credit.leases WHERE lease_id = $1)`, id,
+	).Scan(&exists); err != nil {
+		httpError(w, err)
+		return
+	}
+	if !exists {
+		http.Error(w, `{"error":"lease not found"}`, http.StatusNotFound)
+		return
+	}
+
+	out := leaseCollections{LeaseID: id, Source: "loan_tape", Months: []collectionsMonth{}}
+	rows, err := sv.db.Query(ctx, `
+SELECT to_char(asof_date, 'YYYY-MM'),
+       period_total_cash_flow, period_property_tax, period_sales_tax,
+       period_payment_excl_prop_sales_tax, period_eol_collections,
+       past_due_receivables, days_delinquent, cum_payment_final,
+       camber_lease_status
+FROM camber_credit.loan_tape
+WHERE lease_id = $1
+ORDER BY asof_date`, id)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var m collectionsMonth
+			if err = rows.Scan(&m.Month, &m.TotalCashFlow, &m.PropertyTax,
+				&m.SalesTax, &m.Payment, &m.EOLCollections, &m.PastDue,
+				&m.DaysDelinquent, &m.CumulativePayment, &m.StatusCode); err != nil {
+				httpError(w, err)
+				return
+			}
+			out.Months = append(out.Months, m)
+		}
+		err = rows.Err()
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "42P01" { // loan_tape not loaded here
+		out.Source = "snapshots"
+		rows, err = sv.db.Query(ctx, `
+SELECT to_char(asof_date, 'YYYY-MM'), period_payment_collected,
+       days_delinquent, status_code
+FROM camber_credit.lease_snapshots
+WHERE lease_id = $1
+ORDER BY asof_date`, id)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var m collectionsMonth
+				if err = rows.Scan(&m.Month, &m.Payment, &m.DaysDelinquent, &m.StatusCode); err != nil {
+					httpError(w, err)
+					return
+				}
+				out.Months = append(out.Months, m)
+			}
+			err = rows.Err()
+		}
+	}
+	if err != nil {
+		httpError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(out)
+}
+
 func httpError(w http.ResponseWriter, err error) {
 	log.Printf("query error: %v", err)
 	http.Error(w, `{"error":"query failed"}`, http.StatusInternalServerError)
@@ -656,6 +757,7 @@ func main() {
 	mux.HandleFunc("GET /api/dashboard", sv.requireAuth(sv.handleDashboard))
 	mux.HandleFunc("GET /api/leases", sv.requireAuth(sv.handleLeases))
 	mux.HandleFunc("GET /api/leases/{id}", sv.requireAuth(sv.handleLease))
+	mux.HandleFunc("GET /api/leases/{id}/collections", sv.requireAuth(sv.handleLeaseCollections))
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("ok"))
 	})

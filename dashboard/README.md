@@ -59,12 +59,21 @@ GET /api/leases?<dashboard filters>
       &sort=id|pv|delinquent|maturity|payment & dir=asc|desc
       &limit=1..200 & offset=N
 GET /api/leases/{id}
+GET /api/leases/{id}/collections
 ```
 
 The list returns `{total, pvTotal, offset, limit, rows}` for the slice; the
 detail returns the full tape row for one lease (contract, vehicle, servicing
 snapshot, and both valuations — the same fields as `v_lease_tape`). All
 parameters are whitelisted; values travel as bind parameters.
+
+`/collections` returns the lease's month-by-month servicing collections
+(`#/lease/{id}/collections` in the app, linked from the lease page): total
+cash flow, property/sales tax, payment excluding taxes, end-of-lease fees,
+past due, days delinquent, and cumulative payments per as-of month. It reads
+the pipeline-built `camber_credit.loan_tape` (see `../pipeline`); on a
+database that only has the distribution-tape load it falls back to the
+per-snapshot payment figures and reports `"source": "snapshots"`.
 
 ## Frontend notes
 

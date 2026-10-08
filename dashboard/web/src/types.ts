@@ -117,6 +117,25 @@ export interface LeaseDetail {
   pvTotalPrior: number | null
 }
 
+export interface CollectionsMonth {
+  month: string
+  totalCashFlow: number | null
+  propertyTax: number | null
+  salesTax: number | null
+  payment: number | null
+  eolCollections: number | null
+  pastDue: number | null
+  daysDelinquent: number | null
+  cumulativePayment: number | null
+  statusCode: number | null
+}
+
+export interface LeaseCollections {
+  leaseId: number
+  source: 'loan_tape' | 'snapshots'
+  months: CollectionsMonth[]
+}
+
 export interface Filters {
   obligor: '' | 'B' | 'P'
   condition: '' | 'N' | 'U'
