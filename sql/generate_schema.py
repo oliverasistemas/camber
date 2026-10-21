@@ -182,7 +182,7 @@ CONTRACT_SUMMARY = [
     ("ACCRUED_TO_DATE", "accrued_to_date", "date"),
     ("ACCRUAL METHOD", "accrual_method", "text", "code_set accrual_method"),
     ("BUSINESS/PERSONAL", "business_personal", "char"),
-    ("CLASS", "class", "char"),
+    ("CLASS", "class", "text", "Equipment class code (V, EDEF); text as in asset_summary"),
     ("LS TYPE", "ls_type", "text", "code_set ls_type"),
     ("LS FORM", "ls_form", "text"),
     ("STMT_CODE", "stmt_code", "char", "Statement format"),
@@ -262,7 +262,7 @@ CONTRACT_SUMMARY = [
     ("CURR_MO_RENTAL", "curr_mo_rental", "num2"),
     ("LS_SOURCE", "ls_source", "text", "code_set ls_source"),
     ("COLL_CODE", "coll_code", "text", "Collection status (code_set coll_code)"),
-    ("COLL_DATE", "coll_date", "date"),
+    ("COLL_DATE", "coll_date", "text", "Free-text date entry; mixed formats (YYYYMMDD, MMDDYY, MM.DD.YYYY, MM/DD/YYYY) and invalid values, so kept raw"),
     ("CURR_PYMT", "curr_pymt", "num4", "Current monthly payment"),
     ("PYMT_FREQ", "pymt_freq", "text"),
     ("BROKER", "broker", "int"),
@@ -447,7 +447,8 @@ DECLARE
 BEGIN
   IF s IS NULL THEN
     RETURN NULL;
-  ELSIF s ~ '^\d{1,2}/\d{1,2}/\d{4}$' THEN                   -- MM/DD/YYYY
+  ELSIF s ~ '^\d{1,2}([/.])\d{1,2}\1\d{4}$' THEN            -- MM/DD/YYYY or MM.DD.YYYY
+    s := translate(s, '.', '/');
     RETURN make_date(split_part(s, '/', 3)::int,
                      split_part(s, '/', 1)::int,
                      split_part(s, '/', 2)::int);

@@ -33,7 +33,8 @@ DECLARE
 BEGIN
   IF s IS NULL THEN
     RETURN NULL;
-  ELSIF s ~ '^\d{1,2}/\d{1,2}/\d{4}$' THEN                   -- MM/DD/YYYY
+  ELSIF s ~ '^\d{1,2}([/.])\d{1,2}\1\d{4}$' THEN            -- MM/DD/YYYY or MM.DD.YYYY
+    s := translate(s, '.', '/');
     RETURN make_date(split_part(s, '/', 3)::int,
                      split_part(s, '/', 1)::int,
                      split_part(s, '/', 2)::int);
@@ -308,7 +309,7 @@ CREATE TABLE IF NOT EXISTS vervent.contract_summary (
   accrued_to_date               date,  -- CSV: ACCRUED_TO_DATE
   accrual_method                text,  -- CSV: ACCRUAL METHOD
   business_personal             char(1),  -- CSV: BUSINESS/PERSONAL
-  class                         char(1),  -- CSV: CLASS
+  class                         text,  -- CSV: CLASS
   ls_type                       text,  -- CSV: LS TYPE
   ls_form                       text,  -- CSV: LS FORM
   stmt_code                     char(1),  -- CSV: STMT_CODE
@@ -388,7 +389,7 @@ CREATE TABLE IF NOT EXISTS vervent.contract_summary (
   curr_mo_rental                numeric(14,2),  -- CSV: CURR_MO_RENTAL
   ls_source                     text,  -- CSV: LS_SOURCE
   coll_code                     text,  -- CSV: COLL_CODE
-  coll_date                     date,  -- CSV: COLL_DATE
+  coll_date                     text,  -- CSV: COLL_DATE
   curr_pymt                     numeric(14,4),  -- CSV: CURR_PYMT
   pymt_freq                     text,  -- CSV: PYMT_FREQ
   broker                        integer,  -- CSV: BROKER
@@ -511,6 +512,7 @@ COMMENT ON COLUMN vervent.contract_summary.ls_status IS 'Lease status code (code
 COMMENT ON COLUMN vervent.contract_summary.account_status IS 'Active / Closed';
 COMMENT ON COLUMN vervent.contract_summary.last_update IS 'Date of last cash posting, reversal, etc.';
 COMMENT ON COLUMN vervent.contract_summary.accrual_method IS 'code_set accrual_method';
+COMMENT ON COLUMN vervent.contract_summary.class IS 'Equipment class code (V, EDEF); text as in asset_summary';
 COMMENT ON COLUMN vervent.contract_summary.ls_type IS 'code_set ls_type';
 COMMENT ON COLUMN vervent.contract_summary.stmt_code IS 'Statement format';
 COMMENT ON COLUMN vervent.contract_summary.use_tax_code IS 'code_set use_tax_code';
@@ -535,6 +537,7 @@ COMMENT ON COLUMN vervent.contract_summary.num_90_del IS 'Times 61-90 days delin
 COMMENT ON COLUMN vervent.contract_summary.num_91_plus_del IS 'Times 91+ days delinquent';
 COMMENT ON COLUMN vervent.contract_summary.ls_source IS 'code_set ls_source';
 COMMENT ON COLUMN vervent.contract_summary.coll_code IS 'Collection status (code_set coll_code)';
+COMMENT ON COLUMN vervent.contract_summary.coll_date IS 'Free-text date entry; mixed formats (YYYYMMDD, MMDDYY, MM.DD.YYYY, MM/DD/YYYY) and invalid values, so kept raw';
 COMMENT ON COLUMN vervent.contract_summary.curr_pymt IS 'Current monthly payment';
 COMMENT ON COLUMN vervent.contract_summary.prin_pd_ltd IS 'Principal paid life to date';
 COMMENT ON COLUMN vervent.contract_summary.field10_s IS 'Unlabeled column between CONTR UDF 10 and 11 (Y/N in the sample)';
