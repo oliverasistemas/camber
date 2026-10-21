@@ -1,6 +1,8 @@
-// Camber Credit 2026-1 pool dashboard API.
-// Serves aggregated views of the camber_credit schema (see ../../sql) and,
-// when ../web/dist exists, the built dashboard.
+// Camber dashboard API.
+// Serves the pipeline endpoints over the vervent schema (see ../../sql),
+// runs the step-1 processor that stages Vervent report drops, and, when
+// ../web/dist exists, the built dashboard. The pool views over the old
+// camber_credit schema are still here until the dashboard is rebuilt.
 package main
 
 import (
@@ -12,9 +14,12 @@ import (
 	"net/http"
 	"os"
 	"os/user"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"time"
+
+	"camber/dashboard/api/pipeline"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -167,6 +172,7 @@ type leaseCollections struct {
 type server struct {
 	db   *pgxpool.Pool
 	auth *auth
+	proc *pipeline.Processor // nil when no inbox folder is configured
 }
 
 // filterClause builds the WHERE tail shared by every query from the
@@ -642,6 +648,34 @@ func defaultDSN() string {
 	return fmt.Sprintf("postgres://%s@localhost:5432/camber", name)
 }
 
+// inboxFromEnv resolves the Vervent drop folder: VERVENT_INBOX, else the
+// repo's pipeline/data/inbox when running from a checkout, else none (the
+// processor is then disabled, e.g. in the cluster image). VERVENT_POLL is
+// the scan interval (Go duration, default 60s; 0 disables polling but keeps
+// manual scans).
+func inboxFromEnv() (string, time.Duration) {
+	inbox := os.Getenv("VERVENT_INBOX")
+	if inbox == "" {
+		if st, err := os.Stat("../../pipeline/data/inbox"); err == nil && st.IsDir() {
+			inbox = "../../pipeline/data/inbox"
+		}
+	}
+	if inbox != "" {
+		if abs, err := filepath.Abs(inbox); err == nil {
+			inbox = abs
+		}
+	}
+	interval := 60 * time.Second
+	if v := os.Getenv("VERVENT_POLL"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil {
+			log.Fatalf("VERVENT_POLL: %v", err)
+		}
+		interval = d
+	}
+	return inbox, interval
+}
+
 func main() {
 	addr := os.Getenv("ADDR")
 	if addr == "" {
@@ -659,6 +693,13 @@ func main() {
 		log.Fatalf("auth config: %v", err)
 	}
 	sv := &server{db: db, auth: au}
+	if inbox, interval := inboxFromEnv(); inbox != "" {
+		sv.proc = pipeline.New(db, inbox, interval)
+		log.Printf("pipeline: watching %s every %s", inbox, interval)
+		go sv.proc.Run(context.Background())
+	} else {
+		log.Printf("pipeline: no inbox configured (set VERVENT_INBOX); processor disabled")
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/auth/google", au.handleStart)
@@ -669,6 +710,9 @@ func main() {
 	mux.HandleFunc("GET /api/leases", au.requireAuth(sv.handleLeases))
 	mux.HandleFunc("GET /api/leases/{id}", au.requireAuth(sv.handleLease))
 	mux.HandleFunc("GET /api/leases/{id}/collections", au.requireAuth(sv.handleLeaseCollections))
+	mux.HandleFunc("GET /api/pipeline", au.requireAuth(sv.handlePipeline))
+	mux.HandleFunc("POST /api/pipeline/scan", au.requireAuth(sv.handlePipelineScan))
+	mux.HandleFunc("GET /api/pipeline/staged/{report}", au.requireAuth(sv.handlePipelineStaged))
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("ok"))
 	})

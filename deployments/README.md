@@ -13,7 +13,7 @@ export GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=…   # see ../dashboard/README
 deployments/create-secrets.sh        # namespace, DB + Google sign-in secrets, ECR pull creds
 deployments/push-dashboard.sh 1.0.0  # build + push the image to ECR
 deployments/deploy.sh                # kubectl apply -k deployments/k8s
-deployments/load-data.sh             # schema + lease tape; tie-outs must all pass
+deployments/load-data.sh             # vervent schema + code lookups (sql/01, sql/02)
 aws route53 change-resource-record-sets \
     --hosted-zone-id Z08940481XIPFSNAHWVPV \
     --change-batch file://deployments/dns/camber.json

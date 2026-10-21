@@ -8,3 +8,6 @@ dashboard/web/dist/
 nohup.out
 dashboard/web/tsconfig.tsbuildinfo
 dashboard/api/api
+
+# Google OAuth client secrets (downloaded from the Cloud console)
+client_secret_*.json

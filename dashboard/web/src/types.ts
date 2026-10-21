@@ -147,3 +147,76 @@ export interface Me {
   email: string
   name: string
 }
+
+/* ---------- pipeline (step 1: Vervent intake) ---------- */
+
+export interface FileStatus {
+  path: string
+  filename: string
+  reportType: string
+  cadence: string
+  asOf: string
+  sha256: string
+  status: 'loaded' | 'unchanged' | 'failed' | 'skipped'
+  rows: number
+  message?: string
+}
+
+export interface ScanResult {
+  trigger: string
+  startedAt: string
+  finishedAt: string
+  loaded: number
+  unchanged: number
+  failed: number
+  skipped: number
+  files: FileStatus[]
+}
+
+export interface ProcessorStatus {
+  inbox: string
+  interval: string
+  running: boolean
+  lastScan: ScanResult | null
+}
+
+export interface ReportFile {
+  fileId: number
+  reportType: string
+  cadence: string | null
+  asOf: string
+  filename: string
+  sha256: string | null
+  rowCount: number | null
+  loadedAt: string
+}
+
+export interface LoadEvent {
+  eventId: number
+  at: string
+  trigger: string
+  filename: string
+  reportType: string | null
+  asOf: string | null
+  status: 'loaded' | 'failed'
+  rowCount: number | null
+  message: string | null
+}
+
+export interface PipelineOverview {
+  processor: ProcessorStatus | null
+  reports: string[]
+  files: ReportFile[]
+  events: LoadEvent[]
+}
+
+export interface StagedRows {
+  report: string
+  asOf: string
+  asOfs: string[]
+  columns: string[]
+  total: number
+  offset: number
+  limit: number
+  rows: Record<string, unknown>[]
+}

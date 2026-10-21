@@ -1,8 +1,11 @@
-# Camber Credit 2026-1 — Pool Dashboard
+# Camber Dashboard
 
-A small Go API over the `camber` PostgreSQL database (schema `camber_credit`,
-see `../sql`) and a React dashboard visualizing the lease pool at the
-August 31, 2026 servicing cutoff.
+A Go API over the `camber` PostgreSQL database and a React app. The API also
+runs **pipeline step 1**: a processor that watches the Vervent drop folder and
+stages every new report file into the `vervent` schema (see `../sql`); the
+`#/pipeline` route shows what it staged. The pool dashboard views over the
+old `camber_credit` schema are still served until they are rebuilt on
+`vervent`.
 
 ## Running
 
@@ -50,6 +53,8 @@ Environment:
 | `AUTH_ALLOWED_DOMAIN` | Workspace domain; default `cambercredit.com` |
 | `AUTH_ALLOWED_EMAILS` | Optional comma-separated extra addresses (any Google account) |
 | `SESSION_SECRET` | 32+ bytes, hex. Unset → random per start (dev only; restarts sign you out) |
+| `VERVENT_INBOX` | Folder the Vervent sFTP files are dropped in (scanned recursively). Default: `../../pipeline/data/inbox` when it exists, else the processor is disabled |
+| `VERVENT_POLL` | Scan interval (Go duration, default `60s`; `0` = manual scans only) |
 
 One-time Google Cloud setup, in a project you control (it does not need to be
 Camber's — the domain check is done by the API, not by Google):
@@ -70,6 +75,29 @@ Local development: `GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… go run .` in
 `AUTH_ALLOWED_EMAILS=you@gmail.com` to sign in with a non-Workspace account.
 
 ## API
+
+### Pipeline (step 1: Vervent intake)
+
+```
+GET  /api/pipeline                    # processor status + last scan, staged files, recent load events
+POST /api/pipeline/scan               # scan the inbox now; returns the per-file result (409 if a scan is running)
+GET  /api/pipeline/staged/{report}    # staged rows: report = asset_summary | contract_summary | transaction_history
+      ?asof=YYYY-MM-DD                #   default: latest as-of staged for that report
+      &limit=1..500 & offset=N        #   rows are JSON objects keyed by column; `columns` gives the order
+```
+
+The processor (`api/pipeline`) walks the inbox every `VERVENT_POLL`, detects
+each file's report type, cadence and as-of date from its name
+(`20261019_AssetSummary_Daily_P50.csv`), and loads anything whose name and
+sha256 are not already in `vervent.report_file`. A load is one transaction:
+header check against the generated column spec, COPY into a temp text
+table, registry row, typed upsert via the strict `vervent.parse_*`
+functions — any drift or bad value rolls back and is recorded in
+`vervent.load_event` (and not retried until the file changes). The column
+spec and the generated `pipeline/reports_gen.go` come from
+`../sql/generate_schema.py`; `../sql/load.sh` is the manual psql equivalent.
+
+### Pool dashboard (old schema)
 
 One endpoint drives the whole dashboard page so every chart agrees on the slice:
 

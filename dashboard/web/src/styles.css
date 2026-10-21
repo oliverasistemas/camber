@@ -868,3 +868,118 @@ body {
     margin-top: 20px;
   }
 }
+
+/* ---------- pipeline ---------- */
+
+.nav-link {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+  margin-right: 12px;
+}
+
+.nav-link:hover {
+  text-decoration: underline;
+}
+
+.pipeline .panel {
+  margin-bottom: 18px;
+}
+
+.pipeline code {
+  font-size: 12px;
+  background: var(--brand-wash);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.pipeline-error {
+  color: #b42318;
+}
+
+.pipeline-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--brand-contrast);
+  background: var(--brand);
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pipeline-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pipeline-filters {
+  margin: 0;
+}
+
+.wide-table {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.wide-table.tall {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.wide-table.tall thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+.viz-table.staged th,
+.viz-table.staged td {
+  white-space: nowrap;
+  padding-right: 16px;
+  font-size: 12px;
+}
+
+.viz-table td.detail {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+.viz-table td.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+.badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--grid);
+  color: var(--ink-2);
+}
+
+.badge-loaded {
+  background: rgba(27, 175, 122, 0.15);
+  color: #0f6e4c;
+}
+
+.badge-failed {
+  background: rgba(180, 35, 24, 0.12);
+  color: #b42318;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+}

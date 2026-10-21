@@ -1,55 +1,118 @@
-# Camber Credit 2026-1 — Lease Tape SQL Entities
+# Vervent servicer reports — Postgres schema (`vervent`)
 
-PostgreSQL (14+) schema and data loads generated from
-`Camber Credit 2026-1 - Lease Tape August 2026 (Final - For Distribution).xlsx`
-(2,228 leases, servicing cutoff 2026-08-31). Everything lives in the
-`camber_credit` schema.
+Typed PostgreSQL tables that mirror the three daily LeasePak extracts Vervent
+delivers for the Camber portfolio (P50 = portfolio 50), plus the code lookups
+from the Vervent data dictionary and a loader. This is the data foundation the
+dashboard is being rebuilt on.
 
-## Entities
+| CSV (example) | Table | Grain | Primary key |
+|---|---|---|---|
+| `20261019_AssetSummary_Daily_P50.csv` | `vervent.asset_summary` | one row per asset (vehicle or deficiency-balance asset) per report date | `(asof_date, asset_no)` |
+| `20261019_Contract Summary_P50.csv` | `vervent.contract_summary` | one row per contract (lease) per report date | `(asof_date, lease_no)` |
+| `20261019_TransactionHistory_Daily_P50.csv` | `vervent.transaction_history` | one row per posted transaction (daily = prior day, monthly = whole month) | `(transaction_key)` |
+| — | `vervent.report_file` | one row per loaded file (type, cadence, as-of, sha256, row count) | `file_id` |
+| data dictionary xlsx | `vervent.code_values` | code descriptions, keyed by `(code_set, code)` | |
+| data dictionary xlsx | `vervent.gl_vector` | GL vectors for `debit_vector` / `credit_vector` | |
 
-| Table | Grain | Source columns |
-|---|---|---|
-| `vehicles` | one row per vehicle (PK `vin`) | B–E |
-| `leases` | one row per contract (PK `lease_id` = tape `idx`; `vin` unique FK) | A, F–Q |
-| `lease_status_types` | lookup: 0 = Active, 1 = In inventory, 2 = Sold | S (codes) |
-| `lease_snapshots` | servicing status per lease per as-of date (this tape: 2026-08-31) | S–Z, AC |
-| `lease_valuations` | 9% DCF par values per lease per as-of date (2025-10-31 and 2026-08-31) | R, AA, AB, AD |
-| `v_lease_tape` (view) | reconstructs the original tape layout | — |
+## Files
 
-Splitting the snapshot/valuation columns out by as-of date means next month's
-tape loads as new `lease_snapshots` / `lease_valuations` rows instead of new
-columns.
+```
+01_schema.sql                 GENERATED  schema, parsers, report_file, the 3 report tables
+02_codes.sql                  GENERATED  code_values + gl_vector with seed rows
+load_<report>.sql             GENERATED  per-report load: \copy -> temp text table -> typed upsert
+generate_schema.py            column spec (CSV header -> column, type) -> 01_schema.sql + load_*.sql
+generate_codes.py             data dictionary xlsx -> 02_codes.sql
+load.sh                       loads files/folders: detects type, cadence and as-of from the filename
+```
+
+Edit the column spec in `generate_schema.py`, never the generated SQL. The
+same generator also writes `dashboard/api/pipeline/reports_gen.go`, so the Go
+processor (`dashboard/api/pipeline`, the production loader) and `load.sh`
+(the manual psql equivalent) always load the same columns the same way.
 
 ## Running
 
 ```sh
-psql -d <db> -f 01_schema.sql
-psql -d <db> -f 02_reference_data.sql
-psql -d <db> -f 03_load_vehicles.sql
-psql -d <db> -f 04_load_leases.sql
-psql -d <db> -f 05_load_lease_snapshots.sql
-psql -d <db> -f 06_load_lease_valuations.sql
-psql -d <db> -f 07_tieout_checks.sql   # verification — every row should show pass = t
+psql -d camber -v ON_ERROR_STOP=1 -f sql/01_schema.sql      # idempotent
+psql -d camber -v ON_ERROR_STOP=1 -f sql/02_codes.sql       # idempotent (ON CONFLICT DO NOTHING)
+sql/load.sh pipeline/data/inbox/2026-10-20                  # or individual files
 ```
 
-The load files (03–06) are generated — regenerate with
-`python3 generate_loads.py [path-to-xlsx]` (requires `openpyxl`).
+`load.sh` uses `CAMBER_DB` (default `camber`) and `PSQL` (default `psql`).
+Each file loads in a single transaction; reloading the same filename replaces
+its rows (`report_file` cascades), and rows whose key already exists from
+another file (e.g. a monthly TransactionHistory overlapping the dailies) are
+upserted.
 
-## Tie-out
+To regenerate after changing the spec or receiving a new dictionary:
 
-`07_tieout_checks.sql` verifies row counts and the seven control totals
-embedded in row 1 of the tape (contract residual, both par-value dates,
-net sales proceeds, August collections, residual PV, eligible-collateral PV).
-PV columns are stored at 6 decimal places, so PV sums are compared with a
-0.01 tolerance. Verified passing on PostgreSQL 14.19.
+```sh
+python3 sql/generate_schema.py
+python3 sql/generate_codes.py        # requires openpyxl
+```
 
-## Source-data notes (loaded verbatim)
+A table whose columns changed must be dropped (or altered) before re-running
+`01_schema.sql`; the DDL is `CREATE TABLE IF NOT EXISTS`.
 
-- 15 VINs are not 17 characters (one 14, ten 16, four 18) — `vin` is
-  `varchar(20)`, no length constraint enforced.
-- Two Active (status 0) leases carry a termination type in the source file;
-  the tie-out script asserts this known quirk stays at exactly 2 rows.
-- `period_payment_collected` (tape column X, "camber_august_payment") can be
-  negative (min −13,709.50 in this tape).
-- 182 leases are status 1 ("In inventory"): terminated but vehicle unsold, so
-  `sold_month` / `net_sales_proceeds` are NULL for them.
+## How the CSVs map
+
+The files are pipe-delimited, CRLF, with literal `NULL` strings, blank
+strings, and space-padded codes (`'FIN '`, `'   123026'`, `'36330    '`).
+
+- **Column names** follow the CSV header in order: lowercase, runs of
+  non-alphanumerics become `_`, CamelCase is split (`AccountKey` →
+  `account_key`), concatenated caps are split on dictionary words
+  (`POSTEDDATE` → `posted_date`), `#30_DEL` → `num_30_del`, `#91+_DEL` →
+  `num_91_plus_del`, `1ST ASSET DESC` → `first_asset_desc`, `(Y/N)` → `_yn`.
+  Every column in `01_schema.sql` carries a `-- CSV: <header>` annotation.
+  Contract Summary has both `LastPaidDate` (YYYYMMDD) and `LAST PAID DATE`
+  (MM/DD/YYYY); the first family keeps a `_key` suffix
+  (`last_due_date_key`, `last_paid_date_key`, `next_due_date_key`).
+- **Types**: dates (`MM/DD/YYYY`, `YYYYMMDD`, `YYMMDD`) → `date`; `0/1` and
+  `Y/N` flags → `boolean`; 13-digit keys → `bigint`; counts/codes that are
+  numeric → `integer`/`smallint`; amounts → `numeric(14,2)` or
+  `numeric(14,4)` matching the delivered precision; yields, rates and ratios →
+  unconstrained `numeric`; everything else → trimmed `text` (`char(1)` for
+  single-letter indicators). Columns that are empty in the sample stay `text`
+  unless the name says date.
+- **Parsers are strict**: `vervent.parse_date / parse_num / parse_bool` raise
+  on an unrecognized non-blank value, so a format change fails the load
+  instead of silently producing NULLs. `load.sh` also checks the header line
+  against the `-- HEADER:` recorded in the load script before touching the DB.
+- **Derived column**: `lease_no_norm` on every report table strips the
+  follow-on letter suffix LeasePak adds to child contracts
+  (`500069007D` → `5000069007`), so deficiency-balance rows join to their
+  parent lease. It is the only non-CSV column besides `file_id`, `asof_date`
+  and `loaded_at`.
+- **Header quirks** documented as column comments: the Asset Summary
+  `EHELD_*` columns are really Asset UDF2–5 (amount, date string, model year,
+  make); `UDF13` carries a list price; `LEASE` is blank on pre-inventory
+  deficiency assets (the contract number is then in `serial_number`).
+
+## Codes
+
+`code_values.code_set` → where it is used:
+
+| code_set | columns |
+|---|---|
+| `ls_status` | `contract_summary.ls_status`, `asset_summary.contr_status` |
+| `asset_status` | `asset_summary.status` |
+| `ls_type` | `contract_summary.ls_type`, `asset_summary.ls_type` |
+| `accrual_method` | `contract_summary.accrual_method` |
+| `late_code` | `contract_summary.late_code` |
+| `use_tax_code` | `contract_summary.use_tax_code`, `asset_summary.tax_code` |
+| `ls_source` | `contract_summary.ls_source` |
+| `coll_code` | `contract_summary.coll_code` |
+| `repo_code` | `asset_summary.curr_repo_status`, `asset_summary.repo_code` |
+| `bank_code` | `transaction_history.bankcd` |
+| `tran_code` | `transaction_history.trans` |
+
+Join with `LEFT JOIN`; the reports carry codes the dictionary does not list
+(e.g. repo status `CURR`), and there are deliberately no foreign keys from the
+report tables to the lookups.
+
+```sql
+SELECT cs.lease_no, cs.ls_status, c.description
+FROM vervent.contract_summary cs
+LEFT JOIN vervent.code_values c ON c.code_set = 'ls_status' AND c.code = cs.ls_status;
+```

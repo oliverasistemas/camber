@@ -4,6 +4,7 @@ import { Login } from './Login'
 import { Leases } from './Leases'
 import { LeaseView } from './LeaseView'
 import { CollectionsView } from './CollectionsView'
+import { Pipeline } from './Pipeline'
 import { Columns } from './charts/Columns'
 import { HBars } from './charts/HBars'
 import { StatusStrip } from './charts/StatusStrip'
@@ -64,7 +65,8 @@ export default function App() {
   const collectionsMatch = hash.match(/^#\/lease\/(\d+)\/collections/)
   const leaseMatch = collectionsMatch ? null : hash.match(/^#\/lease\/(\d+)/)
   const onLeaseList = hash.startsWith('#/leases')
-  const onDashboard = !collectionsMatch && !leaseMatch && !onLeaseList
+  const onPipeline = hash.startsWith('#/pipeline')
+  const onDashboard = !collectionsMatch && !leaseMatch && !onLeaseList && !onPipeline
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -132,6 +134,10 @@ export default function App() {
     return <Login />
   }
 
+  if (onPipeline) {
+    return <Pipeline onUnauthorized={() => setAuthed(false)} />
+  }
+
   if (collectionsMatch) {
     return <CollectionsView id={collectionsMatch[1]} onUnauthorized={() => setAuthed(false)} />
   }
@@ -172,6 +178,9 @@ export default function App() {
           <p className="deal-sub">
             Auto-lease pool servicing report for the August 31, 2026 cutoff
             <span className="signed-in">
+              <a className="nav-link" href="#/pipeline">
+                Pipeline
+              </a>
               {me && <span className="signed-in-as">{me.email}</span>}
               <button className="sign-out" onClick={signOut}>
                 Sign out
