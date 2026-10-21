@@ -1,0 +1,80 @@
+{
+  "applicationId": "55a28c8f-3520-4ab5-9917-3dc90702764d",
+  "requestType": "New",
+  "referenceId": null,
+  "applicant": {
+    "applicant": {
+      "relationshipToPrimary": "Self",
+      "firstName": "BRYSON",
+      "lastName": "STEELE",
+      "emailAddress": "BRYSONSTEELE1122@GMAIL.COM",
+      "ssn": "••••••••",
+      "homePhone": "1111111111",
+      "cellPhone": "1111111111",
+      "driversLicense": "143416470",
+      "driversLicenseState": "TN",
+      "maritalStatus": "Unmarried",
+      "citizenshipStatus": "U.S. Citizen",
+      "dob": "••••••••"
+    },
+    "addresses": [
+      {
+        "currentAddress": true,
+        "streetNumber": "449",
+        "streetName": "JET STREAM DR",
+        "unitNumber": null,
+        "city": "LA VERGNE",
+        "state": "TN",
+        "zipCode": "37086",
+        "monthsAtAddress": 37,
+        "residenceType": "Live With Relatives"
+      }
+    ],
+    "employment": [
+      {
+        "currentEmployment": true,
+        "isSecondJob": false,
+        "employmentStatus": "Full-time",
+        "employer": "Sky Zone Trampoline Park",
+        "jobTitle": "ASSISTANT GENERAL MG",
+        "monthsAtJob": 37,
+        "employmentIncome": 6941.53,
+        "employerPhone": "(615) 823-5585",
+        "employerAddress": "1647 Mallory Ln , Brentwood, TN 37027"
+      }
+    ]
+  },
+  "vehicle": {
+    "vin": "W1KWF8DB6MR647626",
+    "year": 2021,
+    "make": "Mercedes-Benz",
+    "model": "C-Class",
+    "wholesaleValue": 21275,
+    "retailValue": 25375,
+    "mileage": 56009
+  },
+  "requestedTerms": {
+    "loanAmount": 27915,
+    "adjustedPayoff": 27915,
+    "loanTerm": 72,
+    "loanRate": 0,
+    "gap": 0,
+    "warranty": 0,
+    "otherBackendProducts": 0,
+    "currentMonthlyPayment": 815,
+    "requestedMonthlyPayment": null,
+    "daysToFirstPayment": null,
+    "requestedStartDate": null,
+    "maturityDate": null
+  },
+  "dealer": {
+    "name": "NALN 23 SMS TN",
+    "address": " , ,  ",
+    "score": 0
+  },
+  "tuProducts": {
+    "rawTu": "••••••••"
+  },
+  "runId": "55a28c8f-3520-4ab5-9917-3dc90702764d",
+  "smoke_test": false
+}

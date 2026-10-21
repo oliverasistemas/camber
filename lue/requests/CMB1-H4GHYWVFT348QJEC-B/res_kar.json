@@ -1,0 +1,60 @@
+{
+  "REASONS": {
+    "REASON": ""
+  },
+  "TERMS": [
+    {
+      "RATE": 15,
+      "TERM_MONTHS": 72,
+      "PAYMENT": 584.85,
+      "TOTAL_LOAN_AMOUNT": 27658.8,
+      "DEFAULT_PROBABILITY": 0.23,
+      "IRR": 0.096,
+      "GROSS_YIELD": 0.15,
+      "PARTICIPATION": null,
+      "DISCOUNT": 0,
+      "ACQUISITION_FEE": 0,
+      "DEALER_FLAT": "0",
+      "FUNDED_AMOUNT": 27658.8,
+      "ASSET_PRICE": 1,
+      "VEHICLE_WHOLESALE_VALUE": 21275,
+      "LTV": 130.01,
+      "DESCRIPTION": "Karus Option"
+    }
+  ],
+  "STIPULATIONS": [
+    "Drivers License",
+    "ID",
+    "Proof of Residence",
+    "Proof of Insurance",
+    "References",
+    "Employment Verification",
+    "Residence Verification",
+    "Trade-ins Required: 1"
+  ],
+  "PROGRAM_ID": "1",
+  "APPLICATION_ID": "55a28c8f-3520-4ab5-9917-3dc90702764d",
+  "RUN_ID": "6015beea8d20476e88a8d606c1a67ef1",
+  "APPLICATION_TYPE": "Complete",
+  "DEALER_ID": "1",
+  "DECISION_DATE": "2026-10-15 21:05:19",
+  "DATE": "2026-10-15",
+  "DECLINE_TYPE": null,
+  "SOFT_DECLINE_CURE": null,
+  "UNDERWRITTEN": true,
+  "DECISION": "COUNTERED",
+  "COMMENTS": [],
+  "REASONS_COUNTER": [
+    "Loan-to-value ratio exceeds program limits",
+    "Interest rate adjusted based on credit profile"
+  ],
+  "CREDITSCORE": {
+    "PRIMARY": 620,
+    "COAPPLICANT": 0
+  },
+  "MIN_TERM_MONTHS": 72,
+  "MIN_TERM_RATE": 15,
+  "MAX_TERM_MONTHS": 72,
+  "MAX_TERM_RATE": 15,
+  "GOOD_THROUGH_DATE": "2026-11-14"
+}

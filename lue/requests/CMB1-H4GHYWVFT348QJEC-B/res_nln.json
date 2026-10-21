@@ -1,0 +1,34 @@
+{
+  "payload": {
+    "requestedTerms": {
+      "runId": "6015beea8d20476e88a8d606c1a67ef1",
+      "decision": "COUNTERED",
+      "reasons": "",
+      "reasonsCounter": "",
+      "decisionDate": "2026-10-15 21:05:19",
+      "goodthroughDate": "2026-11-14",
+      "loanAmount": 27658.8,
+      "mintermMonths": 72,
+      "mintermRate": "15.000",
+      "maxtermMonths": 72,
+      "maxtermRate": "15.000",
+      "loanRate": 15,
+      "loanTerm": 72,
+      "LTV": 130.01,
+      "paymentAmount": 584.85,
+      "stipulations": [
+        "Drivers License",
+        "ID",
+        "Proof of Residence",
+        "Proof of Insurance",
+        "References",
+        "Employment Verification",
+        "Residence Verification",
+        "Trade-ins Required: 1"
+      ],
+      "comments": [],
+      "primary": "620.00",
+      "coApplicant": "0.00"
+    }
+  }
+}
