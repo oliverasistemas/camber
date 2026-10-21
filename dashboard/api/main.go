@@ -5,9 +5,6 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/subtle"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,8 +14,6 @@ import (
 	"os/user"
 	"regexp"
 	"strconv"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -170,89 +165,8 @@ type leaseCollections struct {
 }
 
 type server struct {
-	db       *pgxpool.Pool
-	username string
-	password string
-
-	mu       sync.Mutex
-	sessions map[string]bool
-}
-
-const sessionCookie = "camber_session"
-
-func newToken() string {
-	b := make([]byte, 24)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-func (sv *server) handleLogin(w http.ResponseWriter, r *http.Request) {
-	var creds struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&creds); err != nil {
-		http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
-		return
-	}
-	userOK := subtle.ConstantTimeCompare([]byte(strings.ToLower(creds.Username)), []byte(strings.ToLower(sv.username))) == 1
-	passOK := subtle.ConstantTimeCompare([]byte(creds.Password), []byte(sv.password)) == 1
-	if !userOK || !passOK {
-		http.Error(w, `{"error":"wrong username or password"}`, http.StatusUnauthorized)
-		return
-	}
-	token := newToken()
-	sv.mu.Lock()
-	sv.sessions[token] = true
-	sv.mu.Unlock()
-	http.SetCookie(w, &http.Cookie{
-		Name:     sessionCookie,
-		Value:    token,
-		Path:     "/",
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"ok":true}`))
-}
-
-func (sv *server) handleLogout(w http.ResponseWriter, r *http.Request) {
-	if c, err := r.Cookie(sessionCookie); err == nil {
-		sv.mu.Lock()
-		delete(sv.sessions, c.Value)
-		sv.mu.Unlock()
-	}
-	http.SetCookie(w, &http.Cookie{Name: sessionCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true})
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func (sv *server) authed(r *http.Request) bool {
-	c, err := r.Cookie(sessionCookie)
-	if err != nil {
-		return false
-	}
-	sv.mu.Lock()
-	defer sv.mu.Unlock()
-	return sv.sessions[c.Value]
-}
-
-func (sv *server) handleMe(w http.ResponseWriter, r *http.Request) {
-	if !sv.authed(r) {
-		http.Error(w, `{"error":"not signed in"}`, http.StatusUnauthorized)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(`{"ok":true}`))
-}
-
-func (sv *server) requireAuth(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !sv.authed(r) {
-			http.Error(w, `{"error":"not signed in"}`, http.StatusUnauthorized)
-			return
-		}
-		next(w, r)
-	}
+	db   *pgxpool.Pool
+	auth *auth
 }
 
 // filterClause builds the WHERE tail shared by every query from the
@@ -740,24 +654,21 @@ func main() {
 	if err := db.Ping(context.Background()); err != nil {
 		log.Fatalf("db ping: %v", err)
 	}
-	username := os.Getenv("DASH_USER")
-	if username == "" {
-		username = "russell"
+	au, err := authFromEnv(context.Background())
+	if err != nil {
+		log.Fatalf("auth config: %v", err)
 	}
-	password := os.Getenv("DASH_PASS")
-	if password == "" {
-		password = "camber2026"
-	}
-	sv := &server{db: db, username: username, password: password, sessions: map[string]bool{}}
+	sv := &server{db: db, auth: au}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /api/login", sv.handleLogin)
-	mux.HandleFunc("POST /api/logout", sv.handleLogout)
-	mux.HandleFunc("GET /api/me", sv.handleMe)
-	mux.HandleFunc("GET /api/dashboard", sv.requireAuth(sv.handleDashboard))
-	mux.HandleFunc("GET /api/leases", sv.requireAuth(sv.handleLeases))
-	mux.HandleFunc("GET /api/leases/{id}", sv.requireAuth(sv.handleLease))
-	mux.HandleFunc("GET /api/leases/{id}/collections", sv.requireAuth(sv.handleLeaseCollections))
+	mux.HandleFunc("GET /api/auth/google", au.handleStart)
+	mux.HandleFunc("GET "+callbackPath, au.handleCallback)
+	mux.HandleFunc("POST /api/logout", au.handleLogout)
+	mux.HandleFunc("GET /api/me", au.handleMe)
+	mux.HandleFunc("GET /api/dashboard", au.requireAuth(sv.handleDashboard))
+	mux.HandleFunc("GET /api/leases", au.requireAuth(sv.handleLeases))
+	mux.HandleFunc("GET /api/leases/{id}", au.requireAuth(sv.handleLease))
+	mux.HandleFunc("GET /api/leases/{id}/collections", au.requireAuth(sv.handleLeaseCollections))
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("ok"))
 	})

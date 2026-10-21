@@ -141,3 +141,9 @@ export interface Filters {
   condition: '' | 'N' | 'U'
   eligible: '' | '1'
 }
+
+/** The signed-in Google account, from GET /api/me. */
+export interface Me {
+  email: string
+  name: string
+}

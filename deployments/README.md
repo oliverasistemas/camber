@@ -9,7 +9,8 @@ cluster) terminate TLS for **https://camber.inmatics.io**.
 First-time setup, in order:
 
 ```sh
-deployments/create-secrets.sh        # namespace, DB/login secrets, ECR pull creds
+export GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=…   # see ../dashboard/README.md "Sign-in"
+deployments/create-secrets.sh        # namespace, DB + Google sign-in secrets, ECR pull creds
 deployments/push-dashboard.sh 1.0.0  # build + push the image to ECR
 deployments/deploy.sh                # kubectl apply -k deployments/k8s
 deployments/load-data.sh             # schema + lease tape; tie-outs must all pass
@@ -21,7 +22,13 @@ aws route53 change-resource-record-sets \
 To ship a new build: `push-dashboard.sh <new-tag>` (ECR tags are immutable),
 bump `newTag` in `k8s/kustomization.yaml`, run `deploy.sh`, commit the pin.
 
-Sign-in credentials live in the `camber-secrets` Secret (`DASH_USER` /
-`DASH_PASS`). The Postgres password is generated once by `create-secrets.sh`
-and must never be regenerated — the data directory on the node
-(`/srv/camber-pgdata` on aws009) is initialized with it.
+Sign-in is Google-based: the OAuth client ID/secret and the cookie-signing
+key live in the `camber-auth` Secret, and `k8s/dashboard.yaml` sets
+`PUBLIC_URL` and `AUTH_ALLOWED_DOMAIN` (`cambercredit.com`) in the clear. To
+add an outside address, set `AUTH_ALLOWED_EMAILS` (comma-separated) on the
+container. Deleting `camber-auth` and rerunning `create-secrets.sh` rotates
+the session key, which just signs everyone out.
+
+The Postgres password in `camber-secrets` is generated once by
+`create-secrets.sh` and must never be regenerated — the data directory on
+the node (`/srv/camber-pgdata` on aws009) is initialized with it.

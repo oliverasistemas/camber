@@ -18,20 +18,56 @@ cd web && npm run build            # open http://localhost:8080
 ```
 
 Configuration: `DATABASE_URL` overrides the default
-`postgres://<user>@localhost:5432/camber`; `ADDR` overrides `:8080`.
+`postgres://<user>@localhost:5432/camber`; `ADDR` overrides `:8080`. The API
+refuses to start without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` (below).
 
 ## Sign-in
 
-The dashboard sits behind a basic username/password login. Credentials are
-plain text, set via `DASH_USER` and `DASH_PASS`; the defaults (when the env
-vars are unset) are `russell` / `camber2026`.
+Sign-in is "Continue with Google", restricted to Camber's Google Workspace:
+only verified accounts whose ID token carries `hd = cambercredit.com` (and a
+matching `@cambercredit.com` address) get a session. Nobody at Camber
+administers anything — their Workspace login is the login.
 
-`POST /api/login` checks the credentials and sets an `HttpOnly` session
-cookie (random token, held in memory — restarting the API signs everyone
-out); `POST /api/logout` clears it; `GET /api/dashboard` requires it.
+Flow (`api/auth.go`): `GET /api/auth/google` stores a signed state/PKCE/nonce
+cookie and redirects to Google; `GET /api/auth/google/callback` checks the
+state, exchanges the code, verifies the ID token (signature, audience,
+nonce), applies the domain rule, and sets `camber_session`; `POST
+/api/logout` clears it; `GET /api/me` returns `{email, name}`; the data
+endpoints require the session. Rejections bounce to `/?auth=<reason>`,
+which the login card turns into a message.
 
-This is development-grade on purpose: plain-text credentials, no TLS, no
-rate limiting, no persistence. Don't expose it beyond localhost as-is.
+`camber_session` is a stateless HMAC-signed cookie (`HttpOnly`, `SameSite=Lax`,
+`Secure` when `PUBLIC_URL` is https) that lasts 24 hours and survives API
+restarts. There is no server-side revocation; rotating `SESSION_SECRET` signs
+everyone out.
+
+Environment:
+
+| Variable | Meaning |
+| --- | --- |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth client (required) |
+| `PUBLIC_URL` | Origin Google redirects back to; default `http://localhost:5173` (Vite dev). Production: `https://camber.inmatics.io` |
+| `AUTH_ALLOWED_DOMAIN` | Workspace domain; default `cambercredit.com` |
+| `AUTH_ALLOWED_EMAILS` | Optional comma-separated extra addresses (any Google account) |
+| `SESSION_SECRET` | 32+ bytes, hex. Unset → random per start (dev only; restarts sign you out) |
+
+One-time Google Cloud setup, in a project you control (it does not need to be
+Camber's — the domain check is done by the API, not by Google):
+
+1. **APIs & Services → OAuth consent screen**: user type *External*, scopes
+   `openid`, `email`, `profile` only, then set publishing status to
+   **In production**. Those scopes need no Google verification; leaving the
+   app in *Testing* would cap sign-ins to 100 hand-listed test users.
+2. **Credentials → Create credentials → OAuth client ID**, type *Web
+   application*, authorized redirect URIs:
+   - `https://camber.inmatics.io/api/auth/google/callback`
+   - `http://localhost:5173/api/auth/google/callback` (Vite dev, proxied)
+   - `http://localhost:8080/api/auth/google/callback` (production build locally)
+3. Export the client ID and secret and run `deployments/create-secrets.sh`.
+
+Local development: `GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… go run .` in
+`api/`, `npm run dev` in `web/`, open http://localhost:5173. Set
+`AUTH_ALLOWED_EMAILS=you@gmail.com` to sign in with a non-Workspace account.
 
 ## API
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Dashboard, Filters } from './types'
+import { Dashboard, Filters, Me } from './types'
 import { Login } from './Login'
 import { Leases } from './Leases'
 import { LeaseView } from './LeaseView'
@@ -57,7 +57,8 @@ export default function App() {
   const [data, setData] = useState<Dashboard | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [authed, setAuthed] = useState(true) // optimistic; a 401 flips it
+  const [authed, setAuthed] = useState<boolean | null>(null) // null until /api/me answers
+  const [me, setMe] = useState<Me | null>(null)
   const [filters, setFilters] = useState<Filters>({ obligor: '', condition: '', eligible: '' })
   const hash = useHash()
   const collectionsMatch = hash.match(/^#\/lease\/(\d+)\/collections/)
@@ -68,6 +69,17 @@ export default function App() {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [hash])
+
+  // Who is signed in? A 401 (or an unreachable API) shows the login card.
+  useEffect(() => {
+    fetch('/api/me')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((m: Me | null) => {
+        setMe(m)
+        setAuthed(m !== null)
+      })
+      .catch(() => setAuthed(false))
+  }, [])
 
   useEffect(() => {
     if (!authed || !onDashboard) return
@@ -108,11 +120,16 @@ export default function App() {
   async function signOut() {
     await fetch('/api/logout', { method: 'POST' })
     setData(null)
+    setMe(null)
     setAuthed(false)
   }
 
+  if (authed === null) {
+    return null // checking the session; avoid flashing either screen
+  }
+
   if (!authed) {
-    return <Login onSignedIn={() => setAuthed(true)} />
+    return <Login />
   }
 
   if (collectionsMatch) {
@@ -154,9 +171,12 @@ export default function App() {
           </div>
           <p className="deal-sub">
             Auto-lease pool servicing report for the August 31, 2026 cutoff
-            <button className="sign-out" onClick={signOut}>
-              Sign out
-            </button>
+            <span className="signed-in">
+              {me && <span className="signed-in-as">{me.email}</span>}
+              <button className="sign-out" onClick={signOut}>
+                Sign out
+              </button>
+            </span>
           </p>
           <div className="hero-value">{money(s.pvEligible)}</div>
           <div className="hero-label">Eligible collateral par value at the 9% discount rate</div>

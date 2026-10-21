@@ -203,41 +203,13 @@ body {
   margin-bottom: 24px;
 }
 
-.login-field {
-  display: block;
-  font-size: 13px;
-  color: var(--ink-2);
-  margin-bottom: 14px;
-}
-
-.login-field input {
-  display: block;
+.login-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  margin-top: 5px;
-  font: inherit;
-  font-size: 14px;
-  color: var(--ink);
-  background: var(--page);
-  border: 1px solid var(--ring);
-  border-radius: 4px;
-  padding: 8px 10px;
-}
-
-.login-field input:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: 1px;
-  border-color: transparent;
-}
-
-.login-error {
-  color: #d03b3b;
-  font-size: 13px;
-  margin: 2px 0 12px;
-}
-
-.login-submit {
-  width: 100%;
-  margin-top: 8px;
+  margin-top: 4px;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
@@ -245,13 +217,47 @@ body {
   background: var(--brand);
   border: 0;
   border-radius: 4px;
-  padding: 9px 12px;
+  padding: 10px 12px;
+  text-decoration: none;
   cursor: pointer;
 }
 
-.login-submit:disabled {
-  opacity: 0.6;
-  cursor: default;
+.login-google:hover {
+  filter: brightness(1.08);
+}
+
+.login-google:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.google-mark {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background: #fff;
+  border-radius: 50%;
+  padding: 2px;
+  box-sizing: content-box;
+}
+
+.login-note {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.signed-in {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 14px;
+}
+
+.signed-in-as {
+  font-size: 12.5px;
+  color: var(--ink-2);
 }
 
 .sign-out {
@@ -262,7 +268,6 @@ body {
   border: 1px solid var(--ring);
   border-radius: 4px;
   padding: 2px 10px;
-  margin-left: 14px;
   cursor: pointer;
 }
 

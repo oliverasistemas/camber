@@ -6,8 +6,11 @@
 #   deployments/create-secrets.sh
 #
 # Creates:
-#   camber-secrets   POSTGRES_* for the DB pod, DATABASE_URL + DASH_USER/
-#                    DASH_PASS for the dashboard pod
+#   camber-secrets   POSTGRES_* for the DB pod, DATABASE_URL for the
+#                    dashboard pod
+#   camber-auth      GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (from the
+#                    environment; see dashboard/README.md "Sign-in") and a
+#                    generated SESSION_SECRET for the dashboard pod
 #   ecr-creds        docker pull secret (then kept fresh by the CronJob)
 #   ecr-refresh-aws  AWS key pair for the refresher, copied from inmatics-qa
 set -euo pipefail
@@ -27,10 +30,25 @@ else
         --from-literal=POSTGRES_USER=camber \
         --from-literal=POSTGRES_DB=camber \
         --from-literal=POSTGRES_PASSWORD="$PG_PASSWORD" \
-        --from-literal=DATABASE_URL="postgres://camber:$PG_PASSWORD@postgres:5432/camber" \
-        --from-literal=DASH_USER=russell \
-        --from-literal=DASH_PASS=camber2026
+        --from-literal=DATABASE_URL="postgres://camber:$PG_PASSWORD@postgres:5432/camber"
     echo "created camber-secrets"
+fi
+
+# Google sign-in. The OAuth client is created by hand in Google Cloud (the
+# redirect URI is https://camber.inmatics.io/api/auth/google/callback); pass
+# its ID and secret in the environment. SESSION_SECRET signs session cookies;
+# regenerating it (delete the Secret and rerun) signs everyone out, nothing
+# worse.
+if kubectl -n "$NS" get secret camber-auth >/dev/null 2>&1; then
+    echo "camber-auth already exists — leaving it alone"
+else
+    : "${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID to the OAuth client ID (Google Cloud → Credentials)}"
+    : "${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET to the OAuth client secret}"
+    kubectl -n "$NS" create secret generic camber-auth \
+        --from-literal=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" \
+        --from-literal=GOOGLE_CLIENT_SECRET="$GOOGLE_CLIENT_SECRET" \
+        --from-literal=SESSION_SECRET="$(openssl rand -hex 32)"
+    echo "created camber-auth"
 fi
 
 # Fresh ECR token now; the ecr-creds-refresh CronJob keeps it alive after.

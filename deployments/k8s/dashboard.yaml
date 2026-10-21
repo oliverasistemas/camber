@@ -53,16 +53,28 @@ spec:
                 secretKeyRef:
                   name: camber-secrets
                   key: DATABASE_URL
-            - name: DASH_USER
+            # Google sign-in (see dashboard/README.md "Sign-in"). The OAuth
+            # client and the cookie-signing key live in the camber-auth
+            # Secret (create-secrets.sh); the rest is plain config.
+            - name: PUBLIC_URL
+              value: https://camber.inmatics.io
+            - name: AUTH_ALLOWED_DOMAIN
+              value: cambercredit.com
+            - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
-                  name: camber-secrets
-                  key: DASH_USER
-            - name: DASH_PASS
+                  name: camber-auth
+                  key: GOOGLE_CLIENT_ID
+            - name: GOOGLE_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: camber-secrets
-                  key: DASH_PASS
+                  name: camber-auth
+                  key: GOOGLE_CLIENT_SECRET
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: camber-auth
+                  key: SESSION_SECRET
           # main.go pings the DB at startup and exits if it is unreachable,
           # so a pod that is Ready has a working pool. /api/health touches
           # nothing but the process.
