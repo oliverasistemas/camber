@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -100,5 +101,59 @@ func TestPipelineEndpoints(t *testing.T) {
 	var empty stagedRows
 	if code := get(t, mux, "GET", "/api/pipeline/staged/asset_summary?asof=1999-01-01", &empty); code != 200 || empty.Total != 0 || len(empty.Rows) != 0 {
 		t.Fatalf("empty asof: %d %+v", code, empty)
+	}
+}
+
+func TestPipelineStagedByFile(t *testing.T) {
+	_, mux := testServer(t)
+	if code := get(t, mux, "POST", "/api/pipeline/scan", nil); code != 200 {
+		t.Fatalf("scan: %d", code)
+	}
+	var ov pipelineOverview
+	if code := get(t, mux, "GET", "/api/pipeline", &ov); code != 200 {
+		t.Fatalf("overview: %d", code)
+	}
+	var cs, other *reportFileRow
+	for i := range ov.Files {
+		f := &ov.Files[i]
+		if f.ReportType == "contract_summary" && cs == nil {
+			cs = f
+		} else if f.ReportType != "contract_summary" && other == nil {
+			other = f
+		}
+	}
+	if cs == nil || other == nil {
+		t.Fatalf("need a contract_summary file and one other file: %+v", ov.Files)
+	}
+
+	var st stagedRows
+	url := fmt.Sprintf("/api/pipeline/staged/contract_summary?file=%d&limit=3&offset=1", cs.FileID)
+	if code := get(t, mux, "GET", url, &st); code != 200 {
+		t.Fatalf("by file: %d", code)
+	}
+	if st.File == nil || st.File.FileID != cs.FileID || st.AsOf != cs.AsOf || st.Offset != 1 || st.Limit != 3 {
+		t.Fatalf("by file: file=%+v asof=%s offset=%d limit=%d", st.File, st.AsOf, st.Offset, st.Limit)
+	}
+	if cs.RowCount != nil && st.Total != *cs.RowCount {
+		t.Fatalf("by file: total=%d, report_file.row_count=%d", st.Total, *cs.RowCount)
+	}
+	for _, raw := range st.Rows {
+		var r map[string]any
+		if err := json.Unmarshal(raw, &r); err != nil {
+			t.Fatal(err)
+		}
+		if int(r["file_id"].(float64)) != cs.FileID {
+			t.Fatalf("row from file %v, want %d", r["file_id"], cs.FileID)
+		}
+	}
+
+	if code := get(t, mux, "GET", fmt.Sprintf("/api/pipeline/staged/contract_summary?file=%d", other.FileID), nil); code != 409 {
+		t.Fatalf("wrong report: %d", code)
+	}
+	if code := get(t, mux, "GET", "/api/pipeline/staged/contract_summary?file=999999999", nil); code != 404 {
+		t.Fatalf("unknown file: %d", code)
+	}
+	if code := get(t, mux, "GET", "/api/pipeline/staged/contract_summary?file=abc", nil); code != 400 {
+		t.Fatalf("bad file: %d", code)
 	}
 }

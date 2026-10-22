@@ -219,4 +219,5 @@ export interface StagedRows {
   offset: number
   limit: number
   rows: Record<string, unknown>[]
+  file?: ReportFile // set when the rows were requested for one file
 }

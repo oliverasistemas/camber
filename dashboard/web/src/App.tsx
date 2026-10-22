@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Dashboard, Filters, Me } from './types'
 import { Login } from './Login'
 import { Leases } from './Leases'
 import { LeaseView } from './LeaseView'
 import { CollectionsView } from './CollectionsView'
-import { Pipeline } from './Pipeline'
 import { Columns } from './charts/Columns'
 import { HBars } from './charts/HBars'
 import { StatusStrip } from './charts/StatusStrip'
 import { Panel } from './Panel'
 import { Logo } from './Logo'
+
+// antd is only used by the pipeline pages; keep it out of the dashboard bundle.
+const PipelineRoutes = lazy(() => import('./pipeline/PipelineRoutes').then((m) => ({ default: m.PipelineRoutes })))
 import { money, moneyFull, int, pct, monthLabel, quarterLabel, axisMoney } from './format'
 
 const ORDINAL = ['var(--ord-1)', 'var(--ord-2)', 'var(--ord-3)', 'var(--ord-4)', 'var(--ord-5)']
@@ -135,7 +137,11 @@ export default function App() {
   }
 
   if (onPipeline) {
-    return <Pipeline onUnauthorized={() => setAuthed(false)} />
+    return (
+      <Suspense fallback={null}>
+        <PipelineRoutes hash={hash} onUnauthorized={() => setAuthed(false)} />
+      </Suspense>
+    )
   }
 
   if (collectionsMatch) {

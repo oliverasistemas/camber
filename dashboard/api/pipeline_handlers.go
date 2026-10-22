@@ -57,6 +57,7 @@ type stagedRows struct {
 	Offset  int               `json:"offset"`
 	Limit   int               `json:"limit"`
 	Rows    []json.RawMessage `json:"rows"`
+	File    *reportFileRow    `json:"file,omitempty"` // set when the request named one file
 }
 
 // GET /api/pipeline — processor state, loaded files, recent load events.
@@ -149,6 +150,8 @@ func (sv *server) handlePipelineScan(w http.ResponseWriter, r *http.Request) {
 // GET /api/pipeline/staged/{report}?asof=YYYY-MM-DD&limit=25&offset=0 — the
 // staged rows of one report for one as-of date (default: the latest), each
 // row as a JSON object keyed by column name, plus the column order.
+// With file=<id> instead, the rows of that one loaded file, plus the file's
+// metadata; 404 when the file does not exist, 409 when it is another report.
 func (sv *server) handlePipelineStaged(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
@@ -182,7 +185,38 @@ func (sv *server) handlePipelineStaged(w http.ResponseWriter, r *http.Request) {
 		out.AsOfs = append(out.AsOfs, d)
 	}
 	rows.Close()
-	if asof := q.Get("asof"); asof != "" {
+	if fs := q.Get("file"); fs != "" {
+		id, err := strconv.Atoi(fs)
+		if err != nil || id < 1 {
+			http.Error(w, `{"error":"file must be a positive integer"}`, http.StatusBadRequest)
+			return
+		}
+		var f reportFileRow
+		err = sv.db.QueryRow(ctx, `
+SELECT file_id, report_type, cadence, to_char(asof_date, 'YYYY-MM-DD'), filename, sha256, row_count,
+       to_char(loaded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+FROM vervent.report_file WHERE file_id = $1`, id).Scan(&f.FileID, &f.ReportType, &f.Cadence, &f.AsOf, &f.Filename, &f.SHA256, &f.RowCount, &f.LoadedAt)
+		if errors.Is(err, pgx.ErrNoRows) {
+			http.Error(w, fmt.Sprintf(`{"error":"no loaded file with id %d"}`, id), http.StatusNotFound)
+			return
+		}
+		if err != nil {
+			httpError(w, err)
+			return
+		}
+		if f.SHA256 != nil {
+			s := strings.TrimSpace(*f.SHA256)
+			f.SHA256 = &s
+		}
+		if f.ReportType != rep.Name {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(map[string]any{"error": fmt.Sprintf("file %d is a %s file", id, f.ReportType), "file": f})
+			return
+		}
+		out.File = &f
+		out.AsOf = f.AsOf
+	} else if asof := q.Get("asof"); asof != "" {
 		if _, err := time.Parse("2006-01-02", asof); err != nil {
 			http.Error(w, `{"error":"asof must be YYYY-MM-DD"}`, http.StatusBadRequest)
 			return
@@ -215,7 +249,12 @@ WHERE table_schema = 'vervent' AND table_name = $1 ORDER BY ordinal_position`, r
 		json.NewEncoder(w).Encode(out)
 		return
 	}
-	if err := sv.db.QueryRow(ctx, `SELECT count(*) FROM `+rep.Table+` WHERE asof_date = $1::date`, out.AsOf).Scan(&out.Total); err != nil {
+	// Rows are filtered by file when one was named, otherwise by as-of date.
+	where, arg := `asof_date = $1::date`, any(out.AsOf)
+	if out.File != nil {
+		where, arg = `file_id = $1`, out.File.FileID
+	}
+	if err := sv.db.QueryRow(ctx, `SELECT count(*) FROM `+rep.Table+` WHERE `+where, arg).Scan(&out.Total); err != nil {
 		httpError(w, err)
 		return
 	}
@@ -224,8 +263,8 @@ WHERE table_schema = 'vervent' AND table_name = $1 ORDER BY ordinal_position`, r
 		order[i] = pgx.Identifier{c}.Sanitize()
 	}
 	rows, err = sv.db.Query(ctx, fmt.Sprintf(
-		`SELECT to_jsonb(t) FROM %s t WHERE asof_date = $1::date ORDER BY %s LIMIT $2 OFFSET $3`,
-		rep.Table, strings.Join(order, ", ")), out.AsOf, out.Limit, out.Offset)
+		`SELECT to_jsonb(t) FROM %s t WHERE %s ORDER BY %s LIMIT $2 OFFSET $3`,
+		rep.Table, where, strings.Join(order, ", ")), arg, out.Limit, out.Offset)
 	if err != nil {
 		httpError(w, err)
 		return

@@ -20,4 +20,4 @@ images:
   # (ECR repo is immutable-tags); bump newTag here and re-apply to ship.
   - name: camber/dashboard
     newName: 032401303688.dkr.ecr.us-east-1.amazonaws.com/camber/dashboard
-    newTag: "1.4.0"
+    newTag: "1.5.0"

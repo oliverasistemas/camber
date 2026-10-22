@@ -883,96 +883,62 @@ body {
   text-decoration: underline;
 }
 
-.pipeline .panel {
-  margin-bottom: 18px;
+.pipeline .pipeline-lede {
+  margin-bottom: 0;
 }
 
-.pipeline code {
-  font-size: 12px;
-  background: var(--brand-wash);
-  padding: 1px 5px;
-  border-radius: 4px;
+.pipeline .scan-failures {
+  margin: 4px 0 0;
+  padding-left: 18px;
 }
 
-.pipeline-error {
-  color: #b42318;
+/* one file's page: the title carries the report, the as-of date sits beside it */
+.pipeline .file-head {
+  margin-bottom: 16px;
 }
 
-.pipeline-btn {
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--brand-contrast);
-  background: var(--brand);
-  border: 0;
-  border-radius: 6px;
-  padding: 7px 14px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.pipeline-btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.pipeline-filters {
-  margin: 0;
-}
-
-.wide-table {
-  overflow-x: auto;
-  max-width: 100%;
-}
-
-.wide-table.tall {
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.wide-table.tall thead th {
-  position: sticky;
-  top: 0;
-  background: var(--surface);
-}
-
-.viz-table.staged th,
-.viz-table.staged td {
-  white-space: nowrap;
-  padding-right: 16px;
-  font-size: 12px;
-}
-
-.viz-table td.detail {
+.pipeline .file-asof {
+  margin-left: 0.4em;
+  font-weight: 400;
   color: var(--ink-2);
-  font-size: 12px;
 }
 
-.viz-table td.mono {
+.pipeline .file-head .ant-segmented {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.pipeline .file-label {
+  margin-bottom: 20px;
+}
+
+.pipeline .file-label .ant-descriptions-item-label {
+  white-space: nowrap;
+}
+
+.pipeline .file-label .sha {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
 }
 
-.badge {
-  display: inline-block;
-  font-size: 11px;
+.pipeline .rows-table .ant-table-cell {
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.pipeline .rows-table .ant-table-thead .ant-table-cell {
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--grid);
-  color: var(--ink-2);
 }
 
-.badge-loaded {
-  background: rgba(27, 175, 122, 0.15);
-  color: #0f6e4c;
-}
-
-.badge-failed {
-  background: rgba(180, 35, 24, 0.12);
-  color: #b42318;
+@media (max-width: 640px) {
+  .pipeline .deal-name {
+    font-size: 26px;
+  }
+  .pipeline .file-asof {
+    display: block;
+    margin-left: 0;
+    font-size: 18px;
+  }
 }
 
 .pager {
@@ -982,4 +948,8 @@ body {
   margin-top: 12px;
   font-size: 13px;
   color: var(--ink-2);
+}
+
+.pipeline .result-icon {
+  color: var(--brand);
 }
