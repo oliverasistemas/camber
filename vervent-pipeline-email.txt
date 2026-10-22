@@ -1,0 +1,23 @@
+Subject: Vervent daily files processed: first step of the loan tape pipeline
+
+Hi all,
+
+Today I processed the 3 files Vervent uploaded for 10/20: Contract Summary (5,912 contracts), Asset Summary (5,970 assets) and Transaction History (807 transactions). This is the first step of the pipeline that will generate the loan tape and the visual dashboard.
+
+You can browse the imported files at https://camber.inmatics.io/#/pipeline (sign in with your Camber Google Workspace account). Each contract also has its own page with its asset and transactions, including any deficiency balance contracts tied to the original lease.
+
+Next steps:
+
+1. Overrides. Some fields in the Vervent data get corrected or filled in from other sources. Today Brad does this by hand, cross-referencing:
+   - Copart Sales & Inventory Report (weekly): sold date, sold price, and vehicles still in inventory
+   - Copart portal inventory report: vehicle details the weekly report doesn't include
+   - Manheim reports, once the remarketing transition is complete and their format is defined
+
+   A common case is a sold vehicle whose sale price in Vervent differs from Copart's. The pipeline will match these sources to each lease by VIN and apply the overrides automatically where the data allows. The rest can be entered by hand, and each change is recorded so it can be reviewed.
+
+2. Final loan tape. With the overrides applied, the pipeline generates the final loan tape and the dashboard updates from it.
+
+Happy to walk anyone through it.
+
+Best,
+Adolfo
