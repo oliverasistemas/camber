@@ -18,7 +18,9 @@ export function ColumnPicker({ options, visibleKeys, onChange }: ColumnPickerPro
   const [q, setQ] = useState('')
   const searchable = options.length > 12
   const needle = q.trim().toLowerCase()
-  const listed = needle ? options.filter((o) => o.label.toLowerCase().includes(needle)) : options
+  // Alphabetical in the picker only; the table keeps the report's own column order.
+  const sorted = [...options].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base', numeric: true }))
+  const listed = needle ? sorted.filter((o) => o.label.toLowerCase().includes(needle)) : sorted
   const listedKeys = listed.map((o) => o.key)
   const hiddenCount = options.filter((o) => !visibleKeys.includes(o.key)).length
 
