@@ -84,7 +84,16 @@ POST /api/pipeline/scan               # scan the inbox now; returns the per-file
 GET  /api/pipeline/staged/{report}    # staged rows: report = asset_summary | contract_summary | transaction_history
       ?asof=YYYY-MM-DD                #   default: latest as-of staged for that report
       &limit=1..500 & offset=N        #   rows are JSON objects keyed by column; `columns` gives the order
+GET  /api/pipeline/contracts/{leaseNo} # one contract with its asset(s), all its transactions, and its
+      ?asof=YYYY-MM-DD                #   base/deficiency siblings; default: the latest as-of it was staged
 ```
+
+The three reports join on the raw lease number: `asset_summary.lease` and
+`transaction_history.contract_number` equal `contract_summary.lease_no`.
+Deficiency balances are separate contracts with a `D` or `P` suffix
+(`500845248D`); `lease_no_norm` strips the suffix and ties them to the
+original lease. `#/pipeline/contract/{leaseNo}` shows the endpoint, and the
+lease-number column in each file's rows links to it.
 
 The processor (`api/pipeline`) walks the inbox every `VERVENT_POLL`, detects
 each file's report type, cadence and as-of date from its name

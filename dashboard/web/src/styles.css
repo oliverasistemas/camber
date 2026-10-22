@@ -887,11 +887,6 @@ body {
   margin-bottom: 0;
 }
 
-.pipeline .scan-failures {
-  margin: 4px 0 0;
-  padding-left: 18px;
-}
-
 /* one file's page: the title carries the report, the as-of date sits beside it */
 .pipeline .file-head {
   margin-bottom: 16px;
@@ -914,11 +909,6 @@ body {
 
 .pipeline .file-label .ant-descriptions-item-label {
   white-space: nowrap;
-}
-
-.pipeline .file-label .sha {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
 }
 
 .pipeline .rows-table .ant-table-cell {
@@ -968,4 +958,35 @@ body {
 .pipeline .rows-toolbar,
 .pipeline .list-toolbar {
   margin-bottom: 12px;
+}
+
+/* one contract's page */
+.pipeline .contract-card {
+  margin-bottom: 16px;
+}
+
+.pipeline .contract-related {
+  margin-bottom: 16px;
+}
+
+.pipeline .contract-asset + .contract-asset {
+  margin-top: 16px;
+}
+
+.pipeline .contract-asset > .ant-typography {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.pipeline .all-fields {
+  margin-top: -8px;
+}
+
+.pipeline .contract-lookup {
+  width: 240px;
+  max-width: 100%;
+}
+
+.pipeline .contract-note {
+  font-size: 12px;
 }

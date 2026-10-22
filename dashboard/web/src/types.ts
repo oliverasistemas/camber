@@ -221,3 +221,15 @@ export interface StagedRows {
   rows: Record<string, unknown>[]
   file?: ReportFile // set when the rows were requested for one file
 }
+
+export interface ContractDetail {
+  leaseNo: string
+  leaseNoNorm: string | null
+  asOf: string
+  asOfs: string[] // every as-of date this contract was staged, newest first
+  contract: Record<string, unknown>
+  assets: Record<string, unknown>[]
+  transactions: Record<string, unknown>[] // every staged transaction, newest first
+  related: { leaseNo: string; lsSource: string | null; assetDesc: string | null }[]
+  columns: Record<string, string[]> // report → column order
+}

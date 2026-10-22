@@ -94,6 +94,19 @@ export function fileHref(reportType: string, fileId: number, query?: URLSearchPa
   return `#/pipeline/${slug}/${fileId}${q ? `?${q}` : ''}`
 }
 
+/** The route of one contract with its asset and transactions. */
+export function contractHref(leaseNo: string, asOf?: string): string {
+  return `#/pipeline/contract/${encodeURIComponent(leaseNo)}${asOf ? `?asof=${asOf}` : ''}`
+}
+
+/** A staged value as table text. */
+export function cell(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  if (typeof v === 'boolean') return v ? 'Y' : 'N'
+  if (typeof v === 'object') return JSON.stringify(v)
+  return String(v)
+}
+
 export function when(iso: string | null | undefined): string {
   if (!iso) return ''
   const d = new Date(iso)

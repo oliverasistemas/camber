@@ -3,7 +3,7 @@ import { Alert, Breadcrumb, Button, Descriptions, Flex, Pagination, Result, Segm
 import { FileSearchOutlined, WarningOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import type { PipelineOverview, ReportFile as ReportFileRow, StagedRows } from '../types'
-import { ApiError, api, fileHref, fmtInt, reportLabel, when, type ReportDef } from './api'
+import { ApiError, api, cell, contractHref, fileHref, fmtInt, reportLabel, when, type ReportDef } from './api'
 import { ColumnPicker } from './ColumnPicker'
 import { useColumnVisibility } from './useColumnVisibility'
 
@@ -11,12 +11,11 @@ const { Text } = Typography
 
 const PAGE_SIZES = [25, 50, 100, 200]
 const HIDDEN = new Set(['file_id', 'asof_date']) // shown once in the file header instead
-
-function cell(v: unknown): string {
-  if (v === null || v === undefined) return ''
-  if (typeof v === 'boolean') return v ? 'Y' : 'N'
-  if (typeof v === 'object') return JSON.stringify(v)
-  return String(v)
+// The column of each report that holds the contract's lease number; it links to the contract page.
+const LEASE_COLUMN: Record<string, string> = {
+  contract_summary: 'lease_no',
+  asset_summary: 'lease',
+  transaction_history: 'contract_number',
 }
 
 /** #/pipeline/<report-slug>/<fileId> — the rows of one loaded file, paged on the server. */
@@ -94,7 +93,12 @@ export function ReportFile({
           key: c,
           fixed: report.key.includes(c) ? ('left' as const) : undefined,
           align: numeric ? ('right' as const) : undefined,
-          render: (v: unknown) => cell(v),
+          render:
+            c === LEASE_COLUMN[report.type]
+              ? // Transactions link to the contract's latest state, the others to the same day.
+                (v: unknown) =>
+                  v ? <a href={contractHref(String(v), report.type === 'transaction_history' ? undefined : data.asOf)}>{cell(v)}</a> : ''
+              : (v: unknown) => cell(v),
           onHeaderCell: () => ({ title: c }),
         }
       })
@@ -162,18 +166,6 @@ export function ReportFile({
           { key: 'file', label: 'File', span: { xs: 1, sm: 2, lg: 2 }, children: file?.filename ?? '' },
           { key: 'rows', label: 'Rows', children: fmtInt(file?.rowCount ?? data?.total) },
           { key: 'loaded', label: 'Loaded', children: when(file?.loadedAt) },
-          { key: 'cadence', label: 'Cadence', children: file?.cadence ?? 'none' },
-          {
-            key: 'sha',
-            label: 'sha256',
-            children: file?.sha256 ? (
-              <Text copyable={{ text: file.sha256 }} className="sha">
-                {file.sha256.slice(0, 16)}
-              </Text>
-            ) : (
-              ''
-            ),
-          },
         ]}
       />
 

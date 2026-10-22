@@ -43,6 +43,7 @@ func testServer(t *testing.T) (*server, *http.ServeMux) {
 	mux.HandleFunc("GET /api/pipeline", sv.handlePipeline)
 	mux.HandleFunc("POST /api/pipeline/scan", sv.handlePipelineScan)
 	mux.HandleFunc("GET /api/pipeline/staged/{report}", sv.handlePipelineStaged)
+	mux.HandleFunc("GET /api/pipeline/contracts/{leaseNo}", sv.handlePipelineContract)
 	return sv, mux
 }
 
@@ -155,5 +156,52 @@ func TestPipelineStagedByFile(t *testing.T) {
 	}
 	if code := get(t, mux, "GET", "/api/pipeline/staged/contract_summary?file=abc", nil); code != 400 {
 		t.Fatalf("bad file: %d", code)
+	}
+}
+
+func TestPipelineContract(t *testing.T) {
+	sv, mux := testServer(t)
+	if code := get(t, mux, "POST", "/api/pipeline/scan", nil); code != 200 {
+		t.Fatalf("scan: %d", code)
+	}
+	var leaseNo string
+	var nTxn int
+	err := sv.db.QueryRow(context.Background(), `
+SELECT c.lease_no, count(t.*) FROM vervent.contract_summary c
+LEFT JOIN vervent.transaction_history t ON t.contract_number = c.lease_no
+GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 1`).Scan(&leaseNo, &nTxn)
+	if err != nil {
+		t.Skipf("no staged contracts: %v", err)
+	}
+
+	var d contractDetail
+	if code := get(t, mux, "GET", "/api/pipeline/contracts/"+leaseNo, &d); code != 200 {
+		t.Fatalf("contract %s: %d", leaseNo, code)
+	}
+	if d.LeaseNo != leaseNo || len(d.AsOfs) == 0 || d.AsOf != d.AsOfs[0] || len(d.Contract) == 0 {
+		t.Fatalf("contract %s: %+v", leaseNo, d)
+	}
+	if len(d.Transactions) != nTxn {
+		t.Fatalf("contract %s: %d transactions, want %d", leaseNo, len(d.Transactions), nTxn)
+	}
+	for _, raw := range d.Assets {
+		var a struct{ Lease string }
+		json.Unmarshal(raw, &a)
+		if a.Lease != leaseNo {
+			t.Fatalf("asset of another lease: %s", raw)
+		}
+	}
+	if len(d.Columns["contract_summary"]) == 0 || len(d.Columns["transaction_history"]) == 0 {
+		t.Fatalf("columns: %v", d.Columns)
+	}
+
+	if code := get(t, mux, "GET", "/api/pipeline/contracts/NOPE", nil); code != 404 {
+		t.Fatalf("unknown contract: %d", code)
+	}
+	if code := get(t, mux, "GET", "/api/pipeline/contracts/"+leaseNo+"?asof=1999-01-01", nil); code != 404 {
+		t.Fatalf("contract on a day it was not staged: %d", code)
+	}
+	if code := get(t, mux, "GET", "/api/pipeline/contracts/"+leaseNo+"?asof=bad", nil); code != 400 {
+		t.Fatalf("bad asof: %d", code)
 	}
 }

@@ -713,6 +713,7 @@ func main() {
 	mux.HandleFunc("GET /api/pipeline", au.requireAuth(sv.handlePipeline))
 	mux.HandleFunc("POST /api/pipeline/scan", au.requireAuth(sv.handlePipelineScan))
 	mux.HandleFunc("GET /api/pipeline/staged/{report}", au.requireAuth(sv.handlePipelineStaged))
+	mux.HandleFunc("GET /api/pipeline/contracts/{leaseNo}", au.requireAuth(sv.handlePipelineContract))
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte("ok"))
 	})

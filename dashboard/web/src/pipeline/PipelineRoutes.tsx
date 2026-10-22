@@ -6,10 +6,12 @@ import { api, reportBySlug } from './api'
 import { pipelineTheme, usePrefersDark } from './theme'
 import { ImportList } from './ImportList'
 import { ReportFile } from './ReportFile'
+import { ContractView } from './ContractView'
 
 /**
  * #/pipeline                      — the list of imported files
  * #/pipeline/<report-slug>/<id>   — the rows of one imported file (?page=&size=)
+ * #/pipeline/contract/<lease_no>  — one contract, its asset and transactions (?asof=)
  *
  * The overview (files, load events, processor) is fetched once here and
  * shared, so moving between the list and a file does not refetch it.
@@ -44,7 +46,10 @@ export function PipelineRoutes({ hash, onUnauthorized }: { hash: string; onUnaut
 
   let page: JSX.Element
   if (parts.length === 1) {
-    page = <ImportList ov={ov} error={ovError} reload={loadOverview} onUnauthorized={onUnauth} />
+    page = <ImportList ov={ov} error={ovError} />
+  } else if (parts[1] === 'contract' && parts.length === 3 && parts[2]) {
+    const leaseNo = decodeURIComponent(parts[2])
+    page = <ContractView key={leaseNo} leaseNo={leaseNo} asOf={query.get('asof')} onUnauthorized={onUnauth} />
   } else {
     const report = reportBySlug(parts[1] ?? '')
     const id = Number(parts[2])
