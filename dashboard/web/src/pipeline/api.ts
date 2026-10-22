@@ -36,12 +36,51 @@ export interface ReportDef {
   slug: string // route segment
   label: string
   key: string[] // identifying columns, pinned to the left of the rows table
+  // Shown until the viewer picks their own; with the key, at most 9 columns.
+  // Chosen from the 2026-10-20 files: well-filled, informative columns a
+  // servicing reader looks for first (who, what, status, money, dates).
+  defaults: string[]
 }
 
 export const REPORTS: ReportDef[] = [
-  { type: 'asset_summary', slug: 'asset-summary', label: 'Asset Summary', key: ['asset_no'] },
-  { type: 'contract_summary', slug: 'contract-summary', label: 'Contract Summary', key: ['lease_no'] },
-  { type: 'transaction_history', slug: 'transaction-history', label: 'Transaction History', key: ['transaction_key'] },
+  {
+    type: 'asset_summary',
+    slug: 'asset-summary',
+    label: 'Asset Summary',
+    key: ['asset_no'],
+    defaults: ['lease', 'name', 'description', 'serial_number', 'status', 'contr_status', 'orig_cost', 'in_svc_date'],
+  },
+  {
+    type: 'contract_summary',
+    slug: 'contract-summary',
+    label: 'Contract Summary',
+    key: ['lease_no'],
+    defaults: [
+      'lessee_name',
+      'ls_status',
+      'first_asset_desc',
+      'maturity_date',
+      'curr_pymt',
+      'remaining_receivables',
+      'days_del',
+      'total_past_due',
+    ],
+  },
+  {
+    type: 'transaction_history',
+    slug: 'transaction-history',
+    label: 'Transaction History',
+    key: ['transaction_key'],
+    defaults: [
+      'contract_number',
+      'name',
+      'description',
+      'effective_date_key',
+      'date_due_date_key',
+      'transaction_amount',
+      'payment_amount',
+    ],
+  },
 ]
 
 export const reportByType = (t: string) => REPORTS.find((r) => r.type === t)

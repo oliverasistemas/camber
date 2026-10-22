@@ -70,19 +70,22 @@ export function ReportFile({
   const file = data?.file ?? ov?.files.find((f) => f.fileId === fileId) ?? null
   const siblings = file ? (ov?.files ?? []).filter((f) => f.asOf === file.asOf).sort((a, b) => a.reportType.localeCompare(b.reportType)) : []
 
-  // Every column but the key can be hidden; the choice is remembered per report.
+  // Every column but the key can be hidden; defaults per report, the choice remembered.
   const pickable = useMemo(
     () => (data?.columns ?? []).filter((c) => !HIDDEN.has(c) && !report.key.includes(c)),
     [data?.columns, report.key],
   )
-  const { visibleKeys, setVisible } = useColumnVisibility(`pipeline:${report.type}`, pickable)
+  const { visibleKeys, setVisible, reset, isDefault } = useColumnVisibility(`pipeline:${report.type}`, pickable, report.defaults)
 
   const columns: ColumnsType<Record<string, unknown>> = useMemo(() => {
     if (!data) return []
     const sample = data.rows[0] ?? {}
     return data.columns
       .filter((c) => !HIDDEN.has(c) && (report.key.includes(c) || visibleKeys.includes(c)))
-      .sort((a, b) => Number(report.key.includes(b)) - Number(report.key.includes(a)))
+      // Key first, then the report's defaults in their chosen order, then anything else picked, in file order.
+      .map((c, i) => ({ c, rank: report.key.includes(c) ? -1 : report.defaults.includes(c) ? report.defaults.indexOf(c) : 1000 + i }))
+      .sort((a, b) => a.rank - b.rank)
+      .map(({ c }) => c)
       .map((c) => {
         const numeric = typeof sample[c] === 'number'
         return {
@@ -179,7 +182,13 @@ export function ReportFile({
       )}
 
       <Flex justify="space-between" align="center" gap={12} wrap className="rows-toolbar">
-        <ColumnPicker options={pickable.map((c) => ({ key: c, label: c }))} visibleKeys={visibleKeys} onChange={setVisible} />
+        <ColumnPicker
+          options={pickable.map((c) => ({ key: c, label: c }))}
+          visibleKeys={visibleKeys}
+          onChange={setVisible}
+          onReset={reset}
+          isDefault={isDefault}
+        />
         {(data?.total ?? 0) > size && (
           <Pagination
             current={page}

@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 
-const STORAGE_PREFIX = 'column-visibility:'
+// v2: stores the visible set (v1 stored the hidden set; those choices are dropped).
+const STORAGE_PREFIX = 'column-visibility:v2:'
 
 function read(key: string): string[] | null {
   try {
@@ -13,28 +14,39 @@ function read(key: string): string[] | null {
 
 /**
  * Which table columns are visible, remembered in localStorage per table.
- * The hidden set is what gets stored, so columns the API adds later show up
- * by default instead of silently staying hidden. `defaultHidden` only seeds
- * the first visit.
+ * `defaultVisible` applies until the viewer changes the picker; after that
+ * their choice is the record. Columns the API adds later stay hidden until
+ * picked, so a wide report never balloons on its own.
  */
-export function useColumnVisibility(storageKey: string, allKeys: string[], defaultHidden: string[] = []) {
+export function useColumnVisibility(storageKey: string, allKeys: string[], defaultVisible: string[]) {
   const fullKey = STORAGE_PREFIX + storageKey
-  const [hidden, setHidden] = useState<string[]>(() => read(fullKey) ?? defaultHidden)
+  const [chosen, setChosen] = useState<string[] | null>(() => read(fullKey))
 
-  const visibleKeys = useMemo(() => allKeys.filter((k) => !hidden.includes(k)), [allKeys, hidden])
+  const visibleKeys = useMemo(() => {
+    const want = chosen ?? defaultVisible
+    return allKeys.filter((k) => want.includes(k))
+  }, [allKeys, chosen, defaultVisible])
 
   const setVisible = useCallback(
     (keys: string[]) => {
-      const next = allKeys.filter((k) => !keys.includes(k))
-      setHidden(next)
+      setChosen(keys)
       try {
-        localStorage.setItem(fullKey, JSON.stringify(next))
+        localStorage.setItem(fullKey, JSON.stringify(keys))
       } catch {
         /* storage unavailable: the choice lasts for this page view */
       }
     },
-    [allKeys, fullKey],
+    [fullKey],
   )
 
-  return { visibleKeys, setVisible }
+  const reset = useCallback(() => {
+    setChosen(null)
+    try {
+      localStorage.removeItem(fullKey)
+    } catch {
+      /* nothing stored */
+    }
+  }, [fullKey])
+
+  return { visibleKeys, setVisible, reset, isDefault: chosen === null }
 }

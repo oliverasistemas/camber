@@ -32,7 +32,8 @@ export function ImportList({
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const proc = ov?.processor ?? null
-  const { visibleKeys, setVisible } = useColumnVisibility('pipeline:imports', PICKABLE)
+  // Six columns in all, so every one is shown by default.
+  const { visibleKeys, setVisible, reset, isDefault } = useColumnVisibility('pipeline:imports', PICKABLE, PICKABLE)
 
   async function runScan() {
     setScanning(true)
@@ -145,7 +146,7 @@ export function ImportList({
       {scan && <ScanSummary scan={scan} onClose={() => setScan(null)} />}
 
       <Flex className="list-toolbar">
-        <ColumnPicker options={pickerOptions} visibleKeys={visibleKeys} onChange={setVisible} />
+        <ColumnPicker options={pickerOptions} visibleKeys={visibleKeys} onChange={setVisible} onReset={reset} isDefault={isDefault} />
       </Flex>
 
       <Table<ReportFile>
