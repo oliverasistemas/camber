@@ -19,6 +19,9 @@ aws route53 change-resource-record-sets \
     --change-batch file://deployments/dns/camber.json
 ```
 
+To load a Vervent sFTP drop into the cluster database, see
+[`IMPORT-VERVENT.md`](IMPORT-VERVENT.md).
+
 To ship a new build: `push-dashboard.sh <new-tag>` (ECR tags are immutable),
 bump `newTag` in `k8s/kustomization.yaml`, run `deploy.sh`, commit the pin.
 
