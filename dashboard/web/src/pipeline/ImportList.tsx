@@ -4,8 +4,13 @@ import { HistoryOutlined, SyncOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import type { LoadEvent, PipelineOverview, ReportFile, ScanResult } from '../types'
 import { REPORTS, api, fileHref, fmtInt, reportLabel, when } from './api'
+import { ColumnPicker } from './ColumnPicker'
+import { useColumnVisibility } from './useColumnVisibility'
 
 const { Text } = Typography
+
+// Report is the row's link, so it always stays.
+const PICKABLE = ['asOf', 'filename', 'cadence', 'rowCount', 'loadedAt']
 
 const STATUS_COLOR: Record<string, string> = { loaded: 'green', failed: 'red', unchanged: 'default', skipped: 'default' }
 
@@ -27,6 +32,7 @@ export function ImportList({
   const [historyOpen, setHistoryOpen] = useState(false)
 
   const proc = ov?.processor ?? null
+  const { visibleKeys, setVisible } = useColumnVisibility('pipeline:imports', PICKABLE)
 
   async function runScan() {
     setScanning(true)
@@ -44,9 +50,10 @@ export function ImportList({
     }
   }
 
-  const columns: ColumnsType<ReportFile> = [
+  const allColumns: ColumnsType<ReportFile> = [
     {
       title: 'As of',
+      key: 'asOf',
       dataIndex: 'asOf',
       width: 112,
       sorter: (a, b) => a.asOf.localeCompare(b.asOf),
@@ -54,6 +61,7 @@ export function ImportList({
     },
     {
       title: 'Report',
+      key: 'reportType',
       dataIndex: 'reportType',
       width: 180,
       filters: REPORTS.map((r) => ({ text: r.label, value: r.type })),
@@ -62,6 +70,7 @@ export function ImportList({
     },
     {
       title: 'File',
+      key: 'filename',
       dataIndex: 'filename',
       ellipsis: true,
       responsive: ['sm'],
@@ -71,9 +80,10 @@ export function ImportList({
         </Tooltip>
       ),
     },
-    { title: 'Cadence', dataIndex: 'cadence', width: 100, responsive: ['md'], render: (c: string | null) => c ?? '' },
+    { title: 'Cadence', key: 'cadence', dataIndex: 'cadence', width: 100, responsive: ['md'], render: (c: string | null) => c ?? '' },
     {
       title: 'Rows',
+      key: 'rowCount',
       dataIndex: 'rowCount',
       width: 84,
       align: 'right',
@@ -82,6 +92,7 @@ export function ImportList({
     },
     {
       title: 'Loaded',
+      key: 'loadedAt',
       dataIndex: 'loadedAt',
       width: 220,
       responsive: ['md'],
@@ -89,6 +100,13 @@ export function ImportList({
       render: when,
     },
   ]
+
+  const columns = allColumns.map((c) =>
+    PICKABLE.includes(String(c.key)) ? { ...c, hidden: !visibleKeys.includes(String(c.key)) } : c,
+  )
+  const pickerOptions = allColumns
+    .filter((c) => PICKABLE.includes(String(c.key)))
+    .map((c) => ({ key: String(c.key), label: String(c.title) }))
 
   const scanButton = (
     <Button type="primary" icon={<SyncOutlined spin={scanning} />} loading={false} disabled={!proc || scanning} onClick={runScan}>
@@ -125,6 +143,10 @@ export function ImportList({
       {error && <Alert type="error" showIcon message={error} style={{ marginBottom: 16 }} />}
       {scanError && <Alert type="error" showIcon closable message={`Scan failed: ${scanError}`} style={{ marginBottom: 16 }} onClose={() => setScanError('')} />}
       {scan && <ScanSummary scan={scan} onClose={() => setScan(null)} />}
+
+      <Flex className="list-toolbar">
+        <ColumnPicker options={pickerOptions} visibleKeys={visibleKeys} onChange={setVisible} />
+      </Flex>
 
       <Table<ReportFile>
         rowKey="fileId"

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Breadcrumb, Button, Descriptions, Flex, Result, Segmented, Table, Typography } from 'antd'
+import { Alert, Breadcrumb, Button, Descriptions, Flex, Pagination, Result, Segmented, Table, Typography } from 'antd'
 import { FileSearchOutlined, WarningOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import type { PipelineOverview, ReportFile as ReportFileRow, StagedRows } from '../types'
 import { ApiError, api, fileHref, fmtInt, reportLabel, when, type ReportDef } from './api'
+import { ColumnPicker } from './ColumnPicker'
+import { useColumnVisibility } from './useColumnVisibility'
 
 const { Text } = Typography
 
@@ -68,11 +70,18 @@ export function ReportFile({
   const file = data?.file ?? ov?.files.find((f) => f.fileId === fileId) ?? null
   const siblings = file ? (ov?.files ?? []).filter((f) => f.asOf === file.asOf).sort((a, b) => a.reportType.localeCompare(b.reportType)) : []
 
+  // Every column but the key can be hidden; the choice is remembered per report.
+  const pickable = useMemo(
+    () => (data?.columns ?? []).filter((c) => !HIDDEN.has(c) && !report.key.includes(c)),
+    [data?.columns, report.key],
+  )
+  const { visibleKeys, setVisible } = useColumnVisibility(`pipeline:${report.type}`, pickable)
+
   const columns: ColumnsType<Record<string, unknown>> = useMemo(() => {
     if (!data) return []
     const sample = data.rows[0] ?? {}
     return data.columns
-      .filter((c) => !HIDDEN.has(c))
+      .filter((c) => !HIDDEN.has(c) && (report.key.includes(c) || visibleKeys.includes(c)))
       .sort((a, b) => Number(report.key.includes(b)) - Number(report.key.includes(a)))
       .map((c) => {
         const numeric = typeof sample[c] === 'number'
@@ -86,7 +95,7 @@ export function ReportFile({
           onHeaderCell: () => ({ title: c }),
         }
       })
-  }, [data, report.key])
+  }, [data, report.key, visibleKeys])
 
   function go(nextPage: number, nextSize: number) {
     const q = new URLSearchParams()
@@ -169,6 +178,21 @@ export function ReportFile({
         <Alert type="info" showIcon message="No rows in this file." style={{ marginBottom: 16 }} />
       )}
 
+      <Flex justify="space-between" align="center" gap={12} wrap className="rows-toolbar">
+        <ColumnPicker options={pickable.map((c) => ({ key: c, label: c }))} visibleKeys={visibleKeys} onChange={setVisible} />
+        {(data?.total ?? 0) > size && (
+          <Pagination
+            current={page}
+            pageSize={size}
+            total={data?.total ?? 0}
+            pageSizeOptions={PAGE_SIZES}
+            showSizeChanger
+            showTotal={(t, [a, b]) => `${fmtInt(a)}–${fmtInt(b)} of ${fmtInt(t)} rows`}
+            onChange={go}
+          />
+        )}
+      </Flex>
+
       <Table<Record<string, unknown>>
         className="rows-table"
         size="small"
@@ -186,7 +210,7 @@ export function ReportFile({
           showSizeChanger: true,
           showTotal: (t, [a, b]) => `${fmtInt(a)}–${fmtInt(b)} of ${fmtInt(t)} rows`,
           onChange: go,
-          position: (data?.total ?? 0) > size ? ['topRight', 'bottomRight'] : ['bottomRight'],
+          position: ['bottomRight'],
         }}
       />
     </>

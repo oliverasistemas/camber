@@ -953,3 +953,19 @@ body {
 .pipeline .result-icon {
   color: var(--brand);
 }
+
+.column-picker {
+  width: 260px;
+  max-width: calc(100vw - 48px);
+}
+
+.column-picker-list {
+  max-height: min(360px, 50vh);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.pipeline .rows-toolbar,
+.pipeline .list-toolbar {
+  margin-bottom: 12px;
+}
