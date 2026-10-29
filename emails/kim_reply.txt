@@ -1,0 +1,20 @@
+Subject: Re: Test Application Findings – Clarifications Needed Batch # 2
+
+Hi Kim,
+
+Thanks for the review. Russell is confirming the mileage cap (#3) with Karus and will follow up.
+
+Answers to the stip questions on app 1329702, with one correction to my earlier note:
+
+- Every Camber deal gets these stips: driver's license, ID, proof of residence, proof of insurance and references. Proof of residence is required on every deal, not only when addresses differ.
+- These stips depend on the application:
+  - Residence verification: the application address doesn't match TransUnion.
+  - Employment verification: the employer doesn't match TransUnion, or TransUnion has no employer on file.
+  - Proof of income: stated income is more than 10% above TransUnion's estimate.
+  None of these are tied to FICO, PTI or DTI.
+- Every test app has shown the same stips because of a parsing issue at Karus. They're fixing it and removing the trade-in stip, since these are refinances. We'll let you know when you can retest.
+
+Glad the corrected ZIP on app 1414345 turned the decline into a counteroffer.
+
+Thanks,
+Adolfo

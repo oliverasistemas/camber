@@ -1,0 +1,51 @@
+ROADMAP
+
+LOAN UNDERWRITING ENGINE
+Backend:
+	Endpoints
+	loan-application
+	loan-onboarding
+
+WESTLAKE ONBOARDING
+
+
+
+Processes
+Loan application: The originator sends loan request to Camber API
+Loan disbursement: Originator disburses each individual loan and on the defined period (weekly) Camber settles balance with originator.
+Servicing onboarding
+
+Upcoming funding pipeline
+
+Manheim (we are selling cars through them):
+Vehicle information feed (inventory, sales, etc).
+Vehicle valuation feeds for Manheim Market Report (MMR) (current valuation, future valuation, point in time valuation)  Example: What would be the vehicle price in 3 months
+Car value is based on wholesale car price, although they provide additional data like Kelly Blue Book valuation
+
+Copart: Manheim (we used to sell cars through them): Backfill of sold vehicles
+
+Servicing data ingestion
+Vervent
+West Lake
+
+Loan tape generation
+
+Master servicing dashboards and reports driven from data obtained from Manheim and loan and leases servicers (Vervent and West Lake)
+
+Identity and access management module
+Federated authentication based on Google Oauth and role based access managed through Camber’s IAM admin panel.
+
+Camber administration panel
+IAM administration
+LUE panel
+Data ingestion pipelines panel
+Servicing reporting and dashboards
+Loan tape snapshots
+
+
+Karus analytics data
+
+Priority matrix (low, high)
+
+Document structure
+EPIC / User Stories
