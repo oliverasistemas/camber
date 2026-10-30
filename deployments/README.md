@@ -20,7 +20,8 @@ aws route53 change-resource-record-sets \
 ```
 
 To load a Vervent sFTP drop into the cluster database, see
-[`IMPORT-VERVENT.md`](IMPORT-VERVENT.md).
+[`IMPORT-VERVENT.md`](IMPORT-VERVENT.md). NALN's funded-loan PDF drop is
+described in [`NALN-SFTP.md`](NALN-SFTP.md).
 
 To ship a new build: `push-dashboard.sh <new-tag>` (ECR tags are immutable),
 bump `newTag` in `k8s/kustomization.yaml`, run `deploy.sh`, commit the pin.
