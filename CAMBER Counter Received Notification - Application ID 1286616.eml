@@ -1,0 +1,210 @@
+Received: from SJ0PR17MB4743.namprd17.prod.outlook.com (::1) by
+ DS2PR17MB824900.namprd17.prod.outlook.com with HTTPS; Thu, 29 Oct 2026
+ 16:10:42 +0000
+Received: from CH0PR03CA0444.namprd03.prod.outlook.com (2603:10b6:610:10e::12)
+ by SJ0PR17MB4743.namprd17.prod.outlook.com (2603:10b6:a03:378::12) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.569.9; Thu, 29 Oct
+ 2026 16:10:40 +0000
+Received: from BN2PEPF000044AA.namprd04.prod.outlook.com
+ (2603:10b6:610:10e:cafe::9b) by CH0PR03CA0444.outlook.office365.com
+ (2603:10b6:610:10e::12) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.21.569.8 via Frontend Transport; Thu, 29
+ Oct 2026 16:10:40 +0000
+Authentication-Results: mx.microsoft.com 1; spf=pass (sender IP is
+ 54.240.27.38) smtp.mailfrom=us-west-2.amazonses.com; dkim=pass (signature was
+ verified) header.d=naln.com;dkim=pass (signature was verified)
+ header.d=amazonses.com;dmarc=pass action=none
+ header.from=naln.com;compauth=pass reason=100
+Received-SPF: Pass (protection.outlook.com: domain of us-west-2.amazonses.com
+ designates 54.240.27.38 as permitted sender) receiver=protection.outlook.com;
+ client-ip=54.240.27.38; helo=a27-38.smtp-out.us-west-2.amazonses.com; pr=C
+Received: from OTMX1.mynaln.local (70.165.59.118) by
+ BN2PEPF000044AA.mail.protection.outlook.com (10.167.243.105) with Microsoft
+ SMTP Server (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
+ 15.21.569.4 via Frontend Transport; Thu, 29 Oct 2026 16:10:39 +0000
+Received: from OTMX1.mynaln.local (172.20.20.13) by OTMX1.mynaln.local
+ (172.20.20.13) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1748.39; Thu, 29 Oct
+ 2026 09:10:38 -0700
+Received: from inpost.tmes.trendmicro.com (18.208.22.103) by
+ OTMX1.mynaln.local (172.20.20.13) with Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.2.1748.39 via Frontend
+ Transport; Thu, 29 Oct 2026 09:10:38 -0700
+Received: from 54.240.27.38_.trendmicro.com (unknown [192.168.180.157])
+	by inpost.tmes.trendmicro.com (Postfix) with SMTP id 47E19C000789;
+	Thu, 29 Oct 2026 16:10:38 +0000 (UTC)
+X-TM-MAIL-RECEIVED-TIME: 1793290232.085000
+X-TM-MAIL-UUID: a35a44bd-e63a-49de-90d8-e53eb6f4a24c
+Received: from a27-38.smtp-out.us-west-2.amazonses.com (unknown [54.240.27.38])
+	by inpre01.tmes.trendmicro.com (Trend Micro Email Security) with ESMTPS id 14E8EC00042D;
+	Thu, 29 Oct 2026 16:10:32 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=jovviaq4w5acyrannvnuw3pm5kaj6t3l; d=naln.com; t=1793290231;
+	h=From:Date:Subject:Message-Id:To:Cc:MIME-Version:Content-Type;
+	bh=dv7HeasA3cc2BUMT+g8rzUK2ps0tmxZr/WIacyOf0rw=;
+	b=I8uGFIsQbvM6QBM8tmmFXkDx27b/V/QBYAE5vHfmOPh68DH8bWVX0Eg8oFC+Dazj
+	A/cBpoYM1mlAg+N3o0di5rkTnixWibgzEfNUEzlhn2IasUh8Sg67pgFS8ohkoSw/1FL
+	ym5gTbMPahMzB9yylIRqE1OXVwpZy9y54P662PTSCpcTNTSvx0vaNdTQ4pJpfDy0KqR
+	sr30VfzX61xntG5QM1A1DXyufmG6lL9h7n6w5PG3sgCYLCDOiqyE7UMAEw256lW/cq7
+	kX8WRtpQxweJuSshPZ+Edw5PuLyi7Uf10qqr9xs/U2OyYKFnV+db6o1RYee6rkfNNTK
+	+gzkmvOiXQ==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=hsbnp7p3ensaochzwyq5wwmceodymuwv; d=amazonses.com; t=1793290231;
+	h=From:Date:Subject:Message-Id:To:Cc:MIME-Version:Content-Type:Feedback-ID;
+	bh=dv7HeasA3cc2BUMT+g8rzUK2ps0tmxZr/WIacyOf0rw=;
+	b=3385i9Ic7Vcrl1oXY2RMsl0ykmsNQkXlZB2F+vFRROA+HbV3MfHa6vxoeIPgKmP3
+	BluJU0X/TJkxBJxvK5YsZlEBhjjqZwcDUH8KG0lYge99kNe+XmXK+gFTV+GIoAfgsSs
+	CrTXLQt39ggvtvBJhVD4e+OHGuQPJQ1W0xPEm2+o=
+From: National Auto Loan Network <notifications@naln.com>
+Date: Thu, 29 Oct 2026 16:10:31 +0000
+Subject: CAMBER Counter Received Notification - Application ID 1286616
+Message-ID: <010101a1886d5d3f-6679b87d-9b8b-49ef-a457-0ead643b8fd4-000000@us-west-2.amazonses.com>
+To: andyn@naln.com, angelau@naln.com, berenicee@naln.com, brandoni@naln.com, 
+	conniec@naln.com, dalinas@naln.com, dylann@naln.com, ezral@naln.com, 
+	isar@naln.com, ivettev@naln.com, jacobh@naln.com, jacobn@naln.com, 
+	karinap@naln.com, leob@naln.com, lisak@naln.com, marylynnt@naln.com, 
+	natalyp@naln.com, palmirae@naln.com, patriciam@naln.com, 
+	rociom@naln.com, roym@naln.com, davids@naln.com, jacobe@naln.com, 
+	laylad@naln.com, lesliev@naln.com, lucig@naln.com
+Cc: marcor@naln.com, eddien@naln.com, kimf@naln.com, robert.s@virstack.com
+Content-Type: text/html; charset=utf-8
+Feedback-ID: ::1.us-west-2.5x9HmjqcS7i5aNP3wvGJReaoMCJndBd51kEkGllVLMU=:AmazonSES
+X-SES-Outgoing: 2026.10.29-54.240.27.38
+X-TM-AS-ERS: 54.240.27.38-127.5.21.1
+X-TMASE-Version: StarCloud-1.3-9.2.1014-30288.000
+X-TMASE-Result: 10--5.599800-10.000000
+X-TMASE-MatchedRID: 4mGSi91fRo/2exa++FFM5SE8raaf46xMT6RGO66pckA4hfL5JF11Tmus
+	0dRgwJ6kwtRwGS1KU53rzWg9TqTBQSGmNwgMA1TwXWNUfUjFe62tADFebBYzEdbojhKG7WOq6KE
+	JO7SR6XgkvJFrsDh0h8KjGRQnQ81hjWDfMO3Wy/kKRko19ZVs+mKaajCLWxID42a5hsOcc9WSFe
+	zysSdOnZsI6K9TYesLZLQpoie3cD5P8StIwFbkBA==
+X-TMASE-SNAP-Result: 1.821001.0001-0-1-22:0,28:1,33:0,34:0,42:1-0
+X-TMASE-XGENCLOUD: a1f7f418-80e2-4416-9363-e8019f0d35e0-0-0-200-0
+X-TM-RISKAI-PTN-VERSION: 1.24.0+20261029.6d3e223
+X-TM-RISKAI-MATCHEDFID: WyJGSUwwMzMiLCAiRklMMDM1IiwgIkZJTDAzNyIsICJGSUwwNDIi
+	LCAiRklMMDQ2IiwgIkZJTDA3NCIsICJGSUwwNzciLCAiRklMMDc4IiwgIkZJTDA4MCIsICJGSUw
+	wODFOIiwgIkZJTDA4NyIsICJGSUwwOTAiLCAiRklMMTM3IiwgIkZJTDE1MyIsICJGSUwxOTYiLC
+	AiRklMMTk3IiwgIkZJTDE5OCIsICJGSUwxOTkiLCAiRklMMjU5IiwgIkZJTDI4NCIsICJGSUwzM
+	DkiXQ==
+X-TM-Deliver-Signature: 879C010CDBE4D84CCD7BECA23A902A51
+X-TM-Addin-Auth: w7X+ZnI/lPUvgkkaqCOdh1XprMz4F4tRzN8XgExCXQVc4SKmABkQ7SLeQR7
+	6KwiAKTPkXh2m8PDc9QbaChoIkFKnDEHSsFUZ6eyDexJsxnYLrzuD6ghiD58uqyA1i3gNK1wAFp
+	HKxvmuLidn8bi4PZECPA4aMcDNtw0zLQy2bIKHYiOPGdClzt8FK1RZlLIancF50t/2F4MugDLyf
+	x/ZbTiQwTXIMv9mTSQqmbjkeQyaoi72jVUJY+wPmdVafYaZHmDYWs48BoF6JlChe5GhCsK+3xfU
+	BWU3t6wUy51R7qZAGInOU+CXIv8CbU9TFH9Q/sHdgq0P8g8vtACxyTNYuSLhIlQiEKR1oulW3Xf
+	rZx8=.PGyMICJ1U2uBiMF6ELP5DM3m6kYrqFHfJlHcB0x94N/1r9UthEbrcc11MCWhAJG00Qs8/
+	nhC4eNpxN2LIv6QQNWk6YdVU8w5a8hyNy+xbcz/RTggNH6cNkaIDuXuJ1tsY/qSUnaJJzML/wnf
+	hzEjh+WpB9U4OykUWFBo+3rgjN/aOqW/daoDpjWjR5GSK86uLsu0TrGc8d33t21tV1f2gqeKUth
+	Oiyuv0iAzSf5mOZf3mLNFAgz1hIRLfcBTKIg1DZiZQuRUFC906ryJ14IOnBK9SFzhm9iDHllXfG
+	v9hNF4LodMBxbwRaMRO7o/J7CsdzeRQrgMWm8WCUb2aqEYuQ==
+X-TM-Addin-ProductCode: EMS
+Return-Path:
+ 010101a1886d5d3f-6679b87d-9b8b-49ef-a457-0ead643b8fd4-000000@us-west-2.amazonses.com
+X-C2ProcessedOrg: cb8df3d3-1ca5-4fc6-9e2a-a4cd8e6cb865
+X-OrganizationHeadersPreserved: OTMX1.mynaln.local
+X-MS-Exchange-Organization-ExpirationStartTime: 29 Oct 2026 16:10:39.9165
+ (UTC)
+X-MS-Exchange-Organization-ExpirationStartTimeReason: OriginalSubmit
+X-MS-Exchange-Organization-ExpirationInterval: 1:00:00:00.0000000
+X-MS-Exchange-Organization-ExpirationIntervalReason: OriginalSubmit
+X-MS-Exchange-Organization-Network-Message-Id:
+ 3302854f-0774-4273-c563-08df35d72d00
+X-EOPAttributedMessage: 0
+X-MS-Exchange-Organization-MessageDirectionality: Originating
+X-MS-Exchange-SkipListedInternetSender:
+ ip=[54.240.27.38];domain=a27-38.smtp-out.us-west-2.amazonses.com
+X-MS-Exchange-ExternalOriginalInternetSender:
+ ip=[54.240.27.38];domain=a27-38.smtp-out.us-west-2.amazonses.com
+X-CrossPremisesHeadersFiltered: BN2PEPF000044AA.namprd04.prod.outlook.com
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic:
+ BN2PEPF000044AA:EE_|SJ0PR17MB4743:EE_|DS2PR17MB824900:EE_
+X-MS-Exchange-Organization-AuthSource:
+ BN2PEPF000044AA.namprd04.prod.outlook.com
+X-MS-Exchange-Organization-AuthAs: Anonymous
+X-OriginatorOrg: ottno.onmicrosoft.com
+X-MS-Office365-Filtering-Correlation-Id: 3302854f-0774-4273-c563-08df35d72d00
+X-MS-Exchange-Organization-SCL: 1
+X-Microsoft-Antispam:
+ BCL:0;ARA:13230040|704162311799003|82310400026|32142699015|260918224100599003|260918215300599003|19002099009|4113699003|57112099003|18002099003|16102099003|8096899003|921020|5063699009|261028144727099003|10067099003|261022105027099003|261026140227099003;
+X-Forefront-Antispam-Report:
+ CIP:70.165.59.118;CTRY:US;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:a27-38.smtp-out.us-west-2.amazonses.com;PTR:a27-38.smtp-out.us-west-2.amazonses.com;CAT:NONE;SFS:(13230040)(704162311799003)(82310400026)(32142699015)(260918224100599003)(260918215300599003)(19002099009)(4113699003)(57112099003)(18002099003)(16102099003)(8096899003)(921020)(5063699009)(261028144727099003)(10067099003)(261022105027099003)(261026140227099003);DIR:INB;
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 29 Oct 2026 16:10:39.7778
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: 3302854f-0774-4273-c563-08df35d72d00
+X-MS-Exchange-CrossTenant-Id: 9269494e-ded1-4f02-9048-b7e3c37e266f
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=9269494e-ded1-4f02-9048-b7e3c37e266f;Ip=[70.165.59.118];Helo=[OTMX1.mynaln.local]
+X-MS-Exchange-CrossTenant-AuthSource:
+ BN2PEPF000044AA.namprd04.prod.outlook.com
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: SJ0PR17MB4743
+X-MS-Exchange-Transport-EndToEndLatency: 00:00:02.6393896
+X-MS-Exchange-Processed-By-BccFoldering: 15.21.0569.002
+X-Microsoft-Antispam-Mailbox-Delivery:
+ ucf:1;jmr:0;auth:0;dest:C;OFR:CustomRules;ENG:(910005)(944506478)(944626604)(920097)(930201)(20251009284)(140003);
+X-Microsoft-Antispam-Message-Info:
+ =?utf-8?B?VjR1UVpEallCekxDYTBtelZITG42aHZmQUZ3dWlhN0IxaFZ0d2x2OWFlbEpG?=
+ =?utf-8?B?U1VtU01tTW5JYmVlTXpvYXRvY1BNY0lJUnVhYnZrbXlHTng3UlZLZlBVRnFw?=
+ =?utf-8?B?NXdtVE9VRWcvUFVEMUJuUE1uaWYwK0FJdmtsL0hHdFZFbFdPTWtNSHdrcnRp?=
+ =?utf-8?B?WjhYdlI3bk4xZ2JuU09OKzRFUHNHb3JiRy9MVnhCL2VYNkw5d3BBTDNzeit1?=
+ =?utf-8?B?eng4QWdpSHNiZzlUbVFWOGRVMnMvZEpJNlp5RlNEdFZhVGg1Y0pteFJ3WUds?=
+ =?utf-8?B?NGV5Y1lGUEFUNHZMaTFZRVZrMWI4R2szSEhKQkt6WGVMa0FQdW9mQXZmYkpL?=
+ =?utf-8?B?bzFZMjkxbVp2a2xtMmIzMlNMV2c3ZEYrbEE0R2Y5eTVkL3NiMzJoTVpnV01V?=
+ =?utf-8?B?RDBrc25wZWxBV3FDaEljbDl3dS9EQ0dVZFJjZk5xWU1CZXpFMWplWkJHSXNL?=
+ =?utf-8?B?OVZBN3p5ZVBnemRCbmNCbTNzc2l6T1NlYlh2Qm0va0RrTDl6U3VaVjFlZUJR?=
+ =?utf-8?B?YXpjcmpNc2wyRzlsTTViR3hPcUtPamtrQ3VOd3BFdDF6ZXZoRGR6SDU4UHY2?=
+ =?utf-8?B?NlA2S00zQThsdm9lVVJmMTROS21UeG8yUXhqeERqLzBUQ0RVakRvZW9uNEJK?=
+ =?utf-8?B?MnRNRUNPVmZoWlErcnlvbFAyREozaGgzM2pXODNkMVFIT2lLUE45WDhpMGtC?=
+ =?utf-8?B?NnkwSStHTXFUWS85WlVmTVBGOWpxMkNWeS9heDFRNnNrd04zdWZMdFhzSE1m?=
+ =?utf-8?B?QVp1Ujc3THR3OTZ6N2dOOVBGQnRIbXFPcUNQVmlEVFFJdXR0VlRyUURKUmcy?=
+ =?utf-8?B?MWQvSkE1SURUS0hTeHpuVytCbkhQZ09yVDE1a1JKT0NzQVJPeWRTVGdRNThT?=
+ =?utf-8?B?M1VESlprajhOZmN0NGRYdFZRNXFmajYzcXBIdm85bHMrWFc5YVpYWlR2K0Zw?=
+ =?utf-8?B?Y2JHUVZaSWdLMDNPREFheWN4a2FBK1R3bzFvaVpKeUZCMEt4S2YzUkJobmxn?=
+ =?utf-8?B?dFQ4M0EyV1FJRm5ybnA0OXN4dGRYWm9ESFpVWitHenpjWHo0RUZrTW1KbVBK?=
+ =?utf-8?B?VmxMZHpxa3JqcC9rYloybTJMUkpETHMyQTR4cmpkRHF0QTVxZ2VLTFk2TGpr?=
+ =?utf-8?B?Y1NhYys0YndZWG94RndPTEN2TXlCRXQ5ZTBPc1puUzZwZlBXazU2bmhKaWI4?=
+ =?utf-8?B?S0lGNXFZRlFYZ2tyVFQyYWF6YklMSWVnL2orMTdhZWRkYjFtbDhCNGd1YXR5?=
+ =?utf-8?B?SU50ZDlpc1VtRGJnRDlvYjVpQlJqRTZyZXIrRUpIejE1UlRKajB2TEFVeXBj?=
+ =?utf-8?B?a3EzemhicWN0MjYyN2kyRGVnT01yNmUvQ05vVGFSOWNWWC9jMG1kVVU1d0Rz?=
+ =?utf-8?B?dkY1cSt2ZWdRZHVSZnBSRitST0p0ZnZvaXllR1k5Y1d4Z3c2R3M4R1c5a2dB?=
+ =?utf-8?B?UVBOWDdwMGJ6WkZ6WXZmOEcrdUtMeUdjMUhKZFhGVmNEYjZLU0dPYWhoQUpF?=
+ =?utf-8?B?SHpGajRGUkkzTVdOdnM3UUphUTRYaFBYaGNvb2hDS2E0RnA5ZWFIcnF5Tno0?=
+ =?utf-8?B?WDNxdVVrMmIxRW4vZTQ4WGhlQzh3ZGNqYjV4QWE1WWFTbHpTNDdLdytXRjUz?=
+ =?utf-8?B?M1Z2RDdrM2QrSnQ1M0xId1ZZNmNkVmJPenRZOThreTlnZTRpamw2cGtjNUVu?=
+ =?utf-8?B?RzNSajdyUG1WWXhRWW0xUnZFSXRDZFh3MHZYbGVDS3FtdHhhdjcrMG9BYUhl?=
+ =?utf-8?B?Vnc2Tk82UTQzd0NMYi8rRkY1aGtpalh6ZitRTmlFRDY0NjZpRlZ3aFA3TUNF?=
+ =?utf-8?B?REVyOXpwclhUeUdyTXZKamkrTGtPZTJLZWVwWHBPL2tESXgvRlhtMzBhRnhJ?=
+ =?utf-8?B?ZVhwSkFyMTRGaWZyeGJOcGUvT01zRis0RnNCRjdLckdURi9TYy9DQkRlRzhl?=
+ =?utf-8?Q?UQV8hmNmYm0=3D?=
+MIME-Version: 1.0
+
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"><p>COUNTERED decision has been made for Application ID 1286616.</p>
+<p>Date: 10/29/2026 9:10:13 AM</p>
+<p>Loan Decision Details:
+<ul>
+<li>Good Through Date: 11/27/2026 4:00:00 PM</li>
+<li>Loan Amount: 25156.3</li>
+<li>Min Term Months: 72</li>
+<li>Min Term Rate: 15.0</li>
+<li>Max Term Months: 72</li>
+<li>Max Term Rate: 15.0</li>
+<li>Loan Rate: 15.0</li>
+<li>Loan Term: 72</li>
+<li>Ltv: 130.01</li>
+<li>Payment Amount: 531.93</li>
+<li>Stipulations:
+<ul>
+<li>Drivers License</li>
+<li>ID</li>
+<li>Proof of Residence</li>
+<li>Proof of Insurance</li>
+<li>References</li>
+<li>Employment Verification</li>
+<li>Second Income Must Verify Min 1 Year</li>
+<li></li>
+</ul>
+</li>
+<li>Primary Applicant Fico Score: 620.0</li>
+<li>Co-Applicant Fico Score: 0.0</li>
+</ul></p>
