@@ -1,0 +1,46 @@
+To: Eddie Nevarez; cc Kim Feely, Marco, Bobby, Russell, Brad, Thomas Morris
+Subject: RE: Lending guidelines V1.2 and app 1277877
+
+Hi Eddie,
+
+Thanks for the matrix. We reviewed 1277877 and the other recent counters
+against V1.2 and have the picture below. We are confirming the remaining
+details with Karus before Wednesday.
+
+What we found:
+
+1. Valuation. The engine computes LTV on the wholesale (trade) value, as you
+   observed. Your matrix uses NADA Retail. This is a program setting, not a
+   calculation error, and it affects every callback: three of the five recent
+   counters were cut to exactly 130% of wholesale.
+
+2. Term. The engine's maximum term is 75 months, stepping down with vehicle
+   age and mileage. That is why 1277877 came back at 70 and others at 60–72.
+   The 84-month term for amounts over $25,000 is not in the current program.
+
+3. DTI on the 84-month resubmit. We pulled the engine logs for all five
+   submissions of 1277877. Nothing in the application changed between the
+   10/29 counter and the 11/2 declines except the requested term (70 to
+   83/84) and the 0.49% rate add-on. The 84-month payment is about $700,
+   below the $784 that was countered, so DTI did not get worse. The engine
+   is hard-declining a term above its current 75-month cap and labeling it
+   DTI instead of countering to the cap. We have raised it with Karus as a
+   defect.
+
+   The $62 reduction on the 10/29 counter was the engine's 15% PTI cap
+   (your matrix allows 20% for a 717 score), and the engine valued the
+   truck at the $33,550 wholesale figure you sent, not the $37,550 retail.
+
+4. Callbacks return a single term (min and max are the same), so "approved up
+   to 84 months" is not something the current response can express. We are
+   checking whether a term range can be returned.
+
+Beyond those, the matrix and the program differ on credit tiers (V1.2 has
+six bands starting at 740; the engine has five starting at 700), PTI, minimum
+income, maximum payment, maximum amount financed, mileage (130k vs. 120k,
+still open from Kim's 10/22 notes) and several credit-history rules. We will
+bring the full side-by-side to the meeting so we can agree on which set the
+program should run and get it changed.
+
+Thanks,
+Adolfo

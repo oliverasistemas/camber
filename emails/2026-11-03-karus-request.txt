@@ -1,0 +1,45 @@
+To: Thom Muha (Karus); cc Thomas Morris, Colleen Stabler (TRC), Russell, Brad
+Subject: NALN V1.2 guidelines vs. live program; app 1277877 before Wed 11/4
+
+Thom,
+
+NALN sent an updated guidelines matrix (V1.2, effective 10/26, attached) and
+flagged app 1277877. We meet with them Wednesday 11/4 and need to walk in
+knowing exactly what is programmed. Three questions on 1277877 and one list.
+
+App 1277877 (camber key CMB1-W4EP01HN6N893MH9-9, FICO 717, income 5,235,
+2019 Ram 1500 at 89k miles, wholesale 33,550 / retail 37,550, payoff 41,524).
+Five runs in the CLUE console, same applicant and vehicle on every run:
+- 72 mo requested (10/28, twice) and 70 mo (10/29): COUNTERED to 41,471.40 at
+  70 mo, 10%, payment 784.35, LTV 123.61. Reasons: PTI exceeds, term reduced.
+  The haircut is the 15% PTI cap (785.53 at 41,534 = 15.005%), and LTV is on
+  wholesaleValue even though retailValue is in the request.
+- 83 mo and 84 mo at 10.49% (11/2, twice): HARD DECLINE, "Debt-to-income
+  ratio exceeds program limits". The 84-month payment is 700, below the
+  784 you countered at, so DTI did not move. It looks like a requested term
+  above the program max hard-declines with a DTI label instead of countering
+  down to the max term the way 72 did. Can you confirm what is happening and
+  fix it so the engine counters (or at least reports the term as the reason)?
+
+Program check. Please confirm what is live today for Camber/NALN, since the
+June program guide is already out of date on term and mileage:
+1. Credit tiers and bands.
+2. LTV basis (wholesale vs. retail) and cap by tier.
+3. Max term, the age/mileage step-down table, and whether 84 is possible with
+   NALN's amount-financed floors (84 >= 25k, 72 >= 15k, 60 >= 7.5k) and the
+   .49% rate add-on over 72.
+4. PTI and DTI caps by tier.
+5. Minimum income (single/joint), max payment, max amount financed.
+6. Mileage cap (120k vs. NALN's 130k, still open from 10/22).
+7. Joint applicant rules (NALN: higher score used, combined income, different
+   addresses allowed).
+8. Whether the callback can return a min/max term range when more than one
+   term qualifies.
+
+A side-by-side of the V1.2 matrix against the June guide is in the attached
+note. Where NALN is looser than the program (LTV basis, term, income,
+payment, credit history rules), Camber needs to decide which to adopt; where
+Karus is looser (vehicle age), we need to tighten.
+
+Thanks,
+Adolfo
