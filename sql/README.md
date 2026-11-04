@@ -19,9 +19,13 @@ dashboard is being rebuilt on.
 ```
 01_schema.sql                 GENERATED  schema, parsers, report_file, the 3 report tables
 02_codes.sql                  GENERATED  code_values + gl_vector with seed rows
+03_copart.sql                 GENERATED  copart schema: report_file, inventory, sales + current/reconciliation views
 load_<report>.sql             GENERATED  per-report load: \copy -> temp text table -> typed upsert
+load_copart_<tab>.sql         GENERATED  same, for the two tabs of the Copart xlsx
 generate_schema.py            column spec (CSV header -> column, type) -> 01_schema.sql + load_*.sql
 generate_codes.py             data dictionary xlsx -> 02_codes.sql
+generate_copart.py            column spec (xlsx header -> column, type) -> 03_copart.sql + load_copart_*.sql
+copart_to_csv.py              splits a Copart xlsx into <YYYYMMDD>_CopartInventory.csv / _CopartSales.csv
 load.sh                       loads files/folders: detects type, cadence and as-of from the filename
 ```
 
@@ -35,7 +39,8 @@ processor (`dashboard/api/pipeline`, the production loader) and `load.sh`
 ```sh
 psql -d camber -v ON_ERROR_STOP=1 -f sql/01_schema.sql      # idempotent
 psql -d camber -v ON_ERROR_STOP=1 -f sql/02_codes.sql       # idempotent (ON CONFLICT DO NOTHING)
-sql/load.sh pipeline/data/inbox/2026-10-20                  # or individual files
+psql -d camber -v ON_ERROR_STOP=1 -f sql/03_copart.sql      # idempotent; needs 01_schema.sql first
+sql/load.sh pipeline/data/inbox/2026-10-20                  # or individual files (.csv and Copart .xlsx)
 ```
 
 `load.sh` uses `CAMBER_DB` (default `camber`) and `PSQL` (default `psql`).
@@ -116,3 +121,57 @@ SELECT cs.lease_no, cs.ls_status, c.description
 FROM vervent.contract_summary cs
 LEFT JOIN vervent.code_values c ON c.code_set = 'ls_status' AND c.code = cs.ls_status;
 ```
+
+## Copart weekly Sales & Inventory report (`copart`)
+
+Copart's BI scheduler emails `Camber_Sales_Inventory_Report_<timestamp>.xlsx`
+every Friday (to Vervent and Brad). Drop it in `pipeline/data/inbox/<date>/`
+and `load.sh` splits it with `copart_to_csv.py` and loads each tab through
+`load_copart_<tab>.sql`, registering both in `copart.report_file` (filename =
+the converted CSV, `source_file` / `sha256` = the xlsx).
+
+| Tab | Table | Grain | Primary key |
+|---|---|---|---|
+| Inventory Tab | `copart.inventory` | one row per lot per report date | `(asof_date, lot_nbr)` |
+| Sales Tab | `copart.sales` | one row per auctioned lot per report date | `(asof_date, lot_nbr)` |
+
+What the file is (checked on the 2026-10-05 and 2026-10-30 drops):
+
+- **Cumulative snapshot.** Every lot from the earlier file is in the later one
+  (0 dropped, 22 inventory / 2 sales lots added). One load of the newest file
+  covers everything since the Feb 2026 takeover; older files only add history
+  (`days_in_yard`, `proquote`, status changes). `copart.inventory_current` and
+  `copart.sales_current` pick the newest row per lot.
+- **Key on `lot_nbr`, not VIN.** VIN repeats on Inventory when a vehicle was
+  re-assigned after a `Closed - OWNER RETAINED` lot. Every Sales lot is also on
+  Inventory, where `date_of_sell` is set for exactly those lots; that is the
+  "duplicate" Brad warned about. Inventory is the master list, Sales adds the
+  auction economics.
+- **Inventory is wider than "in inventory":** it also carries `Closed` (sold),
+  `Closed - OWNER RETAINED`, `OWNER RETAIN-SELLER OWES US` and title-wait lots.
+- **Sales:** `net_sale_proceeds = gross_sale_price - total_seller_charges` on
+  every row; `total_copart_charges = total_seller_charges`;
+  `total_advance_charges` and `est_repair_cost` are always 0. A row with
+  `gross_sale_price = 0` and status `READY FOR AUCTION` is a re-run, not a sale.
+- **Join to Vervent on `vin = vervent.asset_summary.serial_number`** (491 of
+  493 VINs match on the 2026-10-20 asset summary; `1C4RJYE60N8765069` and
+  `5LM5J7XC7LGL23333` do not). A VIN can have several asset rows; the view
+  prefers the sold (`USLD`) one, then the latest `status_date`.
+
+`copart.sale_vs_vervent` puts each auctioned lot next to its Vervent asset and
+flags `match` / `differs` / `vervent_missing` / `not_sold` /
+`no_vervent_asset`. The `differs` and `vervent_missing` rows are the
+sale-proceeds overrides for the loan tape (task step 3): on the 2026-10-30
+drop 148 lots match to the cent and 21 differ, some by five figures.
+
+```sql
+SELECT lot_nbr, vin, lease_no, sale_date, net_sale_proceeds, vervent_sale_proceeds, copart_minus_vervent
+FROM copart.sale_vs_vervent
+WHERE reconciliation <> 'match'
+ORDER BY abs(copart_minus_vervent) DESC;
+```
+
+The converter fails loudly on a missing tab, a time-of-day in a date cell or a
+`|` inside a value, and `load.sh` checks the tab header against the
+`-- HEADER:` line in `load_copart_<tab>.sql` before touching the DB. Edit the
+spec in `generate_copart.py`, never the generated SQL.

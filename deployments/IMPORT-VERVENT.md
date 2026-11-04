@@ -22,6 +22,11 @@ The filename drives the load:
 - `AssetSummary` / `Contract Summary` / `TransactionHistory` picks the table;
 - `_Daily_` / `_Monthly_` sets the cadence.
 
+Copart's weekly `Camber_Sales_Inventory_Report_<timestamp>.xlsx` goes in the
+same folder; `load.sh` splits it locally into two CSVs (`sql/copart_to_csv.py`,
+needs `openpyxl`) and loads them with `sql/load_copart_*.sql` the same way, so
+the steps below apply unchanged (copy `load_copart_*.sql` into the pod too).
+
 ## Why this is manual
 
 - The deployed dashboard pod has no inbox mounted and no `VERVENT_INBOX`, so

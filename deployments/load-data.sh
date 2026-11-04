@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Create the vervent schema (../sql) in the in-cluster Postgres: tables, parser
-# functions and the code lookups. Idempotent (IF NOT EXISTS / ON CONFLICT DO
+# Create the vervent and copart schemas (../sql) in the in-cluster Postgres:
+# tables, parser functions, the code lookups and the Copart views. Idempotent (IF NOT EXISTS / ON CONFLICT DO
 # NOTHING), so it is safe to re-run after regenerating the SQL.
 #
 #   deployments/load-data.sh
@@ -14,7 +14,8 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 for f in sql/01_schema.sql \
-         sql/02_codes.sql; do
+         sql/02_codes.sql \
+         sql/03_copart.sql; do
     echo "=== $f"
     kubectl -n camber exec -i postgres-0 -- \
         psql -U camber -d camber -v ON_ERROR_STOP=1 -q <"$f"
