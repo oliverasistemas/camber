@@ -102,7 +102,8 @@ export const REPORTS: ReportDef[] = [
 export const fileLabel = (f: { filename: string; sourceFile?: string | null } | null | undefined) => f?.sourceFile ?? f?.filename ?? ''
 
 export const reportByType = (t: string) => REPORTS.find((r) => r.type === t)
-export const reportBySlug = (s: string) => REPORTS.find((r) => r.slug === s)
+// Routes use the slug (copart-sales); the report type (copart_sales) is accepted too, for hand-typed links.
+export const reportBySlug = (s: string) => REPORTS.find((r) => r.slug === s || r.type === s)
 export const reportLabel = (t: string | null | undefined) => (t ? (reportByType(t)?.label ?? t) : '')
 
 /** The route of one loaded file's rows. */
