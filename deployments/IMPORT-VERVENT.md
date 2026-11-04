@@ -63,7 +63,7 @@ runs psql there.
 ```sh
 cat > /tmp/kpsql.sh <<'EOF'
 #!/bin/bash
-args=(); for a in "$@"; do args+=("${a/#sql\//\/tmp\/sql\/}"); done
+args=(); for a in "$@"; do args+=("${a/#sql\///tmp/sql/}"); done
 exec kubectl -n camber exec -i postgres-0 -- psql -U camber "${args[@]}"
 EOF
 chmod +x /tmp/kpsql.sh
