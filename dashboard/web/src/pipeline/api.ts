@@ -1,4 +1,4 @@
-/** Shared helpers for the pipeline pages (Vervent file intake). */
+/** Shared helpers for the pipeline pages (Vervent file intake + the Copart weekly report). */
 
 /** An API error that keeps the HTTP status and the parsed JSON body. */
 export class ApiError extends Error {
@@ -32,7 +32,7 @@ export async function api<T>(url: string, init: RequestInit | undefined, onUnaut
 }
 
 export interface ReportDef {
-  type: string // vervent table / report_type
+  type: string // report_type: vervent table name, or copart_<tab>
   slug: string // route segment
   label: string
   key: string[] // identifying columns, pinned to the left of the rows table
@@ -81,7 +81,25 @@ export const REPORTS: ReportDef[] = [
       'payment_amount',
     ],
   },
+  // Copart weekly Sales & Inventory report, one entry per tab (schema copart).
+  {
+    type: 'copart_inventory',
+    slug: 'copart-inventory',
+    label: 'Copart Inventory',
+    key: ['lot_nbr'],
+    defaults: ['vin', 'year', 'make', 'model', 'inventory_status', 'physical_location', 'days_in_yard', 'proquote', 'date_of_sell'],
+  },
+  {
+    type: 'copart_sales',
+    slug: 'copart-sales',
+    label: 'Copart Sales',
+    key: ['lot_nbr'],
+    defaults: ['vin', 'year', 'make', 'model', 'sale_date', 'sales_status', 'gross_sale_price', 'total_seller_charges', 'net_sale_proceeds'],
+  },
 ]
+
+/** The file a row came from as the reader knows it: the Copart xlsx, or the Vervent CSV. */
+export const fileLabel = (f: { filename: string; sourceFile?: string | null } | null | undefined) => f?.sourceFile ?? f?.filename ?? ''
 
 export const reportByType = (t: string) => REPORTS.find((r) => r.type === t)
 export const reportBySlug = (s: string) => REPORTS.find((r) => r.slug === s)

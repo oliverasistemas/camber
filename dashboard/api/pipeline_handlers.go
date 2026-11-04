@@ -15,18 +15,77 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Pipeline step 1 (Vervent intake) endpoints. Everything here reads the
-// vervent schema; the processor itself lives in ./pipeline.
+// Pipeline step 1 (Vervent intake) endpoints, plus the Copart weekly report
+// that sql/load.sh stages into the copart schema. The processor itself lives
+// in ./pipeline and only knows the Vervent CSVs; Copart files are read here
+// for display.
 
 type reportFileRow struct {
-	FileID     int     `json:"fileId"`
-	ReportType string  `json:"reportType"`
+	Source     string  `json:"source"`     // vervent | copart
+	FileID     int     `json:"fileId"`     // unique within its source's registry only
+	ReportType string  `json:"reportType"` // asset_summary ... | copart_inventory | copart_sales
 	Cadence    *string `json:"cadence"`
 	AsOf       string  `json:"asOf"`
 	Filename   string  `json:"filename"`
+	SourceFile *string `json:"sourceFile"` // Copart: the xlsx the tab was split from
 	SHA256     *string `json:"sha256"`
 	RowCount   *int    `json:"rowCount"`
 	LoadedAt   string  `json:"loadedAt"`
+}
+
+// stagedReport is one staged table the pipeline pages can browse: the
+// generated Vervent reports plus the two tabs of the Copart report.
+type stagedReport struct {
+	Name       string   // report_type as the API and the routes name it
+	Source     string   // vervent | copart
+	Schema     string   // schema of the staged table
+	Table      string   // staged table, unqualified
+	PrimaryKey []string // row order in the browser
+	// One row of the source's registry as a reportFileRow, by file_id ($1).
+	fileSQL string
+}
+
+const verventFileSQL = `
+SELECT 'vervent', file_id, report_type, cadence, to_char(asof_date, 'YYYY-MM-DD'), filename, NULL::text, sha256, row_count,
+       to_char(loaded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+FROM vervent.report_file`
+
+const copartFileSQL = `
+SELECT 'copart', file_id, 'copart_' || report_type, NULL::text, to_char(asof_date, 'YYYY-MM-DD'), filename, source_file, sha256, row_count,
+       to_char(loaded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+FROM copart.report_file`
+
+// stagedReports in a stable order: Vervent first, then Copart.
+func stagedReports() []stagedReport {
+	out := []stagedReport{}
+	for _, name := range []string{"asset_summary", "contract_summary", "transaction_history"} {
+		rep := pipeline.Reports[name]
+		out = append(out, stagedReport{Name: name, Source: "vervent", Schema: "vervent", Table: name, PrimaryKey: rep.PrimaryKey, fileSQL: verventFileSQL})
+	}
+	for _, tab := range []string{"inventory", "sales"} {
+		out = append(out, stagedReport{Name: "copart_" + tab, Source: "copart", Schema: "copart", Table: tab, PrimaryKey: []string{"asof_date", "lot_nbr"}, fileSQL: copartFileSQL})
+	}
+	return out
+}
+
+func stagedReportByName(name string) (stagedReport, bool) {
+	for _, r := range stagedReports() {
+		if r.Name == name {
+			return r, true
+		}
+	}
+	return stagedReport{}, false
+}
+
+func scanReportFile(row pgx.Row, x *reportFileRow) error {
+	if err := row.Scan(&x.Source, &x.FileID, &x.ReportType, &x.Cadence, &x.AsOf, &x.Filename, &x.SourceFile, &x.SHA256, &x.RowCount, &x.LoadedAt); err != nil {
+		return err
+	}
+	if x.SHA256 != nil {
+		s := strings.TrimSpace(*x.SHA256)
+		x.SHA256 = &s
+	}
+	return nil
 }
 
 type loadEventRow struct {
@@ -73,24 +132,17 @@ func (sv *server) handlePipeline(w http.ResponseWriter, r *http.Request) {
 		out.Reports = append(out.Reports, name)
 	}
 
-	rows, err := sv.db.Query(ctx, `
-SELECT file_id, report_type, cadence, to_char(asof_date, 'YYYY-MM-DD'), filename, sha256, row_count,
-       to_char(loaded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-FROM vervent.report_file ORDER BY asof_date DESC, report_type`)
+	rows, err := sv.db.Query(ctx, `SELECT * FROM (`+verventFileSQL+` UNION ALL `+copartFileSQL+`) f ORDER BY 5 DESC, 3`)
 	if err != nil {
 		httpError(w, err)
 		return
 	}
 	for rows.Next() {
 		var x reportFileRow
-		if err := rows.Scan(&x.FileID, &x.ReportType, &x.Cadence, &x.AsOf, &x.Filename, &x.SHA256, &x.RowCount, &x.LoadedAt); err != nil {
+		if err := scanReportFile(rows, &x); err != nil {
 			rows.Close()
 			httpError(w, err)
 			return
-		}
-		if x.SHA256 != nil {
-			s := strings.TrimSpace(*x.SHA256)
-			x.SHA256 = &s
 		}
 		out.Files = append(out.Files, x)
 	}
@@ -155,11 +207,12 @@ func (sv *server) handlePipelineScan(w http.ResponseWriter, r *http.Request) {
 func (sv *server) handlePipelineStaged(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
-	rep, ok := pipeline.Reports[r.PathValue("report")]
+	rep, ok := stagedReportByName(r.PathValue("report"))
 	if !ok {
 		http.Error(w, `{"error":"unknown report"}`, http.StatusNotFound)
 		return
 	}
+	table := pgx.Identifier{rep.Schema, rep.Table}.Sanitize()
 	q := r.URL.Query()
 	out := stagedRows{Report: rep.Name, AsOfs: []string{}, Columns: []string{}, Rows: []json.RawMessage{}, Limit: 25}
 	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v >= 1 && v <= 500 {
@@ -169,8 +222,8 @@ func (sv *server) handlePipelineStaged(w http.ResponseWriter, r *http.Request) {
 		out.Offset = v
 	}
 
-	// rep.Table / rep.PrimaryKey are generated constants, never user input.
-	rows, err := sv.db.Query(ctx, `SELECT DISTINCT to_char(asof_date, 'YYYY-MM-DD') FROM `+rep.Table+` ORDER BY 1 DESC`)
+	// table / rep.PrimaryKey come from stagedReports(), never from user input.
+	rows, err := sv.db.Query(ctx, `SELECT DISTINCT to_char(asof_date, 'YYYY-MM-DD') FROM `+table+` ORDER BY 1 DESC`)
 	if err != nil {
 		httpError(w, err)
 		return
@@ -192,10 +245,7 @@ func (sv *server) handlePipelineStaged(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var f reportFileRow
-		err = sv.db.QueryRow(ctx, `
-SELECT file_id, report_type, cadence, to_char(asof_date, 'YYYY-MM-DD'), filename, sha256, row_count,
-       to_char(loaded_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
-FROM vervent.report_file WHERE file_id = $1`, id).Scan(&f.FileID, &f.ReportType, &f.Cadence, &f.AsOf, &f.Filename, &f.SHA256, &f.RowCount, &f.LoadedAt)
+		err = scanReportFile(sv.db.QueryRow(ctx, rep.fileSQL+` WHERE file_id = $1`, id), &f)
 		if errors.Is(err, pgx.ErrNoRows) {
 			http.Error(w, fmt.Sprintf(`{"error":"no loaded file with id %d"}`, id), http.StatusNotFound)
 			return
@@ -203,10 +253,6 @@ FROM vervent.report_file WHERE file_id = $1`, id).Scan(&f.FileID, &f.ReportType,
 		if err != nil {
 			httpError(w, err)
 			return
-		}
-		if f.SHA256 != nil {
-			s := strings.TrimSpace(*f.SHA256)
-			f.SHA256 = &s
 		}
 		if f.ReportType != rep.Name {
 			w.Header().Set("Content-Type", "application/json")
@@ -228,7 +274,7 @@ FROM vervent.report_file WHERE file_id = $1`, id).Scan(&f.FileID, &f.ReportType,
 
 	rows, err = sv.db.Query(ctx, `
 SELECT column_name FROM information_schema.columns
-WHERE table_schema = 'vervent' AND table_name = $1 ORDER BY ordinal_position`, rep.Name)
+WHERE table_schema = $1 AND table_name = $2 ORDER BY ordinal_position`, rep.Schema, rep.Table)
 	if err != nil {
 		httpError(w, err)
 		return
@@ -254,7 +300,7 @@ WHERE table_schema = 'vervent' AND table_name = $1 ORDER BY ordinal_position`, r
 	if out.File != nil {
 		where, arg = `file_id = $1`, out.File.FileID
 	}
-	if err := sv.db.QueryRow(ctx, `SELECT count(*) FROM `+rep.Table+` WHERE `+where, arg).Scan(&out.Total); err != nil {
+	if err := sv.db.QueryRow(ctx, `SELECT count(*) FROM `+table+` WHERE `+where, arg).Scan(&out.Total); err != nil {
 		httpError(w, err)
 		return
 	}
@@ -264,7 +310,7 @@ WHERE table_schema = 'vervent' AND table_name = $1 ORDER BY ordinal_position`, r
 	}
 	rows, err = sv.db.Query(ctx, fmt.Sprintf(
 		`SELECT to_jsonb(t) FROM %s t WHERE %s ORDER BY %s LIMIT $2 OFFSET $3`,
-		rep.Table, where, strings.Join(order, ", ")), arg, out.Limit, out.Offset)
+		table, where, strings.Join(order, ", ")), arg, out.Limit, out.Offset)
 	if err != nil {
 		httpError(w, err)
 		return
@@ -286,7 +332,11 @@ WHERE table_schema = 'vervent' AND table_name = $1 ORDER BY ordinal_position`, r
 	json.NewEncoder(w).Encode(out)
 }
 
-// reportNames in a stable order.
+// reportNames in a stable order: the Vervent reports, then the Copart tabs.
 func reportNames() []string {
-	return []string{"asset_summary", "contract_summary", "transaction_history"}
+	out := []string{}
+	for _, r := range stagedReports() {
+		out = append(out, r.Name)
+	}
+	return out
 }

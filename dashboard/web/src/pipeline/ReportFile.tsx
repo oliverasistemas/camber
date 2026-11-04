@@ -3,7 +3,7 @@ import { Alert, Breadcrumb, Button, Descriptions, Flex, Pagination, Result, Segm
 import { FileSearchOutlined, WarningOutlined } from '@ant-design/icons'
 import type { ColumnsType } from 'antd/es/table'
 import type { PipelineOverview, ReportFile as ReportFileRow, StagedRows } from '../types'
-import { ApiError, api, cell, contractHref, fileHref, fmtInt, reportLabel, when, type ReportDef } from './api'
+import { ApiError, api, cell, contractHref, fileHref, fileLabel, fmtInt, reportLabel, when, type ReportDef } from './api'
 import { ColumnPicker } from './ColumnPicker'
 import { useColumnVisibility } from './useColumnVisibility'
 
@@ -66,8 +66,11 @@ export function ReportFile({
     }
   }, [report.type, fileId, page, size]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const file = data?.file ?? ov?.files.find((f) => f.fileId === fileId) ?? null
-  const siblings = file ? (ov?.files ?? []).filter((f) => f.asOf === file.asOf).sort((a, b) => a.reportType.localeCompare(b.reportType)) : []
+  // File ids are per source (vervent / copart registries), so match on the report's source too.
+  const file = data?.file ?? ov?.files.find((f) => f.fileId === fileId && f.reportType === report.type) ?? null
+  const siblings = file
+    ? (ov?.files ?? []).filter((f) => f.asOf === file.asOf && f.source === file.source).sort((a, b) => a.reportType.localeCompare(b.reportType))
+    : []
 
   // Every column but the key can be hidden; defaults per report, the choice remembered.
   const pickable = useMemo(
@@ -163,7 +166,18 @@ export function ReportFile({
         bordered
         column={{ xs: 1, sm: 2, lg: 3 }}
         items={[
-          { key: 'file', label: 'File', span: { xs: 1, sm: 2, lg: 2 }, children: file?.filename ?? '' },
+          {
+            key: 'file',
+            label: 'File',
+            span: { xs: 1, sm: 2, lg: 2 },
+            children: file?.sourceFile ? (
+              <>
+                {file.sourceFile} <Text type="secondary">({file.filename})</Text>
+              </>
+            ) : (
+              file?.filename ?? ''
+            ),
+          },
           { key: 'rows', label: 'Rows', children: fmtInt(file?.rowCount ?? data?.total) },
           { key: 'loaded', label: 'Loaded', children: when(file?.loadedAt) },
         ]}

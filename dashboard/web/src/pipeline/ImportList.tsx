@@ -1,7 +1,7 @@
 import { Alert, Breadcrumb, Flex, Table, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { PipelineOverview, ReportFile } from '../types'
-import { REPORTS, fileHref, fmtInt, reportLabel, when } from './api'
+import { REPORTS, fileHref, fileLabel, fmtInt, reportLabel, when } from './api'
 import { ColumnPicker } from './ColumnPicker'
 import { useColumnVisibility } from './useColumnVisibility'
 
@@ -10,7 +10,7 @@ const { Text } = Typography
 // Report is the row's link, so it always stays.
 const PICKABLE = ['asOf', 'filename', 'rowCount', 'loadedAt']
 
-/** #/pipeline — one row per Vervent file loaded into the vervent schema. */
+/** #/pipeline — one row per loaded file: Vervent CSVs (vervent schema) and Copart report tabs (copart schema). */
 export function ImportList({ ov, error }: { ov: PipelineOverview | null; error: string }) {
   const proc = ov?.processor ?? null
   // Five columns in all, so every one is shown by default.
@@ -40,7 +40,7 @@ export function ImportList({ ov, error }: { ov: PipelineOverview | null; error: 
       dataIndex: 'filename',
       ellipsis: true,
       responsive: ['sm'],
-      render: (name: string, f) => <a href={fileHref(f.reportType, f.fileId)}>{name}</a>,
+      render: (_: string, f) => <a href={fileHref(f.reportType, f.fileId)}>{fileLabel(f)}</a>,
     },
     {
       title: 'Rows',
@@ -90,7 +90,7 @@ export function ImportList({ ov, error }: { ov: PipelineOverview | null; error: 
       </Flex>
 
       <Table<ReportFile>
-        rowKey="fileId"
+        rowKey={(f) => `${f.source}:${f.fileId}`}
         size="middle"
         columns={columns}
         dataSource={ov?.files ?? []}
@@ -103,7 +103,7 @@ export function ImportList({ ov, error }: { ov: PipelineOverview | null; error: 
           },
           style: { cursor: 'pointer' },
         })}
-        locale={{ emptyText: proc ? 'No files loaded yet. Drop Vervent files in the inbox.' : 'No files loaded yet.' }}
+        locale={{ emptyText: proc ? 'No files loaded yet. Drop Vervent or Copart files in the inbox.' : 'No files loaded yet.' }}
       />
 
     </>

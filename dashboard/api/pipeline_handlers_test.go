@@ -74,12 +74,18 @@ func TestPipelineEndpoints(t *testing.T) {
 	if code := get(t, mux, "GET", "/api/pipeline", &ov); code != 200 {
 		t.Fatalf("overview: %d", code)
 	}
-	if ov.Processor == nil || ov.Processor.LastScan == nil || len(ov.Files) < 3 || len(ov.Reports) != 3 {
+	if ov.Processor == nil || ov.Processor.LastScan == nil || len(ov.Files) < 3 || len(ov.Reports) != 5 {
 		t.Fatalf("overview: %+v", ov)
+	}
+	for _, f := range ov.Files {
+		if f.Source != "vervent" && f.Source != "copart" {
+			t.Fatalf("file source: %+v", f)
+		}
 	}
 
 	var st stagedRows
-	if code := get(t, mux, "GET", "/api/pipeline/staged/contract_summary?limit=5", &st); code != 200 {
+	// The 10-row sample day, named explicitly: the inbox also holds a full day that would otherwise be the default.
+	if code := get(t, mux, "GET", "/api/pipeline/staged/contract_summary?asof=2026-10-19&limit=5", &st); code != 200 {
 		t.Fatalf("staged: %d", code)
 	}
 	if st.AsOf != "2026-10-19" || st.Total != 10 || len(st.Rows) != 5 || len(st.Columns) < 225 {
@@ -105,6 +111,47 @@ func TestPipelineEndpoints(t *testing.T) {
 	}
 }
 
+// The Copart tabs browse like a Vervent report, from their own registry
+// (copart.report_file, loaded by sql/load.sh). Skips when none is loaded.
+func TestPipelineStagedCopart(t *testing.T) {
+	_, mux := testServer(t)
+	var ov pipelineOverview
+	if code := get(t, mux, "GET", "/api/pipeline", &ov); code != 200 {
+		t.Fatalf("overview: %d", code)
+	}
+	var sales *reportFileRow
+	for i := range ov.Files {
+		if ov.Files[i].ReportType == "copart_sales" {
+			sales = &ov.Files[i]
+			break
+		}
+	}
+	if sales == nil {
+		t.Skip("no Copart sales file loaded here")
+	}
+	if sales.Source != "copart" || sales.SourceFile == nil || *sales.SourceFile == "" {
+		t.Fatalf("copart file row: %+v", sales)
+	}
+	var st stagedRows
+	if code := get(t, mux, "GET", fmt.Sprintf("/api/pipeline/staged/copart_sales?file=%d&limit=3", sales.FileID), &st); code != 200 {
+		t.Fatalf("staged copart: %d", code)
+	}
+	if st.File == nil || st.File.FileID != sales.FileID || st.AsOf != sales.AsOf || st.Total == 0 || len(st.Rows) != 3 {
+		t.Fatalf("staged copart: %+v", st)
+	}
+	var first map[string]any
+	if err := json.Unmarshal(st.Rows[0], &first); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := first["net_sale_proceeds"]; !ok || first["lot_nbr"] == nil {
+		t.Fatalf("first copart row: %v", first)
+	}
+	// A Vervent id asked for as a Copart report is a different registry: 404 or 409, never a Vervent row.
+	if code := get(t, mux, "GET", "/api/pipeline/staged/copart_inventory?file=999999999", nil); code != 404 {
+		t.Fatalf("missing copart file: %d", code)
+	}
+}
+
 func TestPipelineStagedByFile(t *testing.T) {
 	_, mux := testServer(t)
 	if code := get(t, mux, "POST", "/api/pipeline/scan", nil); code != 200 {
@@ -117,9 +164,10 @@ func TestPipelineStagedByFile(t *testing.T) {
 	var cs, other *reportFileRow
 	for i := range ov.Files {
 		f := &ov.Files[i]
+		// File ids are per registry, so the "other" file must be a Vervent one too.
 		if f.ReportType == "contract_summary" && cs == nil {
 			cs = f
-		} else if f.ReportType != "contract_summary" && other == nil {
+		} else if f.Source == "vervent" && f.ReportType != "contract_summary" && other == nil {
 			other = f
 		}
 	}

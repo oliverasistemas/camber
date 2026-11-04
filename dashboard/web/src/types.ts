@@ -181,11 +181,13 @@ export interface ProcessorStatus {
 }
 
 export interface ReportFile {
-  fileId: number
+  source: 'vervent' | 'copart'
+  fileId: number // unique within its source only
   reportType: string
   cadence: string | null
   asOf: string
   filename: string
+  sourceFile: string | null // Copart: the xlsx the tab was split from
   sha256: string | null
   rowCount: number | null
   loadedAt: string
