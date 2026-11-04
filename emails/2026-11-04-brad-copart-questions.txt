@@ -1,5 +1,5 @@
 To: Brad Moore
-Subject: Copart weekly report loaded — two Vervent VIN errors and 21 proceeds gaps to confirm
+Subject: Copart weekly report loaded — two Vervent VIN errors, 21 proceeds gaps, Copart-wins rule
 
 Brad,
 
@@ -12,9 +12,9 @@ Three things for you:
    - Lease 5000826177, 2022 Grand Cherokee 1C4RJYE60N8765069 (sold 4/7, 25,810 net): Vervent lists this lease under 1C4JJXP69PW555539, which is the 2023 Wrangler on lease 5000826170 (now in Copart inventory, ready for auction). Vervent has the Wrangler VIN on both leases.
    Worth asking Vervent to correct both serial numbers.
 
-2. Sale proceeds: 148 of 169 sold lots tie to the cent between Copart net proceeds and Vervent's SALE PROCEEDS. 21 differ (list below). Your August tape already overrides 6 of them with Copart's net; the other 15 still carry Vervent's figure. Six of the gaps where Vervent is higher are round numbers (8,000; 3,400; 2,750; 2,550; 1,850; 250), so Vervent may be adding something (customer payment, insurance, purchase option). Should Copart's net win across the board, or is there a rule for when Vervent's figure is the right one?
+2. Sale proceeds: 148 of 169 sold lots tie to the cent between Copart net proceeds and Vervent's SALE PROCEEDS. 21 differ (list below). Your August tape already overrides 6 of them with Copart's net; the other 15 still carry Vervent's figure. My understanding from our earlier discussions is that Copart overrides Vervent, so I plan to apply Copart's net to all 21 unless you tell me otherwise. Six of the gaps where Vervent is higher are round numbers (8,000; 3,400; 2,750; 2,550; 1,850; 250), so if Vervent is adding something there (customer payment, insurance, purchase option) that should stay, let me know which ones.
 
-3. For the tape later: Copart's sale date and Vervent's sold date land in different months for 81 of the 169 sales. Which should drive "sold month"?
+3. Sold month: Copart's sale date and Vervent's sold date land in different months for 81 of the 169 sales, since Vervent posts days to weeks after the auction (lease 5000400301: Copart 4/14, Vervent 7/1). I plan to apply the same Copart-wins rule to the date. Note this is a change from the August tape, which followed Vervent's date for 59 of the 65 split cases, so monthly proceeds will move between months (totals unchanged). Shout if you want the date handled differently from the amount.
 
 Adolfo
 
