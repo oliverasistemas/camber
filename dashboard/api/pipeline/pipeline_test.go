@@ -158,3 +158,16 @@ func TestLoadFileRollsBack(t *testing.T) {
 		t.Fatalf("registry row left behind: %d (%v)", n, err)
 	}
 }
+
+func TestCheckHeaderSlashEquivalence(t *testing.T) {
+	rep := &Report{Name: "x", Header: []string{"OUTSTANDING A/R", "NEW/USED"}}
+	if err := checkHeader(rep, []string{"OUTSTANDING A R", "NEW USED\r"}); err != nil {
+		t.Fatalf("slash-to-space header rejected: %v", err)
+	}
+	if err := checkHeader(rep, []string{"OUTSTANDING A/R", "NEW/USED"}); err != nil {
+		t.Fatalf("original header rejected: %v", err)
+	}
+	if err := checkHeader(rep, []string{"OUTSTANDING AR", "NEW/USED"}); err == nil {
+		t.Fatal("drifted header accepted")
+	}
+}

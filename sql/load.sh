@@ -103,7 +103,9 @@ load_one() {
 
     expected=$(grep -m1 '^-- HEADER: ' "$load_sql" | sed 's/^-- HEADER: //')
     actual=$(head -n 1 "$f" | tr -d '\r' | sed 's/^\xEF\xBB\xBF//')
-    if [ "$expected" != "$actual" ]; then
+    # "/" and a space are equivalent: since the 2026-11-10 drop Vervent exports
+    # "OUTSTANDING A R" for "OUTSTANDING A/R".
+    if [ "${expected//\// }" != "${actual//\// }" ]; then
         echo "error: header of $f does not match $load_sql" >&2
         diff <(tr '|' '\n' <<<"$expected") <(tr '|' '\n' <<<"$actual") >&2 || true
         return 1

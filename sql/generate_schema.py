@@ -393,7 +393,7 @@ REPORTS = {
     "transaction_history": dict(
         cols=TRANSACTION_HISTORY,
         pk=("transaction_key",),
-        not_null=("transaction_key", "contract_number"),
+        not_null=("transaction_key",),  # CONTRACTNUMBER is blank on non-cash INVENTORY ASSET rows (first seen 2026-11-11)
         lease_col="contract_number",
         indexes=[("lease_no_norm",), ("contract_number", "posted_date"), ("asof_date",)],
         comment="Vervent TransactionHistory report: one row per posted transaction. Daily files carry the prior day's activity, monthly files the whole month; transaction_key is the identity so overlapping files upsert.",

@@ -159,11 +159,17 @@ func checkHeader(rep *Report, got []string) error {
 		return fmt.Errorf("header has %d columns, expected %d for %s", len(got), len(rep.Header), rep.Name)
 	}
 	for i := range got {
-		if strings.TrimRight(got[i], "\r") != rep.Header[i] {
+		if normHeader(strings.TrimRight(got[i], "\r")) != normHeader(rep.Header[i]) {
 			return fmt.Errorf("header column %d is %q, expected %q for %s", i+1, got[i], rep.Header[i], rep.Name)
 		}
 	}
 	return nil
+}
+
+// normHeader makes "/" and a space equivalent in header names: since the
+// 2026-11-10 drop Vervent exports "OUTSTANDING A R" for "OUTSTANDING A/R".
+func normHeader(h string) string {
+	return strings.ReplaceAll(h, "/", " ")
 }
 
 // LoadFile stages one file in a single transaction: a temp text table filled

@@ -562,7 +562,7 @@ CREATE TABLE IF NOT EXISTS vervent.transaction_history (
   is_non_cash                 boolean,  -- CSV: IsNonCash
   is_past_due                 boolean,  -- CSV: IsPastDue
   is_cash_report_transaction  boolean,  -- CSV: IsCashReportTransaction
-  contract_number             text NOT NULL,  -- CSV: CONTRACTNUMBER
+  contract_number             text,  -- CSV: CONTRACTNUMBER
   name                        text,  -- CSV: NAME
   description                 text,  -- CSV: DESCRIPTION
   trans                       text,  -- CSV: TRANS
