@@ -5,10 +5,11 @@ namespace, pinned to the QA node, at **https://camber.inmatics.io**. It replaced
 camber-dashboard app in place on 2026-11-12. Its manifests (`deployments/`, removed; see git
 history before `aaf23da`) must not be re-applied: they would put the old app and database back.
 One pod serves the API and the SPA
-(`../Dockerfile`); one StatefulSet runs Postgres 16 with the `vervent_*` tables
-(`../vervent/sql`); Traefik + cert-manager (already on the cluster) terminate TLS.
+(`../Dockerfile`); one StatefulSet runs Postgres 16 with the `vervent_*` and `copart_*` tables
+(`../vervent/sql`, `../copart/sql`); Traefik + cert-manager (already on the cluster) terminate TLS.
 
-Stage 1 covers Vervent only. The Copart page in the SPA has no backend yet.
+Vervent (contracts, assets, transactions) and the Copart Inventory Tab are loaded; the Copart
+Sales Tab is not yet.
 
 ## Cluster access
 
