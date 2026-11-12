@@ -1,0 +1,109 @@
+# The app: one container serving the API (/api) and the built SPA (everything else), see
+# ../../Dockerfile. Connects in-cluster to the "postgres" Service via DATABASE_URL from the
+# cambercredit-db Secret. External traffic arrives via ingress.yaml; the Service stays ClusterIP.
+#
+# The image lives in ECR; kustomize rewrites the name/tag, and the node pulls with the
+# "ecr-creds" imagePullSecret (refreshed by the ecr-creds-refresh CronJob).
+apiVersion: v1
+kind: Service
+metadata:
+  name: cambercredit
+  labels:
+    app: cambercredit
+spec:
+  selector:
+    app: cambercredit
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cambercredit
+  labels:
+    app: cambercredit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cambercredit
+  template:
+    metadata:
+      labels:
+        app: cambercredit
+    spec:
+      nodeSelector:
+        inmatics.io/role: qa
+      imagePullSecrets:
+        - name: ecr-creds
+      containers:
+        - name: app
+          image: cambercredit/app:1.0.0
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cambercredit-db
+                  key: DATABASE_URL
+            # Google sign-in. The OAuth client JSON (client_secret_*.json at the repo root) and
+            # the cookie-signing key live in the cambercredit-auth Secret
+            # (deploy/create-secrets.sh); the rest is plain config.
+            - name: GOOGLE_CLIENT_SECRET_FILE
+              value: /etc/cambercredit/google-client.json
+            - name: GOOGLE_REDIRECT_URL
+              value: https://camber.inmatics.io/api/auth/google/callback
+            - name: FRONTEND_URL
+              value: https://camber.inmatics.io
+            - name: AUTH_ALLOWED_DOMAIN
+              value: cambercredit.com
+            - name: AUTH_ALLOWED_EMAILS
+              valueFrom:
+                secretKeyRef:
+                  name: cambercredit-auth
+                  key: AUTH_ALLOWED_EMAILS
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cambercredit-auth
+                  key: SESSION_SECRET
+          volumeMounts:
+            - name: google-client
+              mountPath: /etc/cambercredit
+              readOnly: true
+          # main.go pings the DB at startup and exits if it is unreachable or the vervent_*
+          # tables are missing, so a Ready pod has a working pool. /api/health touches nothing
+          # but the process.
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+      volumes:
+        - name: google-client
+          secret:
+            secretName: cambercredit-auth
+            items:
+              - key: google-client.json
+                path: google-client.json

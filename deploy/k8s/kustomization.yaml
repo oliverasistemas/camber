@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# The cambercredit app on the inmatics aws009 cluster, in the "camber" namespace, pinned to the
+# QA node (inmatics.io/role=qa). It replaced the old camber-dashboard app (~/camber) there.
+# DNS: camber.inmatics.io CNAME aws009.inmatics.io.
+
+namespace: camber
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+  - app.yaml
+  - ingress.yaml
+  - ecr-creds-refresh.yaml
+
+images:
+  # The tag the cluster runs. deploy/push.sh pushes new tags (the ECR repo has immutable
+  # tags); bump newTag here and re-run deploy/deploy.sh to ship.
+  - name: cambercredit/app
+    newName: 032401303688.dkr.ecr.us-east-1.amazonaws.com/cambercredit/app
+    newTag: "1.0.0"

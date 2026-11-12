@@ -1,0 +1,2199 @@
+====================================================================================================
+DATA DICTIONARY - PORTFOLIO 50 DAILY EXTRACTS (2026-11-11)
+====================================================================================================
+
+Files covered:
+  - 20261111_AssetSummary_Daily_P50.csv
+  - 20261111_ContractSummary_Daily_P50.csv
+  - 20261111_TransactionHistory_Daily_P50.csv
+
+Generated: 2026-11-11. Folder: /Users/ao/pipeline/2026-11-11/
+
+GENERAL FORMAT NOTES
+  * Delimiter: pipe (|). First row is a header. No quoting. Encoding: ASCII/Latin-1.
+  * Many text fields are right-padded with spaces (e.g. ZIP "36330    ", TRANS "301 "). Trim before use.
+  * Dates appear in three formats:  MM/DD/YYYY text,  YYYYMMDD integer ("...Key" columns),
+    and YYMMDD integer (Curr REPO Status Date, Mod_Date). Column names do not always match:
+    NextBillingDateKey is MM/DD/YYYY; LastDueDate / LastPaidDate are YYYYMMDD.
+  * Decimals may omit the leading zero (".0100") and carry up to 12 decimal places.
+  * Monetary amounts are USD. Rates are annual percentages unless stated (INT_RATE is a fraction).
+  * "Type" below is inferred from the data. "Populated" = non-blank rows / total rows.
+  * Descriptions are inferred from column names, values and cross-file checks; they are not
+    from a source-system spec. Codes marked "observed" list values seen, meanings are best effort.
+  * Columns labelled "Not populated" or "Always 0" carry no information in this extract.
+
+RELATIONSHIPS
+  ContractSummary.[LEASE NO]  1 --- 1  AssetSummary.[LEASE]            (one asset per contract here)
+  ContractSummary.[LEASE NO]  1 --- *  TransactionHistory.[CONTRACTNUMBER]
+  ContractSummary.[LESSEE NO] * --- 1  customer (4,751 distinct lessees across 5,937 contracts)
+  Deficiency contracts: LEASE NO ending in "D" (e.g. 500069007D) holds the deficiency balance left after
+  the original contract 5000069007 closed.
+
+
+====================================================================================================
+FILE: 20261111_AssetSummary_Daily_P50.csv
+====================================================================================================
+Purpose     : One row per asset (vehicle or deficiency balance) in portfolio 50, with lessee, dealer, cost, residual, income and title/repo details.
+Rows        : 5,995 (excluding header)
+Columns     : 82
+Primary key : ASSET_NO
+Joins       : LEASE -> ContractSummary.[LEASE NO] (1:1 for the 5,937 rows that have a lease; 58 rows have blank LEASE); LESSEE_NO -> ContractSummary.[LESSEE NO].
+Unpopulated : 22 columns are blank in every row.
+----------------------------------------------------------------------------------------------------
+  1. STATE
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 42
+     Examples   : MO | IL | FL
+     Description: Lessee/garaging state (2-letter USPS code) used for tax purposes.
+
+  2. COUNTY
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 197
+     Examples   : ST LOUIS | SAINT LOUIS (IND CIT | ST CHARLES
+     Description: County of the lessee/garaging address, used for property-tax assessment.
+
+  3. LEASE
+     Type       : Text
+     Populated  : 5,937 / 5,995   Distinct: 5,937
+     Examples   : 500042932D | 5000069007 | 500069007D
+     Description: Contract (lease) number the asset is booked under. Join key to
+                  ContractSummary.[LEASE NO]. Numbers ending in "D" are deficiency-balance contracts
+                  created after the original contract closed (e.g. 500069007D derives from
+                  5000069007). Blank on 58 orphan deficiency/inventory asset rows.
+
+  4. ASSET_NO
+     Type       : Integer
+     Populated  : 5,995 / 5,995   Distinct: 5,995
+     Range      : 91,199 to 193,627
+     Description: Asset number. Unique per row; primary key of this file.
+
+  5. PORT
+     Type       : Integer
+     Populated  : 5,995 / 5,995   Distinct: 1
+     Values     : 50
+     Description: Portfolio code. Always 50 (the P50 portfolio).
+
+  6. COMP
+     Type       : Integer
+     Populated  : 5,995 / 5,995   Distinct: 2
+     Range      : 1 to 2
+     Values     : 1, 2
+     Description: Company code within the portfolio (1 or 2).
+
+  7. REG
+     Type       : Integer
+     Populated  : 5,995 / 5,995   Distinct: 1
+     Values     : 1
+     Description: Region code. Always 1.
+
+  8. OFF
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 3
+     Values     : 100, DEF, CO
+     Description: Office / booking unit. 100 = standard vehicle book, DEF = deficiency balances, CO
+                  = other office (74 rows).
+
+  9. NAME
+     Type       : Text
+     Populated  : 5,937 / 5,995   Distinct: 4,290
+     Examples   : WESTERN DIESEL SERVICES | WESTERN DIESEL SERVICES INC | JOHN J. CONNELL CO., INC.
+     Description: Lessee / customer name.
+
+ 10. ADDRESS
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 4,462
+     Examples   : 1100 RESEARCH BLVD | 1100 RESEARCH BOULEVARD | 17218 PORTLAND COVE
+     Description: Lessee street address.
+
+ 11. CITY
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 496
+     Examples   : SAINT LOUIS | O'FALLON | CHESTERFIELD
+     Description: Lessee city.
+
+ 12. ZIP
+     Type       : Integer
+     Populated  : 5,995 / 5,995   Distinct: 530
+     Range      : 2,066 to 658,075,088
+     Description: Lessee ZIP code, right-padded with spaces; 5-digit or ZIP+4 (9 digits, no hyphen).
+                  Leading zeros are dropped for some Northeast ZIPs (e.g. 2066) - treat as text.
+
+ 13. TERM
+     Type       : Integer
+     Populated  : 5,995 / 5,995   Distinct: 82
+     Range      : 0 to 192
+     Description: Contract term in months. 1 for deficiency-balance assets.
+
+ 14. LS_TYPE
+     Type       : Text
+     Populated  : 5,937 / 5,995   Distinct: 2
+     Values     : FIN, INSL
+     Description: Lease type. FIN = finance lease, INSL = installment/deficiency loan. Blank where
+                  LEASE is blank.
+
+ 15. DESCRIPTION
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 679
+     Examples   : 2021 JEEP WRANGLER | DEFICIENCY BALANCE | 2023 JEEP WRANGLER
+     Description: Asset description, typically "YYYY MAKE MODEL" for vehicles, or "DEFICIENCY
+                  BALANCE".
+
+ 16. IN_SVC_DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,995 / 5,995   Distinct: 1,990
+     Range      : 04/21/2006 to 11/10/2026
+     Description: Date the asset was placed in service.
+
+ 17. ACQUIS_DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,995 / 5,995   Distinct: 2,099
+     Range      : 07/05/2000 to 11/10/2026
+     Description: Date the asset was acquired by the lessor.
+
+ 18. SOLD DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 3,468 / 5,995   Distinct: 1,080
+     Range      : 01/25/2011 to 11/20/2026
+     Description: Date the asset was sold/disposed. Populated only when STATUS = USLD.
+
+ 19. ORIG_COST
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 4,995
+     Range      : 0.01 to 528,714
+     Description: Original cost (capitalized cost) of the asset, USD. 0.01 is a placeholder for
+                  deficiency-balance assets.
+
+ 20. STATUS
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 5
+     Values     : USLD, NLSE, URIN, ULSE, NRIV
+     Description: Asset status code. Observed: USLD = sold (always has SOLD DATE), NLSE = on lease,
+                  ULSE = on lease (used/re-leased), URIN = returned to inventory, NRIV = in
+                  inventory (not leased).
+
+ 21. STATUS_DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,995 / 5,995   Distinct: 761
+     Range      : 12/31/2022 to 11/10/2026
+     Description: Date STATUS was last changed. 12/31/2022 appears to be a system-conversion
+                  default.
+
+ 22. DEALER
+     Type       : Integer
+     Populated  : 5,995 / 5,995   Distinct: 36
+     Range      : 122,964 to 202,220
+     Description: Originating dealer/vendor number.
+
+ 23. DEALER_NAME
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 35
+     Examples   : MERLO AUTOMOTIVE GROUP | CENTRAL BANK | AUFFENBERG CHRYSLER
+     Description: Originating dealer/vendor name.
+
+ 24. CONTR_STATUS
+     Type       : Text
+     Populated  : 5,937 / 5,995   Distinct: 10
+     Values     : NPER, NPMT, NMAT, AXFR, ANOR, AEXT, ARBK, HREP, ...
+     Description: Status of the associated contract; same code set as ContractSummary.[LS STATUS]
+                  (see that file).
+
+ 25. UDF13
+     Type       : Decimal
+     Populated  : 3,767 / 5,995   Distinct: 2,160
+     Range      : 625 to 758,194
+     Description: User-defined field 13. Holds a dollar amount (appears to be vehicle invoice/MSRP-
+                  type value).
+
+ 26. TAX TYPE
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 2
+     Values     : TLA, SALE
+     Description: Tax treatment. TLA = tax on lease amount (payment-based), SALE = upfront/sales
+                  tax.
+
+ 27. TAX CODE
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 6
+     Values     : ALL, NOEX, NOPF, STCN, STCI, PERM
+     Description: Tax exemption / jurisdiction code. Observed: ALL, NOEX, NOPF, STCN, STCI, PERM.
+
+ 28. CLASS
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 2
+     Values     : V, EDEF
+     Description: Asset class. V = vehicle, EDEF = deficiency balance.
+
+ 29. ORIG_RCVBL
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 4,919
+     Range      : 0 to 550,717.83
+     Description: Original receivable attributable to this asset (total scheduled payments), USD.
+
+ 30. RESIDUAL
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 1,239
+     Range      : 0 to 185,000
+     Description: Residual value of the asset at maturity, USD.
+
+ 31. GUARANTEED
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract. (Intended: guaranteed portion of residual.)
+
+ 32. LESSEE_NO
+     Type       : Integer
+     Populated  : 5,937 / 5,995   Distinct: 4,751
+     Range      : 123,115 to 211,136
+     Description: Lessee (customer) number. Join key to ContractSummary.[LESSEE NO]; one lessee can
+                  have several contracts.
+
+ 33. INVENTORY
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 1,764
+     Range      : 0 to 409,953
+     Description: Inventory (carrying) value of the asset, USD; 0 while on lease.
+
+ 34. ORIG CONTR NO
+     Type       : Text
+     Populated  : 13 / 5,995   Distinct: 2
+     Values     : N, Y
+     Description: Y/N flag (13 rows populated). Label suggests original contract number but content
+                  is a flag.
+
+ 35. NEW USED
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 36. RENTAL_INCOME
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 2,231
+     Range      : -3,874.71 to 103,552.24
+     Description: Rental income recognized on the asset, USD (12 decimal places).
+
+ 37. RESI_INCOME
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 2,084
+     Range      : -633.17 to 18,637.51
+     Description: Residual income recognized on the asset, USD.
+
+ 38. INTEREST_INCOME
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 2,136
+     Range      : -426.03 to 13,933.36
+     Description: Interest income recognized on the asset, USD.
+
+ 39. SALE PROCEEDS
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 2,694
+     Range      : 0 to 505,779.13
+     Description: Proceeds from sale/disposition of the asset, USD.
+
+ 40. ASSET_AS_SCHED
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 2
+     Range      : 0 to 1
+     Values     : 1.000000000, .000000000
+     Description: Asset share of the contract schedule (1.0 = asset carries 100% of the schedule, 0
+                  = none).
+
+ 41. ACCOUNT_PAYABLE
+     Type       : Decimal
+     Populated  : 5,995 / 5,995   Distinct: 2
+     Range      : 0 to 0.01
+     Values     : 0, 0.01
+     Description: Accounts payable amount on the asset (0 or 0.01 placeholder).
+
+ 42. SERIAL NUMBER
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 5,808
+     Examples   : 5000400037 | 5000045221 | WDDXK7KB1HA024058
+     Description: Vehicle VIN / serial number. For deficiency-balance assets it holds the original
+                  contract number instead.
+
+ 43. TITLE STATE
+     Type       : Text
+     Populated  : 3,463 / 5,995   Distinct: 26
+     Examples   : MO | IL | FL
+     Description: State that issued the vehicle title.
+
+ 44. TITLE NUMBER
+     Type       : Text
+     Populated  : 3,463 / 5,995   Distinct: 3,296
+     Examples   : P45136 | XXX | 7128450392
+     Description: Vehicle title number. "XXX" used as a placeholder.
+
+ 45. INV_COMMENT
+     Type       : Text
+     Populated  : 3 / 5,995   Distinct: 3
+     Values     : 95997, 93392, $9,770.00
+     Description: Inventory comment (free text; 3 rows).
+
+ 46. EHELD_ORIG_CONTR
+     Type       : Text
+     Populated  : 617 / 5,995   Distinct: 545
+     Examples   : 28,650.00 | 30740.00 | 21240.00
+     Description: LABEL MISMATCH - contains a dollar amount (mixed formats, e.g. "$31,580.00",
+                  "28,650.00"), not a contract number. Treat as text.
+
+ 47. EHELD_CUST_NAME
+     Type       : Text
+     Populated  : 619 / 5,995   Distinct: 312
+     Examples   : 08/25/2023 | 07/18/2025 | 08/21/2023
+     Description: LABEL MISMATCH - contains a date (mixed formats MM/DD/YYYY and M/D/YYYY), not a
+                  name.
+
+ 48. EHELD_LESSEE
+     Type       : Text
+     Populated  : 5,973 / 5,995   Distinct: 25
+     Examples   : 2023 | 2022 | 2021
+     Description: LABEL MISMATCH - contains the vehicle MODEL YEAR (e.g. 2022).
+
+ 49. EHELD_RETURN
+     Type       : Text
+     Populated  : 5,985 / 5,995   Distinct: 63
+     Examples   : JEEP | RAM | FORD
+     Description: LABEL MISMATCH - contains the vehicle MAKE (e.g. JEEP, KIA).
+
+ 50. Model
+     Type       : Text
+     Populated  : 5,982 / 5,995   Distinct: 288
+     Examples   : WRANGLER | GRAND CHER | GRAND CHEROKEE
+     Description: Vehicle model (e.g. WRANGLER, TELLURIDE).
+
+ 51. TRIM
+     Type       : Text
+     Populated  : 286 / 5,995   Distinct: 102
+     Examples   : SAHARA 4X4 | SPORT 4X4 | Unlimited
+     Description: Vehicle trim level (free text).
+
+ 52. Fuel Type
+     Type       : Text
+     Populated  : 1,373 / 5,995   Distinct: 8
+     Values     : GAS, ELECTRIC, Electric, Gas, HYBRID, DIESEL, Hybrid, 62010
+     Description: Fuel type. Inconsistent case (GAS/Gas, ELECTRIC/Electric, HYBRID/Hybrid, DIESEL);
+                  one stray value "62010". Normalize before use.
+
+ 53. Agreed Upon Val Cap
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 54. Collateral Code
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 55. MFG_VEND Inv No
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 56. Curr Addr Validated Y N
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 57. Curr Addr Validated Date
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 58. Orig Asset No
+     Type       : Integer
+     Populated  : 4,604 / 5,995   Distinct: 3,651
+     Range      : 13,000 to 9,865,002
+     Description: Original asset number from the prior/legacy system; usually equals the numeric
+                  tail of the lease number (e.g. 69007).
+
+ 59. Orig Lease No
+     Type       : Integer
+     Populated  : 4,613 / 5,995   Distinct: 3,652
+     Range      : 13,000 to 9,865,002
+     Description: Original lease number from the prior/legacy system; matches Orig Asset No.
+
+ 60. Orig Residual
+     Type       : Decimal
+     Populated  : 10 / 5,995   Distinct: 10
+     Range      : 28,516.15 to 832,625
+     Values     : 832608, 41448, 42819, 826069, 42425, 43095, 32489, 42745, ...
+     Description: Original residual value, USD (10 rows).
+
+ 61. Pre Lease No
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 62. Prev Commence
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 63. Prev Residual
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 64. Prev Asset No
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 65. Curr REPO Status
+     Type       : Text
+     Populated  : 1,955 / 5,995   Distinct: 14
+     Values     : RTCS, REVI, RESA, REOR, REED, RECA, RECO, REDL, ...
+     Description: Current repossession/return workflow status. Observed: RTCS (most common), REVI,
+                  RESA, REOR, REED, RECA, RECO, REDL, RHLD, CURR, REAU, RTCX, RTC, RABO. Blank = no
+                  repo activity.
+
+ 66. Curr REPO Status Date
+     Type       : Integer
+     Populated  : 1,963 / 5,995   Distinct: 608
+     Range      : 230,720 to 270,310
+     Description: Date of Curr REPO Status in YYMMDD format (e.g. 261012 = 2026-10-12).
+
+ 67. SEC_NOTE
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 68. ALLOW PPT ASSMT
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 1
+     Values     : Y
+     Description: Allow personal property tax assessment (Y). Always Y.
+
+ 69. REPORT PPT
+     Type       : Text
+     Populated  : 5,995 / 5,995   Distinct: 2
+     Values     : Y, N
+     Description: Report for personal property tax (Y/N).
+
+ 70. ANNUAL-MONTHLY
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 71. UPFRONT STAX(Y N)
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 72. Appr Value
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 73. Appr Date
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 74. REPO Code
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 75. REPO Code Date
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 76. ON_HAND
+     Type       : Text
+     Populated  : 24 / 5,995   Distinct: 21
+     Examples   : $31,000.00 | 22000.00 | 37500.00
+     Description: On-hand / inventory value, mixed text formats (e.g. "$31,000.00", "22000.00"). 24
+                  rows.
+
+ 77. ORIG_ASSET_ID
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 78. ENGINE
+     Type       : Decimal
+     Populated  : 33 / 5,995   Distinct: 33
+     Range      : 14,613.62 to 76,302.69
+     Description: LABEL MISMATCH - holds a dollar amount (33 rows), not an engine description.
+
+ 79. MAN_INV_AMT
+     Type       : Decimal
+     Populated  : 34 / 5,995   Distinct: 33
+     Range      : 6,855 to 45,794.94
+     Description: Manufacturer invoice amount, USD (34 rows).
+
+ 80. AGREED_VAL_CAP
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 81. ORIG_RESID
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+ 82. INVESTOR STATUS
+     Type       : n/a (empty)
+     Populated  : 0 / 5,995
+     Description: Not populated in this extract.
+
+
+====================================================================================================
+FILE: 20261111_ContractSummary_Daily_P50.csv
+====================================================================================================
+Purpose     : One row per contract (lease/loan) in portfolio 50: dates, status, balances, income, yields, delinquency, dealer/broker and user-defined fields. Snapshot as of 11/11/2026.
+Rows        : 5,937 (excluding header)
+Columns     : 225
+Primary key : AccountKey (business key: LEASE NO)
+Joins       : LEASE NO <- AssetSummary.[LEASE] and TransactionHistory.[CONTRACTNUMBER].
+Unpopulated : 41 columns are blank in every row.
+----------------------------------------------------------------------------------------------------
+  1. AccountKey
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 5,937
+     Range      : 2,000,000,000,012 to 2,000,000,136,398
+     Description: Surrogate key for the contract (account). Unique; primary key of this file.
+
+  2. CustomerKey
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 4,751
+     Range      : 2,000,000,002,498 to 2,000,000,053,536
+     Description: Surrogate key for the customer. Many-to-one with LESSEE NO.
+
+  3. AccountGroupKey
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Values     : V, EDEF
+     Description: Account group; same values as CLASS (V = vehicle, EDEF = deficiency). Right-padded
+                  with spaces.
+
+  4. AccountClassKey
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Range      : 2,000,000,003,030 to 2,000,000,003,039
+     Values     : 2000000003039, 2000000003030
+     Description: Surrogate key for the account class (2 values).
+
+  5. BookDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 478
+     Range      : 20221231 to 20261110
+     Description: BOOK DATE as YYYYMMDD integer.
+
+  6. LeaseDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 2,092
+     Range      : 20000705 to 20261110
+     Description: LEASE DATE as YYYYMMDD integer.
+
+  7. CurrentDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 2,092
+     Range      : 20000705 to 20261110
+     Description: Identical to LeaseDateKey in every row of this extract.
+
+  8. MaturityDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 1,987
+     Range      : 20110125 to 20311201
+     Description: MATURITY DATE as YYYYMMDD integer.
+
+  9. PayoffDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 3,756 / 5,937   Distinct: 710
+     Range      : 20230706 to 20261110
+     Description: Date contract was paid off/closed, YYYYMMDD. Blank for active contracts.
+
+ 10. LastActivityDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 738
+     Range      : 20230706 to 20261110
+     Description: LAST UPDATE as YYYYMMDD integer (date of last account activity).
+
+ 11. CommencementDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 738
+     Range      : 20230706 to 20261110
+     Description: Identical to LastActivityDateKey in this extract (despite the name, NOT the
+                  commence date - use COMMENCE DATE).
+
+ 12. AccruedThroughDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 1,222
+     Range      : 20110125 to 20261210
+     Description: ACCRUED_TO_DATE as YYYYMMDD integer.
+
+ 13. NextBillingDateKey
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 1,313 / 5,937   Distinct: 172
+     Range      : 03/03/2025 to 12/10/2026
+     Description: Next billing date. NOTE: MM/DD/YYYY text, not a YYYYMMDD key. Active billing
+                  contracts only.
+
+ 14. ClosedDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 3,756 / 5,937   Distinct: 710
+     Range      : 20230706 to 20261110
+     Description: Date the contract closed, YYYYMMDD. Identical to PayoffDateKey.
+
+ 15. LastBillingDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 1,216
+     Range      : 20101225 to 20261110
+     Description: Date of last billing, YYYYMMDD.
+
+ 16. NextAccrualCutoffDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 1,213
+     Range      : 20110225 to 20270110
+     Description: Next accrual cutoff date, YYYYMMDD.
+
+ 17. LastDueDate
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,937 / 5,937   Distinct: 1,230
+     Range      : 20101225 to 20261210
+     Description: Last payment due date, YYYYMMDD integer.
+
+ 18. LastPaidDate
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 5,874 / 5,937   Distinct: 938
+     Range      : 20230630 to 20261110
+     Description: Last payment date, YYYYMMDD integer.
+
+ 19. NextDueDate
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 1,313 / 5,937   Distinct: 172
+     Range      : 03/03/2025 to 12/10/2026
+     Description: Next payment due date, MM/DD/YYYY. Same as NEXT DUE.
+
+ 20. PORT
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 50
+     Description: Portfolio code. Always 50.
+
+ 21. COMP
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Range      : 1 to 2
+     Values     : 1, 2
+     Description: Company code (1 or 2).
+
+ 22. REG
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 1
+     Description: Region code. Always 1.
+
+ 23. OFF
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 3
+     Values     : 100, DEF, CO
+     Description: Office / booking unit: 100 = standard vehicle, DEF = deficiency, CO = other
+                  office.
+
+ 24. LEASE NO
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 5,937
+     Examples   : 5000015761 | 5000015762 | 5000020701
+     Description: Contract (lease) number. Unique. Join key to AssetSummary.[LEASE] and
+                  TransactionHistory.[CONTRACTNUMBER].
+
+ 25. LESSEE NO
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 4,751
+     Range      : 123,115 to 211,136
+     Description: Lessee (customer) number. Join key to AssetSummary.[LESSEE_NO].
+
+ 26. LS STATUS
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 10
+     Values     : NPER, NPMT, NMAT, AXFR, ANOR, AEXT, ARBK, HREP, ...
+     Description: Contract status code. A* = active (ANOR normal, AEXT extended, AXFR transferred,
+                  ARBK rebooked), H* = hold (HREP repossession, HSET settlement), N* = non-
+                  accrual/terminal (NPER, NPMT, NPHL are Closed; NMAT matured but still Active). See
+                  AccountStatus for the open/closed flag.
+
+ 27. LS STATUS DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 776
+     Range      : 07/02/2023 to 11/10/2026
+     Description: Date LS STATUS last changed.
+
+ 28. AccountStatus
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Values     : Closed, Active
+     Description: Active or Closed.
+
+ 29. IsAccountOpen
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Range      : 0 to 1
+     Values     : 0, 1
+     Description: 1 = Active, 0 = Closed.
+
+ 30. BOOK DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 478
+     Range      : 12/31/2022 to 11/10/2026
+     Description: Date contract was booked into the system. 12/31/2022 = conversion date for
+                  migrated contracts.
+
+ 31. LAST UPDATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 738
+     Range      : 07/06/2023 to 11/10/2026
+     Description: Date of last update/activity on the contract.
+
+ 32. LEASE DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 2,092
+     Range      : 07/05/2000 to 11/10/2026
+     Description: Contract signing/lease date.
+
+ 33. COMMENCE DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 2,077
+     Range      : 01/25/2007 to 11/10/2026
+     Description: Contract commencement date (start of payment schedule).
+
+ 34. MATURITY DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 1,987
+     Range      : 01/25/2011 to 12/01/2031
+     Description: Scheduled maturity date.
+
+ 35. MATURITY DATE SS
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 1,987
+     Range      : 01/25/2011 to 12/01/2031
+     Description: Maturity date (snapshot copy). "SS" columns are point-in-time snapshot versions.
+
+ 36. LAST PAID DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,874 / 5,937   Distinct: 938
+     Range      : 06/30/2023 to 11/10/2026
+     Description: Date of last payment received.
+
+ 37. NEXT DUE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 1,313 / 5,937   Distinct: 172
+     Range      : 03/03/2025 to 12/10/2026
+     Description: Next payment due date.
+
+ 38. ACCRUED_TO_DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 1,222
+     Range      : 01/25/2011 to 12/10/2026
+     Description: Date income has been accrued through.
+
+ 39. ACCRUAL METHOD
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 3
+     Values     : AAPR, RAPR, ARES
+     Description: Income accrual method. AAPR (majority), RAPR (mostly deficiency contracts), ARES
+                  (1 row).
+
+ 40. BUSINESS PERSONAL
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 41. CLASS
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Values     : V, EDEF
+     Description: Contract class. V = vehicle, EDEF = deficiency balance.
+
+ 42. LS TYPE
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Values     : FIN, INSL
+     Description: Lease type. FIN = finance lease, INSL = installment loan.
+
+ 43. LS FORM
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 3
+     Values     : 5001, 0FT, 5005
+     Description: Lease document form code (5001, 5005, 0FT).
+
+ 44. STMT_CODE
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Values     : I, N
+     Description: Statement/invoice code: I = invoice/statement sent, N = no statement.
+
+ 45. USE_TAX_CODE
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 6
+     Values     : ALL, NOEX, NOPF, STCN, STCI, PERM
+     Description: Use-tax code; same values as AssetSummary.[TAX CODE].
+
+ 46. LATE CODE
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 3
+     Values     : PMAX, NONE, PERC
+     Description: Late-charge method: PMAX = percentage capped at max, PERC = percentage, NONE.
+
+ 47. OPEN CLOSED
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 48. LATE CHG(Y N)
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 49. GRACE DAYS
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Range      : 0 to 10
+     Values     : 10, 0
+     Description: Late-charge grace period in days (0 or 10).
+
+ 50. LESSOR YIELD
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,803
+     Range      : 0 to 12.73
+     Description: Lessor yield (annual %, e.g. 7.34 = 7.34%).
+
+ 51. EARLY PAYOFF DISCOUNT RATE
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00000
+     Description: Always 0 in this extract.
+
+ 52. IRR
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,963
+     Range      : 0 to 18
+     Description: Internal rate of return (annual %).
+
+ 53. IRR W O RESIDUAL
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 54. LESSEE NAME
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 4,290
+     Examples   : WESTERN DIESEL SERVICES | WESTERN DIESEL SERVICES INC | JOHN J. CONNELL CO., INC.
+     Description: Lessee / customer name.
+
+ 55. LESSEE STATE
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 43
+     Examples   : MO | IL | FL
+     Description: Lessee state.
+
+ 56. LESSEE REMIT CODE
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 5001
+     Description: Remittance code. Always 5001.
+
+ 57. OEC
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,923
+     Range      : 0.01 to 528,714
+     Description: Original equipment cost, USD. Identical to ORIG COST.
+
+ 58. ORIG COST
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,923
+     Range      : 0.01 to 528,714
+     Description: Original cost financed, USD.
+
+ 59. ORIG IDC
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,589
+     Range      : 0 to 15,855.42
+     Description: Original initial direct costs, USD.
+
+ 60. ORIG UNEARNED
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,771
+     Range      : 0 to 99,159.93
+     Description: Original unearned income at booking, USD.
+
+ 61. ORIG_UE_RESID
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,481
+     Range      : 0 to 58,483.79
+     Description: Original unearned residual income, USD.
+
+ 62. TOT RESIDUAL
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,220
+     Range      : 0 to 239,960
+     Description: Total residual value, USD.
+
+ 63. UNGUAR RESI
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,220
+     Range      : 0 to 239,960
+     Description: Unguaranteed residual, USD. Equals TOT RESIDUAL (no guaranteed residuals).
+
+ 64. GUAR RESID
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 65. SECURITY D
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Security deposit. Always 0 in this extract.
+
+ 66. TERM
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 81
+     Range      : 1 to 192
+     Description: Contract term in months.
+
+ 67. CONTRACT RCVBL
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 3,025
+     Range      : 0 to 465,992.01
+     Description: Remaining contract receivable, USD. Identical to REMAINING RECEIVABLES.
+
+ 68. OUTSTANDING A R
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 69. OUTSTANDING A R SS
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 70. DEF INC DEF RES
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 71. NET O S A R
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 72. NET O S A R 1
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 73. OTHER CHARGES
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 74. REMAINING RECEIVABLES
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 3,025
+     Range      : 0 to 465,992.01
+     Description: Remaining scheduled receivables, USD.
+
+ 75. REMAINING INTEREST
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 2,884
+     Range      : 0 to 73,666.53
+     Description: Remaining unearned interest, USD.
+
+ 76. PAST DUE RECEIVABLES
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,313
+     Range      : -17,014.28 to 51,997.69
+     Description: Past-due amount, USD; negative = credit balance. Same as TOTAL PAST DUE.
+
+ 77. LSOR_REMAIN_U E
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+ 78. LEASE INC REC
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,460
+     Range      : 0 to 858.48
+     Description: Lease income receivable (accrued, unbilled), USD.
+
+ 79. SUSP INC ACCR
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4
+     Range      : 0 to 355.06
+     Values     : 0, 226.07, 268.11, 355.06
+     Description: Suspended (non-accrual) income accrued, USD.
+
+ 80. UNEARNED_RESIDUAL
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,241
+     Range      : 0 to 36,729.89
+     Description: Unearned residual income, USD.
+
+ 81. NBV
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,440
+     Range      : -1,696.99 to 242,620.27
+     Description: Net book value / net investment, USD.
+
+ 82. UNAMOR_IDC_BOOK
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 2,180
+     Range      : 0 to 12,747.45
+     Description: Unamortized initial direct costs, USD.
+
+ 83. ACCRUED_PRIN
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,666
+     Range      : 0 to 469,991.17
+     Description: Accrued principal balance, USD. Same as ACCR_PRIN.
+
+ 84. RESID_INCOME_YTD
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 2,084
+     Range      : -633.17 to 18,637.51
+     Description: Residual income year-to-date, USD.
+
+ 85. RESI_INCOME
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 2,679
+     Range      : 0 to 1,785.15
+     Description: Residual income for the current period, USD.
+
+ 86. LESSOR_INCOME YTD
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 2,136
+     Range      : -426.03 to 13,933.36
+     Description: Lessor (interest) income year-to-date, USD.
+
+ 87. CURR_MON_IDC_AMORT
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 862
+     Range      : 0 to 351.2
+     Description: Current-month IDC amortization, USD.
+
+ 88. CURR_MON_IDC_BOOK
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,735
+     Range      : 0 to 274.81
+     Description: Current-month IDC booked, USD.
+
+ 89. UNEARNED_INCOME
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 2,934
+     Range      : -151 to 73,666.53
+     Description: Unearned income balance, USD.
+
+ 90. 1ST ASSET DESC
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 677
+     Examples   : 2021 JEEP WRANGLER | 2023 JEEP WRANGLER | DEFICIENCY BALANCE
+     Description: Description of the first asset on the contract (e.g. "2021 JEEP WRANGLER").
+
+ 91. BROKER FEES
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,655
+     Range      : 0 to 15,855.42
+     Description: Broker / dealer fees paid, USD.
+
+ 92. BOOKED INTERIM RENT
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 93. OS INTERIM RENT
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00
+     Description: Always 0 in this extract.
+
+ 94. BOOKED DOWN
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 95. OS DOWN PMT
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00
+     Description: Always 0 in this extract.
+
+ 96. PAP
+     Type       : Boolean (True/False)
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : False
+     Description: Pre-authorized payment (auto-debit) flag. Always False.
+
+ 97. PAP EFF DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 2,013
+     Range      : 01/25/2007 to 11/10/2026
+     Description: Pre-authorized payment effective date (defaults to commence date).
+
+ 98. DEALER
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 37
+     Range      : 122,964 to 202,220
+     Description: Originating dealer number.
+
+ 99. DLR_NAME
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 36
+     Examples   : MERLO AUTOMOTIVE GROUP | CENTRAL BANK | AUFFENBERG CHRYSLER
+     Description: Originating dealer name.
+
+100. DAL_PHONE1
+     Type       : Integer
+     Populated  : 4,084 / 5,937   Distinct: 2,745
+     Range      : 0 to 9,999,999,999
+     Description: LESSEE primary phone (10 digits). Despite the DAL_ prefix these are lessee contact
+                  fields. 0 / 9999999999 = placeholders.
+
+101. DAL_PHONE2
+     Type       : Text
+     Populated  : 5,709 / 5,937   Distinct: 3,988
+     Examples   : 3148688620 | 3149655100 | 3145226099
+     Description: Lessee secondary phone.
+
+102. DAL_ADDR1
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 4,229
+     Examples   : 1100 RESEARCH BLVD | 1100 RESEARCH BOULEVARD | PO BOX 5810
+     Description: Lessee address line 1 (matches AssetSummary.ADDRESS for most rows).
+
+103. DAL_ADDR2
+     Type       : Text
+     Populated  : 468 / 5,937   Distinct: 303
+     Examples   : 4336 HIGHWAY 162 | APT A | APT D
+     Description: Lessee address line 2.
+
+104. DAL_CITY
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 609
+     Examples   : SAINT LOUIS | ST LOUIS | ST. LOUIS
+     Description: Lessee city.
+
+105. DAL_STATE
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 43
+     Examples   : MO | IL | FL
+     Description: Lessee state.
+
+106. DAL_ZIP
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 559
+     Range      : 2,066 to 622,214,328
+     Description: Lessee ZIP (5 or 9 digits, space-padded).
+
+107. DAL_CONTACT
+     Type       : Text
+     Populated  : 1,364 / 5,937   Distinct: 577
+     Examples   : THOMAS | MICHAEL | JOHN
+     Description: Lessee contact first name.
+
+108. EQUIP_LOCATION
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 42
+     Examples   : MO | IL | FL
+     Description: State where equipment is located.
+
+109. DAYS_DEL
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 132
+     Range      : 0 to 608
+     Description: Current days delinquent.
+
+110. DAYS_DEL SS
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 108
+     Range      : 0 to 608
+     Description: Days delinquent (snapshot).
+
+111. CURR_DELINQ
+     Type       : Text
+     Populated  : 205 / 5,937   Distinct: 7
+     Values     : 1-30, 181+, 31-60, 61-90, 91-120, 121-150, 151-180
+     Description: Current delinquency bucket: 1-30, 31-60, 61-90, 91-120, 121-150, 151-180, 181+.
+                  Blank = current.
+
+112. CURR_DELINQ SS
+     Type       : Text
+     Populated  : 131 / 5,937   Distinct: 6
+     Values     : 181+, 61-90, 31-60, 91-120, 121-150, 151-180
+     Description: Delinquency bucket (snapshot).
+
+113. #30_DEL
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 42
+     Range      : 0 to 41
+     Description: Lifetime count of times 30 days delinquent.
+
+114. #60_DEL
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 26
+     Range      : 0 to 30
+     Description: Lifetime count of times 60 days delinquent.
+
+115. #90_DEL
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 16
+     Range      : 0 to 18
+     Description: Lifetime count of times 90 days delinquent.
+
+116. #91+_DEL
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 13
+     Range      : 0 to 17
+     Values     : 0, 1, 2, 3, 5, 4, 8, 7, ...
+     Description: Lifetime count of times more than 90 days delinquent.
+
+117. MARK_UP
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 10
+     Range      : 0 to 1,000
+     Values     : 0, 500, 1000, 950, 200, 518, 140, 280, ...
+     Description: Dealer rate mark-up / reserve, USD (0-1000).
+
+118. CURR_MO_RENTAL
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,360
+     Range      : 0 to 1,014.57
+     Description: Current-month rental/interest income, USD.
+
+119. LS_SOURCE
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 3
+     Values     : VEND, DEFB, DRCT
+     Description: Origination source: VEND = vendor/dealer, DRCT = direct, DEFB = deficiency
+                  balance.
+
+120. COLL_CODE
+     Type       : Text
+     Populated  : 1,169 / 5,937   Distinct: 16
+     Examples   : DXXX | IXXX | XXXX
+     Description: Collection status code (e.g. DXXX, IXXX, B3XX/B7XX = bankruptcy ch.13/ch.7, DECS =
+                  deceased). Blank = none.
+
+121. COLL_DATE
+     Type       : Text
+     Populated  : 1,165 / 5,937   Distinct: 495
+     Examples   : 20260930 | 20260521 | 20260514
+     Description: Collection code date. MIXED FORMATS: YYYYMMDD (8 chars), MMDDYY (6), MM/DD/YYYY
+                  (10) and others. Text.
+
+122. CURR_PYMT
+     Type       : Decimal
+     Populated  : 5,930 / 5,937   Distinct: 4,654
+     Range      : 0.01 to 64,650.08
+     Description: Current periodic payment amount, USD.
+
+123. PYMT_FREQ
+     Type       : Text
+     Populated  : 5,930 / 5,937   Distinct: 2
+     Values     : MON, ADVM
+     Description: Payment frequency: MON = monthly in arrears, ADVM = monthly in advance.
+
+124. BROKER
+     Type       : Integer
+     Populated  : 4,720 / 5,937   Distinct: 35
+     Range      : 122,963 to 202,221
+     Description: Broker number (dealer-affiliated broker account).
+
+125. BROKER NAME
+     Type       : Text
+     Populated  : 4,720 / 5,937   Distinct: 35
+     Examples   : MERLO AUTOMOTIVE GROUP | AUFFENBERG CHRYSLER | COSTELLO LSG & RENTAL CO
+     Description: Broker name.
+
+126. INVESTOR
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+127. ORIG_FILING_FEES
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+128. UNAMORT_FILING_FEES
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+129. ORIG_DEALER_FEES
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+130. UNAMORT_DEALER_FEES
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+131. ASSET_BRAND
+     Type       : Text
+     Populated  : 4,873 / 5,937   Distinct: 5
+     Values     : None, General, JEEP, DODGE, CHRYSLER CORP
+     Description: Asset brand. Mostly "None"/"General"/blank; few real makes. Low reliability.
+
+132. PRIN_PD_LTD
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+133. INT_RATE
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 672
+     Range      : -21,474.84 to 1
+     Description: Interest rate as a decimal fraction (0.01762 = 1.762%). Contains a sentinel
+                  -21474.83648 (integer overflow) - exclude.
+
+134. LEASED EQUIP
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+135. ACCUM DEPR
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+136. UNBILLED OPER REC
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+137. DEF OPER LEASE REV
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+138. UNBILLED OPER INC
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+139. IDR2_UNAMORT_REG_FEE
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+140. IDR3_UNAMORT_DLR_SUBSIDY
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+141. OPEN COMM
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+142. IDC2_SUSP_DLR_FEE
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+143. IDR2_ORIG_REG_FEE
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+144. IDR2_SUSP_REG_FEE
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+145. IDR3_ORIG_DLR_SUBSIDY
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+146. IDR3_SUSP_DLR_SUBSIDY
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+147. IDR4_SUSP_OPEN_COMM
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+148. CONTR UDF 1
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+149. CONTR UDF 2
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+150. CONTR UDF 3
+     Type       : Integer
+     Populated  : 5,929 / 5,937   Distinct: 2
+     Range      : 5,001 to 50,001
+     Values     : 5001, 50001
+     Description: Contract user-defined field 3: remit/branch code (5001; 50001 appears to be a
+                  typo).
+
+151. CONTR UDF 4
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+152. CONTR UDF 5
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+153. CONTR UDF 6
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+154. CONTR UDF 7
+     Type       : Text
+     Populated  : 13 / 5,937   Distinct: 2
+     Values     : N, Y
+     Description: Contract UDF 7: Y/N flag.
+
+155. CONTR UDF 8
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+156. CONTR UDF 9
+     Type       : Text
+     Populated  : 3 / 5,937   Distinct: 1
+     Values     : 20N
+     Description: Contract UDF 9: "20N" (3 rows).
+
+157. CONTR UDF 10
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 2
+     Values     : N, Y
+     Description: Contract UDF 10: Y/N flag.
+
+158. field10_s
+     Type       : Text
+     Populated  : 4,717 / 5,937   Distinct: 3
+     Values     : N, Y, n
+     Description: Y/N flag (mixed case "n"). Companion of CONTR UDF 10.
+
+159. CONTR UDF 11
+     Type       : Text
+     Populated  : 10 / 5,937   Distinct: 4
+     Values     : N, 1149.76, 1240.26, Y
+     Description: Contract UDF 11: mix of Y/N and dollar amounts (10 rows). Unreliable.
+
+160. CONTR UDF 12
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+161. CONTR UDF 13
+     Type       : Decimal
+     Populated  : 1,023 / 5,937   Distinct: 831
+     Range      : 94.33 to 32,000.46
+     Description: Contract UDF 13: dollar amount (1,023 rows).
+
+162. CONTR UDF 14
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+163. CONTR UDF 15
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+164. CONTR UDF 16
+     Type       : Text
+     Populated  : 7 / 5,937   Distinct: 4
+     Values     : B3XX, B7XX, B3Xx, B7DC
+     Description: Contract UDF 16: bankruptcy/collection code (B3XX, B7XX, B7DC).
+
+165. CONTR UDF 17
+     Type       : Integer
+     Populated  : 1 / 5,937   Distinct: 1
+     Values     : 10000
+     Description: Contract UDF 17: single value 10000.
+
+166. CONTR UDF 18
+     Type       : Decimal
+     Populated  : 5,819 / 5,937   Distinct: 264
+     Range      : 0 to 500,000
+     Description: Contract UDF 18: dollar amount, commonly round values (10000, 12000, 15000) -
+                  likely annual mileage allowance or similar limit.
+
+167. CONTR UDF 19
+     Type       : Text
+     Populated  : 5,905 / 5,937   Distinct: 14
+     Values     : 0.22, 0.00, 0.20, 0, 0.25, .22, .15, 12000, ...
+     Description: Contract UDF 19: rate stored as text (e.g. 0.22, 0.20, 0.25) - likely excess-
+                  mileage charge per mile.
+
+168. CONTR UDF 20
+     Type       : Text
+     Populated  : 8 / 5,937   Distinct: 2
+     Values     : 0.22, N
+     Description: Contract UDF 20: 8 rows, values 0.22 / N.
+
+169. CONTR UDF 20 1
+     Type       : Text
+     Populated  : 8 / 5,937   Distinct: 2
+     Values     : 200.22, 20N
+     Description: Duplicate-named UDF 20 column: 8 rows, values 200.22 / 20N (appears to be data-
+                  entry noise).
+
+170. CONTR UDF 21
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+171. CONTR UDF 22
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+172. CONTR UDF 23
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+173. CONTR UDF 24
+     Type       : Text
+     Populated  : 1,355 / 5,937   Distinct: 3
+     Values     : N, Y, n
+     Description: Contract UDF 24: Y/N flag (mixed case).
+
+174. CONTR UDF 25
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+175. CONTR UDF 26
+     Type       : Integer
+     Populated  : 1 / 5,937   Distinct: 1
+     Values     : 850118
+     Description: Contract UDF 26: single value.
+
+176. CONTR UDF 27
+     Type       : Integer
+     Populated  : 5,917 / 5,937   Distinct: 4,750
+     Range      : 13,000 to 9,865,002
+     Description: Contract UDF 27: legacy/original contract number (numeric tail of LEASE NO for
+                  most rows).
+
+177. CONTR UDF 28
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+178. CONTR UDF 29
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+179. CONTR UDF 30
+     Type       : Integer
+     Populated  : 1,171 / 5,937   Distinct: 8
+     Range      : 1 to 34
+     Values     : 2, 12, 1, 3, 5, 4, 8, 34
+     Description: Contract UDF 30: small integer count (1-34).
+
+180. CONTR UDF 31
+     Type       : Text
+     Populated  : 1,173 / 5,937   Distinct: 1,047
+     Examples   : 3210.44 | 3274.66 | 1200.00
+     Description: Contract UDF 31: dollar amount stored as text.
+
+181. CONTR UDF 32
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+182. CONTR UDF 33
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+183. CONTR UDF 34
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+184. CONTR UDF 35
+     Type       : Text
+     Populated  : 25 / 5,937   Distinct: 2
+     Values     : CLNT, BKPT
+     Description: Contract UDF 35: CLNT / BKPT (client / bankruptcy) code.
+
+185. CONTR UDF 36
+     Type       : Decimal
+     Populated  : 554 / 5,937   Distinct: 7
+     Range      : 0 to 1,000
+     Values     : 500.00, 1000.00, 950.00, 200.00, 0.00, 500, 1000
+     Description: Contract UDF 36: dollar amount; same values as MARK_UP.
+
+186. CONTR UDF 37
+     Type       : Decimal
+     Populated  : 1,176 / 5,937   Distinct: 44
+     Range      : 0 to 0.22
+     Description: Contract UDF 37: small rate/factor (0.00167-0.22), likely a money factor.
+
+187. CONTR UDF 38
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+188. CONTR UDF 39
+     Type       : Text
+     Populated  : 105 / 5,937   Distinct: 2
+     Values     : Y, N
+     Description: Contract UDF 39: Y/N flag.
+
+189. CONTR UDF 40
+     Type       : Decimal
+     Populated  : 1,173 / 5,937   Distinct: 877
+     Range      : 0 to 879.03
+     Description: Contract UDF 40: dollar amount.
+
+190. CONTR UDF 41
+     Type       : Decimal
+     Populated  : 1,177 / 5,937   Distinct: 1,046
+     Range      : 0 to 15,000
+     Description: Contract UDF 41: dollar amount.
+
+191. CONTR UDF 42
+     Type       : Decimal
+     Populated  : 4,982 / 5,937   Distinct: 4,680
+     Range      : 0 to 134,069.28
+     Description: Contract UDF 42: dollar amount (4,982 rows).
+
+192. CONTR UDF 60
+     Type       : Integer
+     Populated  : 61 / 5,937   Distinct: 48
+     Range      : 629 to 879
+     Description: Contract UDF 60: credit score-like value (629-879).
+
+193. CONTR UDF 61
+     Type       : Text
+     Populated  : 59 / 5,937   Distinct: 4
+     Values     : BUS, CELL, N, 2.11
+     Description: Contract UDF 61: phone type (BUS/CELL) mixed with other values.
+
+194. CONTR UDF 62
+     Type       : Text
+     Populated  : 53 / 5,937   Distinct: 4
+     Values     : N, Y, 6365379200, 3149682200
+     Description: Contract UDF 62: Y/N or phone numbers (mixed).
+
+195. CONTR UDF 63
+     Type       : Text
+     Populated  : 51 / 5,937   Distinct: 4
+     Values     : CELL, HOME, Home, BUS
+     Description: Contract UDF 63: phone type (CELL/HOME/BUS, mixed case).
+
+196. CONTR UDF 64
+     Type       : Text
+     Populated  : 49 / 5,937   Distinct: 3
+     Values     : N, Y, 5.14
+     Description: Contract UDF 64: Y/N mixed with numbers.
+
+197. Mod_Reason
+     Type       : Text
+     Populated  : 10 / 5,937   Distinct: 7
+     Values     : DECEASED, customer req, Per cx req, per request, request, DEATH CERT, DECS
+     Description: Reason for contract modification (free text, e.g. DECEASED, customer request).
+
+198. Mod_Date
+     Type       : Integer
+     Populated  : 3 / 5,937   Distinct: 3
+     Range      : 230,831 to 230,918
+     Values     : 230831, 230912, 230918
+     Description: Modification date, YYMMDD integer.
+
+199. AS_OF_DATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Description: Extract as-of date (11/11/2026 for every row).
+
+200. SOURCE
+     Type       : Text
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : VEH
+     Description: Source system/product line. Always VEH (vehicle).
+
+201. Business History
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+202. Employment
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+203. Marital Status
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+204. Living Status
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+205. Income Bracket
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+206. Debt Payments
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+207. Payment History
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+208. Credit Applications
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+209. Credit Score Question
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+210. REG_FEE_INCOME
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00
+     Description: Always 0 in this extract.
+
+211. INTERIM_FEE_INCOME
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00
+     Description: Always 0 in this extract.
+
+212. OPER_LEASE_INC
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00
+     Description: Always 0 in this extract.
+
+213. DEPRECIATION EXPENSE
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00
+     Description: Always 0 in this extract.
+
+214. CURR CONTRACT RCVBL
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 3,146
+     Range      : -2,355.08 to 465,992.01
+     Description: Current contract receivable (billed + unbilled), USD; can be negative.
+
+215. REMAINING PAYMENTS
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 381
+     Range      : -169,699 to 2,235,000
+     Description: Number of remaining payments (6 decimals). Contains outliers (negative values and
+                  >2,000,000) - validate before use.
+
+216. DOWN
+     Type       : Integer
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : 0
+     Description: Down payment. Always 0 in this extract.
+
+217. SALESPERSON
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+218. DOC_APP_OFF
+     Type       : n/a (empty)
+     Populated  : 0 / 5,937
+     Description: Not populated in this extract.
+
+219. TOTAL PAST DUE
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1,313
+     Range      : -17,014.28 to 51,997.69
+     Description: Total past-due amount, USD. Same as PAST DUE RECEIVABLES.
+
+220. PRIN_RCVBL
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00
+     Description: Always 0 in this extract.
+
+221. INT_RCVBL
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 1
+     Values     : .00
+     Description: Always 0 in this extract.
+
+222. ACCR_PRIN
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,666
+     Range      : 0 to 469,991.17
+     Description: Accrued principal, USD. Same as ACCRUED_PRIN.
+
+223. NET YIELD
+     Type       : Decimal
+     Populated  : 5,937 / 5,937   Distinct: 4,806
+     Range      : -11.48 to 11.52
+     Description: Net yield (annual %, 10 decimals).
+
+224. EST PAYOFF
+     Type       : Decimal
+     Populated  : 4,858 / 5,937   Distinct: 4,818
+     Range      : 0 to 510,740.05
+     Description: Estimated payoff amount as of the extract date, USD.
+
+225. CREDIT SCORE
+     Type       : Integer
+     Populated  : 4,196 / 5,937   Distinct: 329
+     Range      : 472 to 899
+     Description: Lessee credit score at origination (472-899).
+
+
+====================================================================================================
+FILE: 20261111_TransactionHistory_Daily_P50.csv
+====================================================================================================
+Purpose     : One row per posted transaction for the business day 11/10/2026 (payments, accruals, payoffs, assessments, reversals, suspense).
+Rows        : 470 (excluding header)
+Columns     : 46
+Primary key : TransactionKey
+Joins       : CONTRACTNUMBER -> ContractSummary.[LEASE NO] (75 distinct contracts, all present in ContractSummary).
+Unpopulated : 0 columns are blank in every row.
+----------------------------------------------------------------------------------------------------
+  1. TransactionKey
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 470
+     Range      : 2,000,021,539,073 to 2,000,021,541,644
+     Description: Surrogate key for the transaction. Unique; primary key of this file.
+
+  2. Portfolio
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 50
+     Description: Portfolio code. Always 50.
+
+  3. REPORTKEY
+     Type       : Text
+     Populated  : 470 / 470   Distinct: 4
+     Values     : 50 1 1 100, 50 1 1 DEF, 50 2 1 100, 50 2 1 DEF
+     Description: Concatenated "PORT COMP REG OFF" key (e.g. "50 1 1 100", "50 1 1 DEF").
+
+  4. TransactionDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 470 / 470   Distinct: 1
+     Description: Transaction (posting) date, YYYYMMDD. Single day in this daily file (20261110).
+
+  5. EffectiveDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 242 / 470   Distinct: 7
+     Range      : 20260923 to 20261110
+     Description: Effective date of the transaction, YYYYMMDD. Blank for system accruals.
+
+  6. DateDueDateKey
+     Type       : Integer date key (YYYYMMDD)
+     Populated  : 211 / 470   Distinct: 49
+     Range      : 20240221 to 20270106
+     Description: Due date of the invoice the transaction applies to, YYYYMMDD.
+
+  7. IsPayoff
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 2
+     Range      : 0 to 1
+     Values     : 0, 1
+     Description: 1 = transaction is part of a payoff.
+
+  8. IsNonCash
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 2
+     Range      : 0 to 1
+     Values     : 1, 0
+     Description: 1 = non-cash transaction (accruals, assessments, waivers, reversals).
+
+  9. IsPastDue
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 2
+     Range      : 0 to 1
+     Values     : 0, 1
+     Description: 1 = applied to a past-due invoice.
+
+ 10. IsCashReportTransaction
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 2
+     Range      : 0 to 1
+     Values     : 0, 1
+     Description: 1 = included in cash receipts reporting.
+
+ 11. CONTRACTNUMBER
+     Type       : Text
+     Populated  : 468 / 470   Distinct: 75
+     Examples   : 5000043253 | 5000042919 | 5000400230
+     Description: Contract number. Join key to ContractSummary.[LEASE NO]. Blank on 2 rows.
+
+ 12. NAME
+     Type       : Text
+     Populated  : 468 / 470   Distinct: 69
+     Examples   : GREGG E WILLIAMS | JONATHAN J. MANLEY | JOHN J. CONNELL CO., INC.
+     Description: Lessee / customer name.
+
+ 13. DESCRIPTION
+     Type       : Text
+     Populated  : 470 / 470   Distinct: 26
+     Examples   : ACCRUAL NORMAL CYCLE | PAYMENT USE TAX | PAYMENT NORMAL
+     Description: Transaction type description (paired 1:1 with TRANS).
+
+ 14. TRANS
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 26
+     Range      : 100 to 2,604
+     Description: Transaction code. Families: 1xx = booking (100 new lease, 130 inventory asset);
+                  2xx = payments (200 normal, 202 partial, 220 late charge, 226 property tax, 242
+                  use tax, 248 prepayment, 22xx lease-fee payments); 26xx = lease-fee assessments;
+                  3xx = accruals (301 accrual, 351 accrual reversal); 4xx = payment reversals; 500 =
+                  early payoff; 6xx = assessments/waivers (600 late charge, 601 collection charge,
+                  603 property tax, 651 coll. charge waiver); 900/901 = suspense credit/debit.
+                  Right-padded with a space.
+
+ 15. BANKCD
+     Type       : Integer
+     Populated  : 123 / 470   Distinct: 5
+     Range      : 125 to 141
+     Values     : 129, 125, 137, 131, 141
+     Description: Bank/deposit account code for cash transactions (125, 129, 131, 137, 141). Blank
+                  for non-cash.
+
+ 16. DEBIT VECTOR
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 37
+     Range      : 0 to 654
+     Description: GL debit vector (account mapping code).
+
+ 17. CREDIT VECTOR
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 36
+     Range      : 0 to 654
+     Description: GL credit vector (account mapping code).
+
+ 18. CHECKNO
+     Type       : Text
+     Populated  : 193 / 470   Distinct: 35
+     Examples   : WEBACH | 445490 | 6030874715
+     Description: Check/reference number (numeric, or text such as "WEBACH" for web ACH).
+
+ 19. POSTEDDATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 470 / 470   Distinct: 1
+     Description: Posting date (MM/DD/YYYY).
+
+ 20. INVOICEDUEDATE
+     Type       : Date (MM/DD/YYYY)
+     Populated  : 211 / 470   Distinct: 49
+     Range      : 02/21/2024 to 01/06/2027
+     Description: Due date of the invoice paid (MM/DD/YYYY). Same as DateDueDateKey.
+
+ 21. TRANSACTIONAMOUNT
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 286
+     Range      : 0.01 to 41,244.07
+     Description: Absolute transaction amount, USD (always positive).
+
+ 22. PAYMENT
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 51
+     Range      : -694.67 to 1,309.47
+     Description: Portion applied to regular rent/payment, USD (negative on reversals).
+
+ 23. PREPAYMENT
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 8
+     Range      : 0 to 785.62
+     Values     : 0, 785.62, 25, 1.97, 3.78, 472.24, 14.7, 104.85
+     Description: Portion applied as prepayment, USD.
+
+ 24. PAYOFF
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 3
+     Range      : 0 to 40,551.58
+     Values     : 0, 32483.43, 40551.58
+     Description: Portion applied to payoff, USD.
+
+ 25. INVENTORYSALE
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 26. PAYDOWN
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 3
+     Range      : 0 to 2,222
+     Values     : 0, 350, 2222
+     Description: Portion applied as principal paydown, USD.
+
+ 27. PROPERTYTAX
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 10
+     Range      : -350 to 1,386.34
+     Values     : 0, 950.1, -350, 1386.34, 387.26, 300, 692.49, 1199.01, ...
+     Description: Portion applied to property tax, USD.
+
+ 28. SALESTAX
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 40
+     Range      : -63.81 to 126.74
+     Description: Portion applied to sales/use tax, USD.
+
+ 29. LATECHARGE
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 5
+     Range      : -310 to 16.18
+     Values     : 0, 8.78, 16.18, -310, 0.04
+     Description: Portion applied to late charges, USD.
+
+ 30. COLLECTIONFEE
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 31. ASSUMPTIONFEE
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 32. LEGALFEE
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 33. PMTEXTENSION
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 34. LSEEXTENSION
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 35. ITCFEES
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 36. FHUT
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Federal heavy-use tax. Always 0 in this extract.
+
+ 37. IDR
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 38. LEASEREWRITE
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 39. OTHERFEES
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 40. SECURITYDEPOSIT
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 41. SUSPENSE
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 7
+     Range      : -41,244.07 to 41,244.07
+     Values     : 0, -757.02, 757.02, -41244.07, 41244.07, -32483.43, 32483.43
+     Description: Amount moved into (+, SUSPENSE CR) or out of (-, SUSPENSE DR) unapplied suspense,
+                  USD.
+
+ 42. RCR1
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 43. RCR2
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 44. RCR3
+     Type       : Integer
+     Populated  : 470 / 470   Distinct: 1
+     Values     : 0
+     Description: Always 0 in this extract.
+
+ 45. PAYMENTAMOUNT
+     Type       : Decimal
+     Populated  : 470 / 470   Distinct: 118
+     Range      : -41,244.07 to 41,244.07
+     Description: Signed cash amount of the transaction, USD (sum of the component columns); 0 for
+                  non-cash.
+
+ 46. OPERINITS
+     Type       : Text
+     Populated  : 470 / 470   Distinct: 7
+     Values     : EOP, LPI, ZER, SMR, NAN, JPA, MPO
+     Description: Initials/ID of the operator or process that posted the entry (e.g. EOP = end-of-
+                  period batch, ZER, SMR, NAN, LPI, JPA, MPO).
+
