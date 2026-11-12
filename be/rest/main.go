@@ -161,13 +161,13 @@ func (s *server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.fetchUser(r, token)
+	user, hd, err := s.fetchUser(r, token)
 	if err != nil {
 		http.Error(w, "failed to fetch user info", http.StatusBadGateway)
 		return
 	}
-	if !s.allowed(user) {
-		log.Printf("sign-in refused for %s", user.Email)
+	if !s.allowed(user, hd) {
+		log.Printf("sign-in refused for %s (hd=%q)", user.Email, hd)
 		http.Redirect(w, r, s.frontendURL+"/?error=access_denied", http.StatusFound)
 		return
 	}
@@ -216,14 +216,16 @@ func (s *server) requireAuth(next http.Handler) http.Handler {
 	})
 }
 
-func (s *server) fetchUser(r *http.Request, token *oauth2.Token) (User, error) {
+// fetchUser also returns the hd (hosted domain) claim, which Google sets only for Workspace
+// accounts. It is empty for consumer accounts, including ones registered with a non-Gmail address.
+func (s *server) fetchUser(r *http.Request, token *oauth2.Token) (User, string, error) {
 	resp, err := s.oauth.Client(r.Context(), token).Get("https://openidconnect.googleapis.com/v1/userinfo")
 	if err != nil {
-		return User{}, err
+		return User{}, "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return User{}, errors.New("userinfo returned " + resp.Status)
+		return User{}, "", errors.New("userinfo returned " + resp.Status)
 	}
 	var info struct {
 		Sub           string `json:"sub"`
@@ -231,24 +233,30 @@ func (s *server) fetchUser(r *http.Request, token *oauth2.Token) (User, error) {
 		EmailVerified bool   `json:"email_verified"`
 		Name          string `json:"name"`
 		Picture       string `json:"picture"`
+		HD            string `json:"hd"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return User{}, err
+		return User{}, "", err
 	}
 	if !info.EmailVerified {
-		return User{}, errors.New("email not verified")
+		return User{}, "", errors.New("email not verified")
 	}
-	return User{ID: info.Sub, Email: info.Email, Name: info.Name, Picture: info.Picture}, nil
+	return User{ID: info.Sub, Email: info.Email, Name: info.Name, Picture: info.Picture}, info.HD, nil
 }
 
 // allowed admits the addresses in AUTH_ALLOWED_EMAILS and, if AUTH_ALLOWED_DOMAIN is set, only
-// that domain otherwise. fetchUser has already required a verified email.
-func (s *server) allowed(u User) bool {
+// Workspace accounts of that domain otherwise: the email suffix alone isn't enough, since anyone
+// can register a consumer Google account with an @domain address. fetchUser has already
+// required a verified email.
+func (s *server) allowed(u User, hd string) bool {
 	email := strings.ToLower(u.Email)
 	if s.allowedEmails[email] {
 		return true
 	}
-	return s.allowedDomain == "" || strings.HasSuffix(email, "@"+s.allowedDomain)
+	if s.allowedDomain == "" {
+		return true
+	}
+	return strings.ToLower(hd) == s.allowedDomain && strings.HasSuffix(email, "@"+s.allowedDomain)
 }
 
 // spaHandler serves files from dir and falls back to index.html for any other path, so
