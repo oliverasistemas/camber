@@ -84,6 +84,12 @@ func (s *verventStore) routes(r chi.Router) {
 	r.Get("/transactions/{id}", s.transactions.get)
 }
 
+// copartRoutes serves an empty inventory; Copart data only exists in Postgres.
+func (s *verventStore) copartRoutes(r chi.Router) {
+	r.Get("/inventory", dataset{}.list)
+	r.Get("/inventory/{id}", dataset{}.get)
+}
+
 // list returns a page of rows. sort=col orders ascending and sort=-col descending, with nulls
 // last either way. Any other query parameter except limit/offset filters on the column of that
 // name by exact match, e.g. /transactions?contract_number=5000080213&trans=200.

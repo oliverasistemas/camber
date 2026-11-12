@@ -4,7 +4,7 @@ import { Alert, Card, Table } from 'antd'
 export const money = (v) =>
   v == null ? '' : Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
-// DataTable shows one /api/vervent/* list with server-side paging, sorting and filtering.
+// DataTable shows one /api/vervent/* or /api/copart/* list with server-side paging, sorting and filtering.
 // Every column is sortable; a column with `filters` filters on its dataIndex by exact match.
 // baseFilters are fixed column filters always sent, e.g. { lease: '5000080213' }.
 // bordered wraps the table in a card; the contract drawer turns it off.

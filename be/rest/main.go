@@ -51,9 +51,11 @@ type server struct {
 	allowedEmails map[string]bool // AUTH_ALLOWED_EMAILS, comma-separated, admitted regardless of domain
 }
 
-// verventAPI is the /api/vervent backend: Postgres when DATABASE_URL is set, else the mock JSON.
+// verventAPI is the /api/vervent and /api/copart backend: Postgres when DATABASE_URL is set, else
+// the mock JSON (which has no Copart data, so /api/copart lists come back empty).
 type verventAPI interface {
 	routes(chi.Router)
+	copartRoutes(chi.Router)
 }
 
 func main() {
@@ -112,6 +114,7 @@ func main() {
 
 		r.With(srv.requireAuth).Get("/me", srv.handleMe)
 		r.With(srv.requireAuth).Route("/vervent", vervent.routes)
+		r.With(srv.requireAuth).Route("/copart", vervent.copartRoutes)
 	})
 
 	// In production one process serves the built SPA too (STATIC_DIR=fe/web/app/dist); in

@@ -13,7 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// pgTable serves one vervent_* table with the same API as the mock dataset: rows come back as
+// pgTable serves one vervent_* or copart_* table with the same API as the mock dataset: rows come back as
 // row_to_json, so the JSON matches what generate_mock.py writes.
 type pgTable struct {
 	db      *pgxpool.Pool
@@ -25,6 +25,7 @@ type pgTable struct {
 type pgVervent struct {
 	db                              *pgxpool.Pool
 	contracts, assets, transactions pgTable
+	copartInventory                 pgTable
 }
 
 func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
@@ -44,6 +45,7 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		{"vervent_contracts", "lease_no", &s.contracts},
 		{"vervent_assets", "asset_no", &s.assets},
 		{"vervent_transactions", "transaction_key", &s.transactions},
+		{"copart_inventory", "lot_nbr", &s.copartInventory},
 	} {
 		cols, err := tableColumns(ctx, db, t.name)
 		if err != nil {
@@ -66,7 +68,7 @@ func tableColumns(ctx context.Context, db *pgxpool.Pool, table string) (map[stri
 		return nil, err
 	}
 	if len(names) == 0 {
-		return nil, fmt.Errorf("table %s not found; run vervent/sql/0*.sql first", table)
+		return nil, fmt.Errorf("table %s not found; run deploy/load-schema.sh first", table)
 	}
 	cols := make(map[string]bool, len(names))
 	for _, n := range names {
@@ -83,6 +85,11 @@ func (s *pgVervent) routes(r chi.Router) {
 	r.Get("/assets/{id}", s.assets.get)
 	r.Get("/transactions", s.transactions.list)
 	r.Get("/transactions/{id}", s.transactions.get)
+}
+
+func (s *pgVervent) copartRoutes(r chi.Router) {
+	r.Get("/inventory", s.copartInventory.list)
+	r.Get("/inventory/{id}", s.copartInventory.get)
 }
 
 // list mirrors dataset.list: limit/offset paging, sort=col or sort=-col with nulls last, and any

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Create the vervent_* tables (../vervent/sql/0*.sql) in the in-cluster Postgres. Idempotent
-# (CREATE ... IF NOT EXISTS), so it is safe to re-run; it does not alter existing columns.
+# Create the vervent_* and copart_* tables (../vervent/sql/0*.sql, ../copart/sql/0*.sql) in the
+# in-cluster Postgres. Idempotent (CREATE ... IF NOT EXISTS), so it is safe to re-run; it does not
+# alter existing columns.
 #
 #   deploy/load-schema.sh
 #
@@ -13,7 +14,7 @@ cd "$(dirname "$0")/.."
 
 NS=camber
 kubectl -n "$NS" rollout status statefulset/postgres --timeout=180s >/dev/null
-for f in vervent/sql/0*.sql; do
+for f in vervent/sql/0*.sql copart/sql/0*.sql; do
     echo "=== $f"
     kubectl -n "$NS" exec -i postgres-0 -- \
         psql -U cambercredit -d cambercredit -X -q -v ON_ERROR_STOP=1 <"$f"

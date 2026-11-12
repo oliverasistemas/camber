@@ -28,8 +28,9 @@ export KUBECONFIG=/tmp/aws009.kubeconfig
 deploy/create-secrets.sh         # DB + sign-in secrets, ECR pull creds
 deploy/push.sh 1.0.0             # build + push the image (pin matches k8s/kustomization.yaml)
 kubectl apply -k deploy/k8s      # Postgres comes up; the app pod restarts until the schema exists
-deploy/load-schema.sh            # vervent_* tables
+deploy/load-schema.sh            # vervent_* and copart_* tables
 deploy/load-vervent.sh           # every vervent/*_Daily_P50.csv
+deploy/load-copart.sh            # every copart/*.xlsx
 deploy/deploy.sh                 # waits for both pods
 ```
 
@@ -77,3 +78,19 @@ kubectl -n camber rollout restart deployment/cambercredit
   The old app's data directory, `/srv/camber-pgdata`, is still on the node and nothing uses it.
 - `cambercredit-auth` holds the OAuth client JSON, `SESSION_SECRET` and `AUTH_ALLOWED_EMAILS`.
   Deleting it and rerunning `create-secrets.sh` rotates the session key, which only signs everyone out.
+
+## Loading a Copart report
+
+Put the weekly `CamberSalesInventorySalesReport_YYYY-MM-DD.xlsx` in `copart/`, then:
+
+```sh
+deploy/load-copart.sh copart/CamberSalesInventorySalesReport_2026-10-12.xlsx
+```
+
+`copart/load.py` (needs `openpyxl`) loads the Inventory Tab into `copart_inventory`, keyed on
+`lot_nbr`, the same way: header checked against the DDL comments in `copart/sql`, one transaction
+per file, an older report never overwrites a newer one. The Sales Tab is not loaded yet.
+`https://camber.inmatics.io/copart` shows the table.
+
+The app reads `copart_inventory` at startup, so on an existing cluster run
+`deploy/load-schema.sh` before deploying a build that includes it.
