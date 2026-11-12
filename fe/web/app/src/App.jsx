@@ -27,7 +27,15 @@ const sections = [
       { key: '/vervent/transactions', label: 'Transactions' },
     ],
   },
-  { key: '/copart', icon: <CarOutlined />, label: 'Copart' },
+  {
+    key: '/copart',
+    icon: <CarOutlined />,
+    label: 'Copart',
+    children: [
+      { key: '/copart/inventory', label: 'Inventory' },
+      { key: '/copart/sales', label: 'Sales' },
+    ],
+  },
 ]
 
 const leaves = sections.flatMap((s) => s.children ?? [s])
@@ -91,7 +99,7 @@ export default function App() {
           mode="inline"
           items={sections}
           selectedKeys={current ? [current] : []}
-          defaultOpenKeys={['/vervent']}
+          defaultOpenKeys={['/vervent', '/copart']}
           onClick={({ key }) => navigate(key)}
           style={{ borderInlineEnd: 0, marginTop: 8 }}
         />
@@ -139,7 +147,7 @@ export default function App() {
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/vervent/*" element={<Vervent />} />
-            <Route path="/copart" element={<Copart />} />
+            <Route path="/copart/*" element={<Copart />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Layout.Content>

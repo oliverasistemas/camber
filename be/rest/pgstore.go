@@ -25,7 +25,7 @@ type pgTable struct {
 type pgVervent struct {
 	db                              *pgxpool.Pool
 	contracts, assets, transactions pgTable
-	copartInventory                 pgTable
+	copartInventory, copartSales    pgTable
 }
 
 func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
@@ -46,6 +46,7 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		{"vervent_assets", "asset_no", &s.assets},
 		{"vervent_transactions", "transaction_key", &s.transactions},
 		{"copart_inventory", "lot_nbr", &s.copartInventory},
+		{"copart_sales", "lot_nbr", &s.copartSales},
 	} {
 		cols, err := tableColumns(ctx, db, t.name)
 		if err != nil {
@@ -90,6 +91,8 @@ func (s *pgVervent) routes(r chi.Router) {
 func (s *pgVervent) copartRoutes(r chi.Router) {
 	r.Get("/inventory", s.copartInventory.list)
 	r.Get("/inventory/{id}", s.copartInventory.get)
+	r.Get("/sales", s.copartSales.list)
+	r.Get("/sales/{id}", s.copartSales.get)
 }
 
 // list mirrors dataset.list: limit/offset paging, sort=col or sort=-col with nulls last, and any

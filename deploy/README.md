@@ -8,8 +8,7 @@ One pod serves the API and the SPA
 (`../Dockerfile`); one StatefulSet runs Postgres 16 with the `vervent_*` and `copart_*` tables
 (`../vervent/sql`, `../copart/sql`); Traefik + cert-manager (already on the cluster) terminate TLS.
 
-Vervent (contracts, assets, transactions) and the Copart Inventory Tab are loaded; the Copart
-Sales Tab is not yet.
+Vervent (contracts, assets, transactions) and Copart (inventory, sales) are loaded.
 
 ## Cluster access
 
@@ -88,10 +87,10 @@ Put the weekly `CamberSalesInventorySalesReport_YYYY-MM-DD.xlsx` in `copart/`, t
 deploy/load-copart.sh copart/CamberSalesInventorySalesReport_2026-10-12.xlsx
 ```
 
-`copart/load.py` (needs `openpyxl`) loads the Inventory Tab into `copart_inventory`, keyed on
-`lot_nbr`, the same way: header checked against the DDL comments in `copart/sql`, one transaction
-per file, an older report never overwrites a newer one. The Sales Tab is not loaded yet.
-`https://camber.inmatics.io/copart` shows the table.
+`copart/load.py` (needs `openpyxl`) loads the Inventory Tab into `copart_inventory` and the Sales
+Tab into `copart_sales`, both keyed on `lot_nbr`, the same way: headers checked against the DDL
+comments in `copart/sql`, one transaction per file, an older report never overwrites a newer one.
+`https://camber.inmatics.io/copart/inventory` and `/copart/sales` show the tables.
 
-The app reads `copart_inventory` at startup, so on an existing cluster run
+The app reads the `copart_*` tables at startup, so on an existing cluster run
 `deploy/load-schema.sh` before deploying a build that includes it.

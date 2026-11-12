@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Load the Inventory Tab of the weekly Copart seller report into copart_inventory.
+"""Load the weekly Copart seller report into copart_inventory (Inventory Tab) and copart_sales
+(Sales Tab).
 
     copart/load.py copart/CamberSalesInventorySalesReport_2026-10-05.xlsx
     deploy/load-copart.sh                                            # into the cluster
 
-The column mapping comes from sql/01_copart_inventory.sql: each column's COMMENT starts with the
-source header in brackets. The sheet header is checked against it before anything is sent, so a
-renamed or added column fails the load instead of shifting data.
+The column mapping comes from the DDL in sql/0*_copart_*.sql: each column's COMMENT starts with
+the source header in brackets. Each sheet header is checked against it before anything is sent, so
+a renamed or added column fails the load instead of shifting data.
 
-Each file loads in one transaction, streamed to `psql -f -` (COPY ... FROM STDIN inline), so the
+Each file (both sheets) loads in one transaction, streamed to `psql -f -` (COPY ... FROM STDIN inline), so the
 same script works against a remote pod through `kubectl exec -i`. Files are loaded oldest first
 and upsert on lot_nbr; an older report never overwrites newer data. Needs openpyxl. PSQL defaults
 to `psql -d cambercredit`.
@@ -26,17 +27,22 @@ from pathlib import Path
 
 import openpyxl
 
-DDL = Path(__file__).resolve().parent / "sql" / "01_copart_inventory.sql"
-TABLE, KEY, SHEET = "copart_inventory", "lot_nbr", "Inventory Tab"
+SQL_DIR = Path(__file__).resolve().parent / "sql"
+KEY = "lot_nbr"
+# sheet -> (table, ddl file)
+SHEETS = {
+    "Inventory Tab": ("copart_inventory", "01_copart_inventory.sql"),
+    "Sales Tab": ("copart_sales", "02_copart_sales.sql"),
+}
 META_COLUMNS = {"source_file", "file_date", "loaded_at"}
 FILE_RE = re.compile(r"^CamberSalesInventorySalesReport_(\d{4}-\d{2}-\d{2})\.xlsx$")
 
 
-def parse_ddl():
+def parse_ddl(table, ddl_file):
     """Returns [(column, type, source_header)] in table order, metadata excluded."""
-    sql = DDL.read_text()
-    body = re.search(rf"CREATE TABLE IF NOT EXISTS {TABLE} \((.*?)\n\);", sql, re.S).group(1)
-    headers = dict(re.findall(rf"COMMENT ON COLUMN {TABLE}\.(\w+) IS '\[([^\]]+)\]", sql))
+    sql = (SQL_DIR / ddl_file).read_text()
+    body = re.search(rf"CREATE TABLE IF NOT EXISTS {table} \((.*?)\n\);", sql, re.S).group(1)
+    headers = dict(re.findall(rf"COMMENT ON COLUMN {table}\.(\w+) IS '\[([^\]]+)\]", sql))
     cols = []
     for line in body.splitlines():
         m = re.match(r"\s+(\w+)\s+(.+?),?$", line)
@@ -63,21 +69,17 @@ def cell(v):
     return str(v)
 
 
-def load(path, psql):
-    m = FILE_RE.match(path.name)
-    if not m:
-        raise SystemExit(f"{path.name}: expected CamberSalesInventorySalesReport_YYYY-MM-DD.xlsx")
-    file_date = m.group(1)
-
-    ws = openpyxl.load_workbook(path, read_only=True, data_only=True)[SHEET]
-    rows = ws.iter_rows(values_only=True)
+def sheet_sql(path, wb, sheet, file_date):
+    """Returns the COPY + upsert statements for one sheet."""
+    table, ddl_file = SHEETS[sheet]
+    rows = wb[sheet].iter_rows(values_only=True)
     header = [str(h).strip() for h in next(rows)]
-    cols = parse_ddl()
+    cols = parse_ddl(table, ddl_file)
     by_header = {h: (c, t) for c, t, h in cols}
     unknown = [h for h in header if h not in by_header]
     missing = [h for _, _, h in cols if h not in header]
     if unknown or missing or len(set(header)) != len(header):
-        raise SystemExit(f"{path.name}: header does not match {DDL.name}\n"
+        raise SystemExit(f"{path.name} [{sheet}]: header does not match {ddl_file}\n"
                          f"  unknown columns: {unknown}\n  missing columns: {missing}")
 
     buf = io.StringIO()
@@ -90,17 +92,31 @@ def load(path, psql):
     exprs = [cast(f"c{i}", by_header[h][1]) for i, h in enumerate(header)]
     sets = ", ".join(f"{c} = EXCLUDED.{c}" for c in targets if c != KEY)
     name = path.name.replace("'", "''")
-    sql = ("\\set ON_ERROR_STOP on\nBEGIN;\n"
-           f"CREATE TEMP TABLE stg ({', '.join(f'c{i} text' for i in range(len(header)))}) ON COMMIT DROP;\n"
-           "COPY stg FROM STDIN WITH (FORMAT csv);\n"
-           f"{buf.getvalue()}\\.\n"
-           f"INSERT INTO {TABLE} ({', '.join(targets)}, source_file, file_date)\n"
-           f"SELECT {', '.join(exprs)}, '{name}', DATE '{file_date}'\nFROM stg\n"
-           f"ON CONFLICT ({KEY}) DO UPDATE SET {sets}, source_file = EXCLUDED.source_file, "
-           f"file_date = EXCLUDED.file_date, loaded_at = now()\n"
-           f"WHERE {TABLE}.file_date <= EXCLUDED.file_date;\n"
-           f"SELECT '{name}' AS file, count(*) AS rows_in_file FROM stg;\nCOMMIT;\n")
-    print(f"=== {path.name} ({SHEET}, {file_date})", flush=True)
+    return (f"CREATE TEMP TABLE stg ({', '.join(f'c{i} text' for i in range(len(header)))});\n"
+            "COPY stg FROM STDIN WITH (FORMAT csv);\n"
+            f"{buf.getvalue()}\\.\n"
+            f"INSERT INTO {table} ({', '.join(targets)}, source_file, file_date)\n"
+            f"SELECT {', '.join(exprs)}, '{name}', DATE '{file_date}'\nFROM stg\n"
+            f"ON CONFLICT ({KEY}) DO UPDATE SET {sets}, source_file = EXCLUDED.source_file, "
+            f"file_date = EXCLUDED.file_date, loaded_at = now()\n"
+            f"WHERE {table}.file_date <= EXCLUDED.file_date;\n"
+            f"SELECT '{table}' AS table, count(*) AS rows_in_file FROM stg;\n"
+            "DROP TABLE stg;\n")
+
+
+def load(path, psql):
+    m = FILE_RE.match(path.name)
+    if not m:
+        raise SystemExit(f"{path.name}: expected CamberSalesInventorySalesReport_YYYY-MM-DD.xlsx")
+    file_date = m.group(1)
+
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    absent = [s for s in SHEETS if s not in wb.sheetnames]
+    if absent:
+        raise SystemExit(f"{path.name}: missing sheets {absent}")
+    body = "".join(sheet_sql(path, wb, sheet, file_date) for sheet in SHEETS)
+    sql = f"\\set ON_ERROR_STOP on\nBEGIN;\n{body}COMMIT;\n"
+    print(f"=== {path.name} ({file_date})", flush=True)
     subprocess.run([*psql, "-X", "-q", "-f", "-"], input=sql.encode(), check=True)
 
 
