@@ -5,6 +5,8 @@
 # build artifacts
 dashboard/web/node_modules/
 dashboard/web/dist/
+fe/web/app/node_modules/
+fe/web/app/dist/
 nohup.out
 dashboard/web/tsconfig.tsbuildinfo
 dashboard/api/api
