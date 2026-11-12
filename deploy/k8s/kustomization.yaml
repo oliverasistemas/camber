@@ -19,4 +19,4 @@ images:
   # tags); bump newTag here and re-run deploy/deploy.sh to ship.
   - name: cambercredit/app
     newName: 032401303688.dkr.ecr.us-east-1.amazonaws.com/cambercredit/app
-    newTag: "1.0.0"
+    newTag: "1.1.0"
