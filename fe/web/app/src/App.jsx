@@ -34,6 +34,7 @@ const sections = [
     children: [
       { key: '/copart/inventory', label: 'Inventory' },
       { key: '/copart/sales', label: 'Sales' },
+      { key: '/copart/vs-vervent', label: 'Vs Vervent' },
     ],
   },
 ]

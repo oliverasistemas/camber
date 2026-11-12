@@ -90,6 +90,9 @@ func (s *verventStore) copartRoutes(r chi.Router) {
 	r.Get("/inventory/{id}", dataset{}.get)
 	r.Get("/sales", dataset{}.list)
 	r.Get("/sales/{id}", dataset{}.get)
+	r.Get("/vs-vervent", dataset{}.list)
+	r.Get("/vs-vervent/summary", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, []any{}) })
+	r.Get("/vs-vervent/{id}", dataset{}.get)
 }
 
 // list returns a page of rows. sort=col orders ascending and sort=-col descending, with nulls

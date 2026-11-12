@@ -26,6 +26,7 @@ type pgVervent struct {
 	db                              *pgxpool.Pool
 	contracts, assets, transactions pgTable
 	copartInventory, copartSales    pgTable
+	copartVsVervent                 pgTable // a view
 }
 
 func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
@@ -47,6 +48,7 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		{"vervent_transactions", "transaction_key", &s.transactions},
 		{"copart_inventory", "lot_nbr", &s.copartInventory},
 		{"copart_sales", "lot_nbr", &s.copartSales},
+		{"copart_vs_vervent", "lot_nbr", &s.copartVsVervent},
 	} {
 		cols, err := tableColumns(ctx, db, t.name)
 		if err != nil {
@@ -93,6 +95,38 @@ func (s *pgVervent) copartRoutes(r chi.Router) {
 	r.Get("/inventory/{id}", s.copartInventory.get)
 	r.Get("/sales", s.copartSales.list)
 	r.Get("/sales/{id}", s.copartSales.get)
+	r.Get("/vs-vervent", s.copartVsVervent.list)
+	r.Get("/vs-vervent/summary", s.handleComparisonSummary)
+	r.Get("/vs-vervent/{id}", s.copartVsVervent.get)
+}
+
+// comparisonGroup totals copart_vs_vervent by comparison outcome (match, differs, ...).
+type comparisonGroup struct {
+	Comparison string  `json:"comparison"`
+	Sales      int     `json:"sales"`
+	CopartNet  float64 `json:"copart_net"`
+	VerventNet float64 `json:"vervent_net"`
+	Difference float64 `json:"difference"`
+}
+
+func (s *pgVervent) handleComparisonSummary(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.db.Query(r.Context(), `
+		SELECT comparison, count(*), coalesce(sum(net_sale_proceeds), 0)::float8,
+		       coalesce(sum(vervent_sale_proceeds), 0)::float8, coalesce(sum(difference), 0)::float8
+		  FROM copart_vs_vervent GROUP BY 1 ORDER BY 1`)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	groups, err := pgx.CollectRows(rows, pgx.RowToStructByPos[comparisonGroup])
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	if groups == nil {
+		groups = []comparisonGroup{}
+	}
+	writeJSON(w, groups)
 }
 
 // list mirrors dataset.list: limit/offset paging, sort=col or sort=-col with nulls last, and any

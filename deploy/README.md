@@ -90,7 +90,9 @@ deploy/load-copart.sh copart/CamberSalesInventorySalesReport_2026-10-12.xlsx
 `copart/load.py` (needs `openpyxl`) loads the Inventory Tab into `copart_inventory` and the Sales
 Tab into `copart_sales`, both keyed on `lot_nbr`, the same way: headers checked against the DDL
 comments in `copart/sql`, one transaction per file, an older report never overwrites a newer one.
-`https://camber.inmatics.io/copart/inventory` and `/copart/sales` show the tables.
+`https://camber.inmatics.io/copart/inventory` and `/copart/sales` show the tables. The
+`copart_vs_vervent` view (`copart/sql/03_copart_vs_vervent.sql`) pairs each sale with the Vervent
+asset of the same VIN and compares net proceeds; `/copart/vs-vervent` shows it.
 
 The app reads the `copart_*` tables at startup, so on an existing cluster run
 `deploy/load-schema.sh` before deploying a build that includes it.

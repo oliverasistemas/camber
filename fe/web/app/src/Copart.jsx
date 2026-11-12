@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import PageHeader from './PageHeader.jsx'
 import CopartInventory from './CopartInventory.jsx'
 import CopartSales from './CopartSales.jsx'
+import CopartVsVervent from './CopartVsVervent.jsx'
 
 const pages = [
   {
@@ -11,9 +12,15 @@ const pages = [
     element: <CopartInventory />,
   },
   { key: 'sales', title: 'Sales', subtitle: 'Copart auction sales and proceeds', element: <CopartSales /> },
+  {
+    key: 'vs-vervent',
+    title: 'Copart vs Vervent',
+    subtitle: 'Copart net sale proceeds against Vervent SALE PROCEEDS, matched by VIN',
+    element: <CopartVsVervent />,
+  },
 ]
 
-// Each page is its own route (/copart/inventory, /copart/sales), reached from the sidebar, so it
+// Each page is its own route (/copart/inventory, /copart/sales, /copart/vs-vervent), reached from the sidebar, so it
 // can be linked to and survives a reload. /copart opens the inventory.
 export default function Copart() {
   return (
