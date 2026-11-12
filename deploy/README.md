@@ -42,6 +42,9 @@ then run `deploy/deploy.sh`.
 
 ## Loading a Vervent drop
 
+Vervent sends the files to the SFTP drop box; [`SFTP.md`](SFTP.md) covers what has arrived and
+how to pull it.
+
 Put the `YYYYMMDD_*_Daily_P50.csv` files in `vervent/` (gitignored: lessee personal data), then:
 
 ```sh
