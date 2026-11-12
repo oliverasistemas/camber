@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Card, Col, Row, Spin, Statistic, Tooltip, Typography } from 'antd'
 import { money } from './DataTable.jsx'
+import PageHeader from './PageHeader.jsx'
 
 const SERIES = '#2a78d6' // single-series bars: categorical slot 1
 
@@ -98,11 +99,10 @@ export default function Dashboard() {
 
   return (
     <>
-      <Typography.Title level={3}>Dashboard</Typography.Title>
-      <Typography.Paragraph type="secondary">Vervent portfolio 50 · data as of {data.as_of}</Typography.Paragraph>
+      <PageHeader title="Dashboard" subtitle={`Vervent portfolio 50 · data as of ${data.as_of}`} />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card style={{ height: '100%' }}>
             <Statistic
               title="Active contracts"
               value={data.active_contracts}
@@ -111,12 +111,12 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card style={{ height: '100%' }}>
             <Statistic title="Outstanding receivables (active)" value={money(data.outstanding_receivables)} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card style={{ height: '100%' }}>
             <Statistic
               title="Delinquency rate"
               value={data.delinquency_rate}
@@ -129,18 +129,18 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card style={{ height: '100%' }}>
             <Statistic title="Collections, last 30 days" value={money(data.collections_30d)} />
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Delinquent active contracts by days past due">
+          <Card style={{ height: '100%' }} title="Delinquent active contracts by days past due">
             <ColumnChart data={data.delinquency} unit="contracts" />
             <ColumnAxis data={data.delinquency} />
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Assets by status">
+          <Card style={{ height: '100%' }} title="Assets by status">
             <BarList data={data.assetStatus} total={data.total_assets} />
           </Card>
         </Col>

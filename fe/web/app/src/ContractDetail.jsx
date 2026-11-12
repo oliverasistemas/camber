@@ -15,7 +15,7 @@ export default function ContractDetail({ contract, onClose }) {
     <Drawer
       open={!!contract}
       onClose={onClose}
-      width="80%"
+      width="min(1200px, 92vw)"
       title={
         <Flex align="center" gap="small">
           <span>Lease {c.lease_no}</span>
@@ -28,7 +28,8 @@ export default function ContractDetail({ contract, onClose }) {
         <Flex vertical gap="large">
           <Descriptions
             size="small"
-            column={4}
+            column={{ xs: 1, sm: 2, lg: 4 }}
+            bordered
             items={[
               { label: 'Status', children: c.ls_status },
               { label: 'Type', children: c.ls_type },
@@ -53,6 +54,7 @@ export default function ContractDetail({ contract, onClose }) {
               noun="assets"
               baseFilters={{ lease: c.lease_no }}
               pageSize={5}
+              bordered={false}
             />
           </div>
           <div>
@@ -64,6 +66,7 @@ export default function ContractDetail({ contract, onClose }) {
               noun="transactions"
               baseFilters={{ contract_number: c.lease_no }}
               pageSize={10}
+              bordered={false}
             />
           </div>
         </Flex>

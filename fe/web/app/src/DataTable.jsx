@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Alert, Table } from 'antd'
+import { Alert, Card, Table } from 'antd'
 
 export const money = (v) =>
   v == null ? '' : Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -7,7 +7,8 @@ export const money = (v) =>
 // DataTable shows one /api/vervent/* list with server-side paging, sorting and filtering.
 // Every column is sortable; a column with `filters` filters on its dataIndex by exact match.
 // baseFilters are fixed column filters always sent, e.g. { lease: '5000080213' }.
-export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters, pageSize = 20 }) {
+// bordered wraps the table in a card; the contract drawer turns it off.
+export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters, pageSize = 20, bordered = true }) {
   const [query, setQuery] = useState({ page: 1, pageSize, filters: {}, sort: null })
   const [result, setResult] = useState({ data: [], total: 0 })
   const [loading, setLoading] = useState(true)
@@ -55,9 +56,9 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
     setQuery({ page: reset ? 1 : pagination.current, pageSize: pagination.pageSize, filters, sort })
   }
 
-  return (
+  const table = (
     <>
-      {error && <Alert type="error" message={`Failed to load ${noun}: ${error}`} />}
+      {error && <Alert type="error" showIcon message={`Failed to load ${noun}: ${error}`} style={{ margin: bordered ? 16 : '0 0 16px' }} />}
       <Table
         rowKey={rowKey}
         size="small"
@@ -72,8 +73,11 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
           total: result.total,
           showSizeChanger: true,
           showTotal: (total) => `${total} ${noun}`,
+          style: bordered ? { padding: '0 16px' } : undefined,
         }}
       />
     </>
   )
+
+  return bordered ? <Card styles={{ body: { padding: 0, overflow: 'hidden' } }}>{table}</Card> : table
 }
