@@ -1,35 +1,45 @@
-import { Descriptions, Drawer, Flex, Tag, Typography } from 'antd'
+import { Alert, Breadcrumb, Card, Descriptions, Flex, Result, Spin, Tag, Typography } from 'antd'
+import { Link, useParams } from 'react-router-dom'
 import DataTable, { money } from './DataTable.jsx'
+import PageHeader from './PageHeader.jsx'
 import { columns as assetColumns } from './Assets.jsx'
 import { columns as transactionColumns } from './Transactions.jsx'
+import { useRecord } from './records.jsx'
 
-// The lease number and lessee are already in the drawer header, so drop them from the tables.
+// The lease number and lessee are already in the page header, so drop them from the tables.
 const assetCols = assetColumns.filter((c) => !['lease', 'name'].includes(c.dataIndex))
 const transactionCols = transactionColumns.filter(
   (c) => !['contract_number', 'name'].includes(c.dataIndex),
 )
 
-export default function ContractDetail({ contract, onClose }) {
-  const c = contract ?? {}
+// ContractDetail is /vervent/contracts/:leaseNo: the contract, its assets and its transactions.
+export default function ContractDetail() {
+  const { leaseNo } = useParams()
+  const { record: c, error } = useRecord(`/api/vervent/contracts/${encodeURIComponent(leaseNo)}`)
+
+  const crumbs = (
+    <Breadcrumb
+      style={{ marginBottom: 12 }}
+      items={[{ title: <Link to="/vervent/contracts">Contracts</Link> }, { title: leaseNo }]}
+    />
+  )
+  if (c === undefined) return <Spin style={{ display: 'block', margin: '64px auto' }} />
+  if (error) return <>{crumbs}<Alert type="error" showIcon message={`Failed to load lease ${leaseNo}: ${error}`} /></>
+  if (c === null) return <>{crumbs}<Result status="404" title={`Lease ${leaseNo} not found`} /></>
+
   return (
-    <Drawer
-      open={!!contract}
-      onClose={onClose}
-      width="min(1200px, 92vw)"
-      title={
-        <Flex align="center" gap="small">
-          <span>Lease {c.lease_no}</span>
-          <Typography.Text type="secondary">{c.lessee_name}</Typography.Text>
-          <Tag color={c.account_status === 'Active' ? 'green' : 'default'}>{c.account_status}</Tag>
-        </Flex>
-      }
-    >
-      {contract && (
-        <Flex vertical gap="large">
+    <>
+      {crumbs}
+      <PageHeader
+        title={`Lease ${c.lease_no}`}
+        subtitle={c.lessee_name}
+        extra={<Tag color={c.account_status === 'Active' ? 'green' : 'default'}>{c.account_status}</Tag>}
+      />
+      <Flex vertical gap="large">
+        <Card>
           <Descriptions
             size="small"
             column={{ xs: 1, sm: 2, lg: 4 }}
-            bordered
             items={[
               { label: 'Status', children: c.ls_status },
               { label: 'Type', children: c.ls_type },
@@ -45,32 +55,30 @@ export default function ContractDetail({ contract, onClose }) {
               { label: 'Dealer', children: c.dlr_name },
             ]}
           />
-          <div>
-            <Typography.Title level={5}>Assets</Typography.Title>
-            <DataTable
-              endpoint="/api/vervent/assets"
-              rowKey="asset_no"
-              columns={assetCols}
-              noun="assets"
-              baseFilters={{ lease: c.lease_no }}
-              pageSize={5}
-              bordered={false}
-            />
-          </div>
-          <div>
-            <Typography.Title level={5}>Transactions</Typography.Title>
-            <DataTable
-              endpoint="/api/vervent/transactions"
-              rowKey="transaction_key"
-              columns={transactionCols}
-              noun="transactions"
-              baseFilters={{ contract_number: c.lease_no }}
-              pageSize={10}
-              bordered={false}
-            />
-          </div>
-        </Flex>
-      )}
-    </Drawer>
+        </Card>
+        <div>
+          <Typography.Title level={5}>Assets</Typography.Title>
+          <DataTable
+            endpoint="/api/vervent/assets"
+            rowKey="asset_no"
+            columns={assetCols}
+            noun="assets"
+            baseFilters={{ lease: c.lease_no }}
+            pageSize={5}
+          />
+        </div>
+        <div>
+          <Typography.Title level={5}>Transactions</Typography.Title>
+          <DataTable
+            endpoint="/api/vervent/transactions"
+            rowKey="transaction_key"
+            columns={transactionCols}
+            noun="transactions"
+            baseFilters={{ contract_number: c.lease_no }}
+            pageSize={10}
+          />
+        </div>
+      </Flex>
+    </>
   )
 }

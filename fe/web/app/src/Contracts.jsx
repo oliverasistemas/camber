@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import { Tag, Typography } from 'antd'
 import DataTable, { money } from './DataTable.jsx'
-import ContractDetail from './ContractDetail.jsx'
+import { contractLink } from './records.jsx'
 
 const columns = [
+  { title: 'Lease No', dataIndex: 'lease_no', fixed: 'left', render: contractLink },
   { title: 'Lessee', dataIndex: 'lessee_name' },
   { title: 'State', dataIndex: 'lessee_state' },
   { title: 'Asset', dataIndex: 'first_asset_desc' },
@@ -34,24 +34,5 @@ const columns = [
 ]
 
 export default function Contracts() {
-  const [selected, setSelected] = useState(null)
-
-  const leaseColumn = {
-    title: 'Lease No',
-    dataIndex: 'lease_no',
-    fixed: 'left',
-    render: (v, row) => <Typography.Link onClick={() => setSelected(row)}>{v}</Typography.Link>,
-  }
-
-  return (
-    <>
-      <DataTable
-        endpoint="/api/vervent/contracts"
-        rowKey="lease_no"
-        columns={[leaseColumn, ...columns]}
-        noun="contracts"
-      />
-      <ContractDetail contract={selected} onClose={() => setSelected(null)} />
-    </>
-  )
+  return <DataTable endpoint="/api/vervent/contracts" rowKey="lease_no" columns={columns} noun="contracts" />
 }

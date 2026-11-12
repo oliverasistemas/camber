@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS vervent_assets (
 
 CREATE INDEX IF NOT EXISTS ix_vervent_assets_lease ON vervent_assets (lease);
 CREATE INDEX IF NOT EXISTS ix_vervent_assets_lessee_no ON vervent_assets (lessee_no);
+CREATE INDEX IF NOT EXISTS ix_vervent_assets_serial_number ON vervent_assets (serial_number);
 
 COMMENT ON TABLE vervent_assets IS 'Vervent portfolio 50 assets (vehicles / deficiency balances). Latest snapshot per asset, upserted daily from *_AssetSummary_Daily_P50.csv.';
 

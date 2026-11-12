@@ -1,5 +1,6 @@
 import { Tag } from 'antd'
 import DataTable, { money } from './DataTable.jsx'
+import { contractLink } from './records.jsx'
 
 const descriptions = [
   'ACCRUAL NORMAL CYCLE',
@@ -22,7 +23,7 @@ const yesNo = [
 export const columns = [
   { title: 'Key', dataIndex: 'transaction_key', fixed: 'left' },
   { title: 'Date', dataIndex: 'transaction_date_key' },
-  { title: 'Contract', dataIndex: 'contract_number' },
+  { title: 'Contract', dataIndex: 'contract_number', render: contractLink },
   { title: 'Name', dataIndex: 'name' },
   { title: 'Code', dataIndex: 'trans' },
   {

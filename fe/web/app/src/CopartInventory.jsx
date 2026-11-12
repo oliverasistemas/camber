@@ -1,5 +1,6 @@
 import { Tag } from 'antd'
 import DataTable, { money } from './DataTable.jsx'
+import { vinLink } from './records.jsx'
 
 const statusColors = {
   'READY FOR AUCTION': 'blue',
@@ -14,9 +15,9 @@ const statusColors = {
 
 const options = (values) => values.map((v) => ({ text: v, value: v }))
 
-const columns = [
+export const columns = [
   { title: 'Lot', dataIndex: 'lot_nbr', fixed: 'left' },
-  { title: 'VIN', dataIndex: 'vin' },
+  { title: 'VIN', dataIndex: 'vin', render: vinLink },
   { title: 'Year', dataIndex: 'year' },
   { title: 'Make', dataIndex: 'make' },
   { title: 'Model', dataIndex: 'model' },

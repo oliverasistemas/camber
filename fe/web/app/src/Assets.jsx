@@ -1,11 +1,12 @@
 import { Tag } from 'antd'
 import DataTable, { money } from './DataTable.jsx'
+import { assetLink, contractLink } from './records.jsx'
 
-const statusColors = { NLSE: 'green', ULSE: 'blue', USLD: 'default', URIN: 'orange' }
+export const statusColors = { NLSE: 'green', ULSE: 'blue', USLD: 'default', URIN: 'orange' }
 
 export const columns = [
-  { title: 'Asset No', dataIndex: 'asset_no', fixed: 'left' },
-  { title: 'Lease', dataIndex: 'lease' },
+  { title: 'Asset No', dataIndex: 'asset_no', fixed: 'left', render: (v) => assetLink(v) },
+  { title: 'Lease', dataIndex: 'lease', render: contractLink },
   { title: 'Description', dataIndex: 'description' },
   { title: 'VIN', dataIndex: 'serial_number' },
   {
