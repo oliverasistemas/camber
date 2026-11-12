@@ -1,0 +1,6 @@
+# Only be/rest and fe/web/app go into the image; keep data and secrets out of the build context.
+*
+!be/rest/
+!fe/web/app/
+fe/web/app/node_modules/
+fe/web/app/dist/
