@@ -2,8 +2,9 @@
 
 Runs on the inmatics aws009 Kubernetes cluster (kubectl context `aws009`) in the `camber`
 namespace, pinned to the QA node, at **https://camber.inmatics.io**. It replaced the old
-camber-dashboard app (`~/camber`, end of life) in place on 2026-11-12; don't run
-`~/camber/deployments/deploy.sh` any more, it would put the old app and database back. One pod serves the API and the SPA
+camber-dashboard app in place on 2026-11-12. Its manifests (`deployments/`, removed; see git
+history before `aaf23da`) must not be re-applied: they would put the old app and database back.
+One pod serves the API and the SPA
 (`../Dockerfile`); one StatefulSet runs Postgres 16 with the `vervent_*` tables
 (`../vervent/sql`); Traefik + cert-manager (already on the cluster) terminate TLS.
 
