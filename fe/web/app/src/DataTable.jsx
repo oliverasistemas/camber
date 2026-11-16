@@ -5,6 +5,13 @@ import { Alert, Card, Flex, Table, Tag } from 'antd'
 export const money = (v) =>
   v == null ? '' : Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
 
+// compact and compactMoney abbreviate thousands and millions (12.3K, $1.2M) for cards and chart
+// labels, where the figure is a headline. Tables and detail pages show exact values with money.
+const compactOptions = { notation: 'compact', minimumFractionDigits: 0, maximumFractionDigits: 1 }
+export const compact = (v) => (v == null ? '' : Number(v).toLocaleString('en-US', compactOptions))
+export const compactMoney = (v) =>
+  v == null ? '' : Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD', ...compactOptions })
+
 // Filter parameters can carry a comparison suffix (days_del.gt=0); see filterOps in be/rest/vervent.go.
 const opSymbols = { gt: '>', gte: '≥', lt: '<', lte: '≤', ne: '≠' }
 
@@ -136,14 +143,19 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
         loading={loading}
         scroll={{ x: 'max-content' }}
         onChange={onChange}
-        pagination={{
-          current: query.page,
-          pageSize: query.pageSize,
-          total: result.total,
-          showSizeChanger: true,
-          showTotal: (total) => `${total} ${noun}`,
-          style: bordered ? { padding: '0 16px' } : undefined,
-        }}
+        // An embedded table whose rows all fit on its first page needs no pager.
+        pagination={
+          !urlState && result.total <= pageSize
+            ? false
+            : {
+                current: query.page,
+                pageSize: query.pageSize,
+                total: result.total,
+                showSizeChanger: true,
+                showTotal: (total) => `${total} ${noun}`,
+                style: bordered ? { padding: '0 16px' } : undefined,
+              }
+        }
       />
     </>
   )

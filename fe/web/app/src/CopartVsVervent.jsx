@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Alert, Col, Flex, Row, Statistic, Tag, Typography } from 'antd'
-import DataTable, { money } from './DataTable.jsx'
+import DataTable, { compact, compactMoney, money } from './DataTable.jsx'
 import LinkCard from './LinkCard.jsx'
 import { assetLink, contractLink, vinLink } from './records.jsx'
 
@@ -65,12 +65,12 @@ export default function CopartVsVervent() {
           return (
             <Col key={o.key} xs={24} sm={12} lg={6}>
               <LinkCard to={`?${new URLSearchParams({ comparison: o.key })}`} loading={!summary && !error}>
-                <Statistic title={o.label} value={g?.sales ?? 0} suffix="sales" />
+                <Statistic title={o.label} value={compact(g?.sales ?? 0)} suffix="sales" />
                 <Typography.Text type="secondary">
                   {o.key === 'differs' && g
-                    ? `Copart ${money(g.copart_net)} vs Vervent ${money(g.vervent_net)}, net ${money(g.difference)}`
+                    ? `Copart ${compactMoney(g.copart_net)} vs Vervent ${compactMoney(g.vervent_net)}, net ${compactMoney(g.difference)}`
                     : g
-                      ? `Copart net ${money(g.copart_net)}`
+                      ? `Copart net ${compactMoney(g.copart_net)}`
                       : ' '}
                 </Typography.Text>
               </LinkCard>

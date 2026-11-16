@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Alert, Card, Col, Row, Spin, Statistic, Tooltip, Typography } from 'antd'
 import { Link } from 'react-router-dom'
-import { money } from './DataTable.jsx'
+import { compact, compactMoney, money } from './DataTable.jsx'
 import LinkCard from './LinkCard.jsx'
 import PageHeader from './PageHeader.jsx'
 
@@ -48,7 +48,7 @@ function ColumnChart({ data, unit }) {
         <Tooltip key={d.label} title={`${d.label} days: ${d.value} ${unit}`}>
           <Link to={d.to} style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {d.value || ''}
+              {d.value ? compact(d.value) : ''}
             </Typography.Text>
             <div
               style={{
@@ -99,7 +99,7 @@ function BarList({ data, total }) {
               />
             </div>
             <Typography.Text type="secondary" style={{ textAlign: 'right' }}>
-              {d.value}
+              {compact(d.value)}
             </Typography.Text>
           </Link>
         </Tooltip>
@@ -133,14 +133,16 @@ export default function Dashboard() {
           <LinkCard to={links.active}>
             <Statistic
               title="Active contracts"
-              value={data.active_contracts}
-              suffix={<Typography.Text type="secondary">/ {data.total_contracts}</Typography.Text>}
+              value={compact(data.active_contracts)}
+              suffix={<Typography.Text type="secondary">/ {compact(data.total_contracts)}</Typography.Text>}
             />
           </LinkCard>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <LinkCard to={links.receivables}>
-            <Statistic title="Outstanding receivables (active)" value={money(data.outstanding_receivables)} />
+            <Tooltip title={money(data.outstanding_receivables)}>
+              <Statistic title="Outstanding receivables (active)" value={compactMoney(data.outstanding_receivables)} />
+            </Tooltip>
           </LinkCard>
         </Col>
         <Col xs={24} sm={12} lg={6}>
@@ -152,13 +154,15 @@ export default function Dashboard() {
               suffix="%"
             />
             <Typography.Text type="secondary">
-              {data.delinquent_contracts} contracts · {money(data.past_due)} past due
+              {compact(data.delinquent_contracts)} contracts · {compactMoney(data.past_due)} past due
             </Typography.Text>
           </LinkCard>
         </Col>
         <Col xs={24} sm={12} lg={6}>
           <LinkCard to={links.collections(data.as_of)}>
-            <Statistic title="Collections, last 30 days" value={money(data.collections_30d)} />
+            <Tooltip title={money(data.collections_30d)}>
+              <Statistic title="Collections, last 30 days" value={compactMoney(data.collections_30d)} />
+            </Tooltip>
           </LinkCard>
         </Col>
         <Col xs={24} lg={12}>
