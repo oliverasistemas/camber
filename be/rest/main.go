@@ -56,6 +56,7 @@ type server struct {
 type verventAPI interface {
 	routes(chi.Router)
 	copartRoutes(chi.Router)
+	handleSearch(http.ResponseWriter, *http.Request)
 }
 
 func main() {
@@ -115,6 +116,7 @@ func main() {
 		r.With(srv.requireAuth).Get("/me", srv.handleMe)
 		r.With(srv.requireAuth).Route("/vervent", vervent.routes)
 		r.With(srv.requireAuth).Route("/copart", vervent.copartRoutes)
+		r.With(srv.requireAuth).Get("/search", vervent.handleSearch)
 	})
 
 	// In production one process serves the built SPA too (STATIC_DIR=fe/web/app/dist); in

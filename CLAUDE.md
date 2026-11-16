@@ -71,6 +71,7 @@ Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transact
 
 - `main.go` — routing, Google OIDC sign-in, HMAC-signed stateless session cookie, SPA fallback handler. Access is granted to `AUTH_ALLOWED_EMAILS` or to Workspace accounts whose `hd` claim matches `AUTH_ALLOWED_DOMAIN` (the email suffix alone is deliberately not trusted).
 - Two interchangeable implementations of the `verventAPI` interface: `pgstore.go` (Postgres) and `vervent.go` (in-memory mock JSON). **They must stay behaviorally identical** — same routes, same list contract, same metrics (`metrics.go` holds the shared types and the mock computation; `pgstore.go` reimplements it in SQL). A new endpoint needs both, plus a stub in the mock's `copartRoutes` if it is Copart-only.
+- `search.go` — `GET /api/search?q=` behind the header search box (`GlobalSearch.jsx`): substring match on lease number and VIN across contracts, assets and Copart inventory, a few rows per group. Implemented for both backends like everything else.
 - Generic list contract for every table/view: `?limit=&offset=&sort=col|-col` (nulls last), and any other query param is an exact-match filter on that column's text form (`null` matches NULL). A `.gt`/`.gte`/`.lt`/`.lte`/`.ne` suffix compares instead (`days_del.gt=0`; `.ne` also matches NULL). Response is `{total, limit, offset, data}`. Exposing a new table or view is one entry in `openPGVervent` plus two route lines.
 
 ### Frontend (`fe/web/app`, React 19 + Ant Design 5 + React Router 7, plain JSX)

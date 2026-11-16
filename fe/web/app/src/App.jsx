@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons'
 import Logo from './Logo.jsx'
 import Login from './Login.jsx'
+import GlobalSearch from './GlobalSearch.jsx'
 import Dashboard from './Dashboard.jsx'
 import Vervent from './Vervent.jsx'
 import Copart from './Copart.jsx'
@@ -111,6 +112,7 @@ export default function App() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: 16,
             borderBottom: '1px solid #eceef1',
             position: 'sticky',
             top: 0,
@@ -123,6 +125,8 @@ export default function App() {
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           />
+          <GlobalSearch />
+          <div style={{ flex: 1 }} />
           <Dropdown
             trigger={['click']}
             menu={{
