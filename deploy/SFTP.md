@@ -122,6 +122,9 @@ runs at the end. `load_runs` / `load_files` keep the history of every load.
 Re-loading is safe. On a header or cast failure, see
 [`README.md`](README.md#loading-a-vervent-drop).
 
+The dashboard serves a loaded file back from `processed/` (Loads → Files → a file → Download
+original), matching it by name and SHA-256. Deleting or changing a file there removes its download.
+
 NALN: there is no loader. Nothing else to do yet.
 
 ## Accounts

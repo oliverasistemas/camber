@@ -104,6 +104,17 @@ func (s *verventStore) loadRoutes(r chi.Router) {
 	r.Get("/runs/{id}", s.loadRuns.get)
 	r.Get("/files", s.loadFiles.list)
 	r.Get("/files/{id}", s.loadFiles.get)
+	r.Get("/files/{id}/download", s.handleLoadFileDownload)
+	r.Head("/files/{id}/download", s.handleLoadFileDownload)
+}
+
+func (s *verventStore) handleLoadFileDownload(w http.ResponseWriter, r *http.Request) {
+	var name, sum string
+	if f, ok := s.loadFiles.byKey[chi.URLParam(r, "id")]; ok {
+		name, _ = f["source_file"].(string)
+		sum, _ = f["sha256"].(string)
+	}
+	serveLoadFile(w, r, name, sum)
 }
 
 // filterOps are the comparisons a filter parameter can ask for with a suffix, e.g. days_del.gt=0,

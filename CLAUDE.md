@@ -24,7 +24,7 @@ cd fe/web/app && npm install && npm run dev
 
 - `SESSION_SECRET` is the only required env var. The Google OAuth client JSON (`client_secret_*.json` at the repo root, gitignored) must exist or the API exits at startup.
 - Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless every `vervent_*`/`copart_*` table and the `copart_vs_vervent` view exist (`load_runs`/`load_files` are optional: without them the Loads pages are empty).
-- Other env: `ADDR`, `FRONTEND_URL`, `GOOGLE_REDIRECT_URL`, `GOOGLE_CLIENT_SECRET_FILE`, `VERVENT_MOCK_DIR`, `STATIC_DIR`, `AUTH_ALLOWED_DOMAIN`, `AUTH_ALLOWED_EMAILS` (see `be/rest/main.go`).
+- Other env: `ADDR`, `FRONTEND_URL`, `GOOGLE_REDIRECT_URL`, `GOOGLE_CLIENT_SECRET_FILE`, `VERVENT_MOCK_DIR`, `STATIC_DIR`, `AUTH_ALLOWED_DOMAIN`, `AUTH_ALLOWED_EMAILS` (see `be/rest/main.go`), and `LOAD_FILES_DIR` (see `be/rest/loadfiles.go`).
 
 ### Local Postgres
 
@@ -66,7 +66,7 @@ Type/naming conventions and source-data quirks are documented in `vervent/sql/00
 
 Every table carries `source_file`, `file_date` (parsed from the file name), `loaded_at`. Each file loads in one transaction via an all-text staging table, oldest file first. Contracts, assets and both Copart tables upsert on their key guarded by `file_date <=` so an older file never overwrites newer data; transactions are append-only (`ON CONFLICT DO NOTHING`). Re-loading is always safe. Rows that vanish from later files are not deleted. There are no foreign keys (orphans exist and files arrive in any order).
 
-The Vervent loader records every run and every file it attempts in `load_runs` / `load_files` (`vervent/sql/04_load_history.sql`, package `be/pipeline/history`): the run row is committed first, a file's `ok` row commits in the same transaction as its data, and a `failed` row is written after the rollback (on a fresh connection if the run was interrupted). A run still `running` means the process died. Copart loads are not recorded yet. The dashboard lists the history under Loads (`/api/loads/runs`, `/api/loads/files`; `Loads.jsx`), with mock rows from `generate_mock.py`.
+The Vervent loader records every run and every file it attempts in `load_runs` / `load_files` (`vervent/sql/04_load_history.sql`, package `be/pipeline/history`): the run row is committed first, a file's `ok` row commits in the same transaction as its data, and a `failed` row is written after the rollback (on a fresh connection if the run was interrupted). A run still `running` means the process died. Copart loads are not recorded yet. The dashboard lists the history under Loads (`/api/loads/runs`, `/api/loads/files`; `Loads.jsx`), with mock rows from `generate_mock.py`. A file's page offers the original for download (`/api/loads/files/{id}/download`, `be/rest/loadfiles.go`): the app pod mounts the SFTP drop box's `vervent/processed` folder read-only as `LOAD_FILES_DIR` and serves the file of that name whose SHA-256 matches the recorded one, so files that never passed through the drop box (Copart, anything deleted from it) have no download.
 
 Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transactions.transaction_key`, `copart_inventory.lot_nbr`, `copart_sales.lot_nbr`. Copart joins to Vervent by VIN (`copart_sales.vin = vervent_assets.serial_number`); one VIN can map to several assets when a vehicle is re-leased.
 

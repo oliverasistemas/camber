@@ -116,6 +116,21 @@ func (s *pgVervent) loadRoutes(r chi.Router) {
 	r.Get("/runs/{id}", s.loadRuns.get)
 	r.Get("/files", s.loadFiles.list)
 	r.Get("/files/{id}", s.loadFiles.get)
+	r.Get("/files/{id}/download", s.handleLoadFileDownload)
+	r.Head("/files/{id}/download", s.handleLoadFileDownload)
+}
+
+func (s *pgVervent) handleLoadFileDownload(w http.ResponseWriter, r *http.Request) {
+	var name, sum string
+	if s.loadFiles.db != nil {
+		err := s.db.QueryRow(r.Context(), `SELECT source_file, coalesce(sha256, '') FROM load_files WHERE id::text = $1`,
+			chi.URLParam(r, "id")).Scan(&name, &sum)
+		if err != nil && err != pgx.ErrNoRows {
+			serverError(w, err)
+			return
+		}
+	}
+	serveLoadFile(w, r, name, sum)
 }
 
 // comparisonGroup totals copart_vs_vervent by comparison outcome (match, differs, ...).

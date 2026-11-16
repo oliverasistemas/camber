@@ -1,4 +1,6 @@
-import { Alert, Breadcrumb, Card, Descriptions, Flex, Result, Spin, Typography } from 'antd'
+import { useEffect, useState } from 'react'
+import { DownloadOutlined } from '@ant-design/icons'
+import { Alert, Breadcrumb, Button, Card, Descriptions, Flex, Result, Spin, Tooltip, Typography } from 'antd'
 import { Link, useParams } from 'react-router-dom'
 import DataTable, { bytes, dateTime } from './DataTable.jsx'
 import PageHeader from './PageHeader.jsx'
@@ -13,6 +15,32 @@ const tablePages = {
   vervent_transactions: '/vervent/transactions',
   copart_inventory: '/copart/inventory',
   copart_sales: '/copart/sales',
+}
+
+// DownloadButton offers the original file. The server only has it if the file is still in the
+// SFTP drop box with the contents that were loaded, so ask (HEAD) before offering.
+function DownloadButton({ id }) {
+  const href = `/api/loads/files/${encodeURIComponent(id)}/download`
+  const [available, setAvailable] = useState(undefined)
+
+  useEffect(() => {
+    let cancelled = false
+    setAvailable(undefined)
+    fetch(href, { method: 'HEAD' })
+      .then((res) => !cancelled && setAvailable(res.ok))
+      .catch(() => !cancelled && setAvailable(false))
+    return () => {
+      cancelled = true
+    }
+  }, [href])
+
+  return (
+    <Tooltip title={available === false && 'The original file is not on the server'}>
+      <Button icon={<DownloadOutlined />} href={available ? href : undefined} disabled={!available} loading={available === undefined}>
+        Download original
+      </Button>
+    </Tooltip>
+  )
 }
 
 // LoadFileDetail is /loads/files/:id: one attempt to load a file, its run, the rows that still
@@ -39,7 +67,12 @@ export default function LoadFileDetail() {
       <PageHeader
         title={f.source_file}
         subtitle={`${f.table_name ?? 'Unknown table'} · loaded ${dateTime(f.finished_at)}`}
-        extra={statusTag(f.status)}
+        extra={
+          <Flex align="center" gap="small">
+            {statusTag(f.status)}
+            <DownloadButton id={f.id} />
+          </Flex>
+        }
       />
       <Flex vertical gap="large">
         {f.error && <Alert type="error" showIcon message={f.error} />}

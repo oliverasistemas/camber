@@ -71,9 +71,15 @@ spec:
                 secretKeyRef:
                   name: cambercredit-auth
                   key: SESSION_SECRET
+            # Where the original Vervent files are, for the download on a loaded file's page.
+            - name: LOAD_FILES_DIR
+              value: /srv/vervent-processed
           volumeMounts:
             - name: google-client
               mountPath: /etc/cambercredit
+              readOnly: true
+            - name: vervent-processed
+              mountPath: /srv/vervent-processed
               readOnly: true
           # main.go pings the DB at startup and exits if it is unreachable or the vervent_*
           # tables are missing, so a Ready pod has a working pool. /api/health touches nothing
@@ -107,3 +113,10 @@ spec:
             items:
               - key: google-client.json
                 path: google-client.json
+        # The SFTP drop box keeps what Vervent sent under processed/<day>/ on this node
+        # (../SFTP.md). Only Vervent's folder is mounted, read-only; it is there because the
+        # nodeSelector above puts this pod on the same node as the sftp pod.
+        - name: vervent-processed
+          hostPath:
+            path: /srv/sftp/vervent/processed
+            type: Directory
