@@ -3,7 +3,8 @@
 //	DATABASE_URL=postgres://... load-vervent vervent/20261111_*_Daily_P50.csv
 //	deploy/load-vervent.sh vervent/2026111*_*.csv          # into the cluster
 //
-// Each file's header is checked against the embedded DDL before anything is written. Files load
+// Every file's name, header and row shape are checked against the embedded DDL before anything
+// is written. Files load
 // oldest first, one transaction each, and the run stops at the first failure. Contracts and assets
 // upsert so an older file never overwrites newer data; transactions are append-only. Re-loading
 // is safe.
@@ -29,6 +30,19 @@ func main() {
 	if dsn == "" {
 		fail("DATABASE_URL is not set")
 	}
+	// Read and check every file before writing anything, so a bad header in a later file stops
+	// the run before the earlier files are committed.
+	paths := append([]string(nil), os.Args[1:]...)
+	vervent.Sort(paths)
+	files := make([]*vervent.File, len(paths))
+	for i, p := range paths {
+		f, err := vervent.Read(p)
+		if err != nil {
+			fail("%v\nnothing loaded", err)
+		}
+		files[i] = f
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
@@ -38,13 +52,7 @@ func main() {
 	}
 	defer conn.Close(context.Background())
 
-	paths := append([]string(nil), os.Args[1:]...)
-	vervent.Sort(paths)
-	for _, p := range paths {
-		f, err := vervent.Read(p)
-		if err != nil {
-			fail("%v", err)
-		}
+	for _, f := range files {
 		fmt.Printf("=== %s (%s, %s)\n", f.Name, f.Report.Name, f.FileDate.Format("2006-01-02"))
 		n, err := f.Load(ctx, conn)
 		if err != nil {

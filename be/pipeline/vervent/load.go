@@ -184,9 +184,9 @@ func (f *File) insertSQL() string {
 		}
 		fmt.Fprintf(&sb, "ON CONFLICT (%s) DO UPDATE SET %s, source_file = EXCLUDED.source_file, "+
 			"file_date = EXCLUDED.file_date, loaded_at = now()\nWHERE %s.file_date <= EXCLUDED.file_date",
-			r.Key, strings.Join(sets, ", "), r.Table)
+			quoteIdent(r.Key), strings.Join(sets, ", "), r.Table)
 	} else {
-		fmt.Fprintf(&sb, "ON CONFLICT (%s) DO NOTHING", r.Key)
+		fmt.Fprintf(&sb, "ON CONFLICT (%s) DO NOTHING", quoteIdent(r.Key))
 	}
 	return sb.String()
 }

@@ -1,4 +1,5 @@
-# Only be (Go module: API, loader, embedded DDL) and fe/web/app go into the image; keep data and secrets out of the build context.
+# Only be (Go module: API, loader, embedded DDL) and fe/web/app go into the image; keep data and
+# secrets out of the build context.
 *
 !be/
 !fe/web/app/

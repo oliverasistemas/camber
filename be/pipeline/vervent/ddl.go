@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/jackc/pgx/v5"
 )
 
 //go:embed sql/*.sql
@@ -111,11 +113,10 @@ func parseDDL(table, ddlFile string) ([]Column, error) {
 	return cols, nil
 }
 
+// quoteIdent quotes every column name, so a column named after a reserved word (trim, off) needs
+// no loader change. The DDL's names are lowercase, so quoting doesn't change which column matches.
 func quoteIdent(col string) string {
-	if col == "trim" || col == "off" {
-		return `"` + col + `"`
-	}
-	return col
+	return pgx.Identifier{col}.Sanitize()
 }
 
 func castExpr(expr string, c Column) string {

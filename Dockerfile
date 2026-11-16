@@ -3,7 +3,8 @@
 # One image for the whole app: the Go API (be/rest) plus the built SPA (fe/web/app). The API
 # serves the bundle from STATIC_DIR and the SPA calls /api same-origin (cookie auth), so they
 # ship together. The Vervent loader (be/pipeline/cmd/load-vervent) rides along as
-# /app/load-vervent for running in the pod or a Job. Build context is the repo root; deploy/push.sh builds and pushes it to ECR.
+# /app/load-vervent for running in the pod or a Job. Build context is the repo root;
+# deploy/push.sh builds and pushes it to ECR.
 
 FROM node:24-alpine AS webbuild
 WORKDIR /web
