@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-The Camber Credit portfolio dashboard, live at https://camber.inmatics.io. It shows lease-servicing data from Vervent (contracts, assets, transactions for portfolio "P50") next to Copart auction data (inventory, sales), and reconciles the two. One Go binary serves both the JSON API and the built React SPA; Postgres holds the data, loaded from vendor files by Python scripts.
+The Camber Credit portfolio dashboard, live at https://camber.inmatics.io. It shows lease-servicing data from Vervent (contracts, assets, transactions for portfolio "P50") next to Copart auction data (inventory, sales), and reconciles the two. One Go binary serves both the JSON API and the built React SPA; Postgres holds the data, loaded from vendor files by a Go loader (Vervent) and a Python script (Copart).
 
 ## Commands
 
-There are no tests and no linter configured. Verify with `go build ./...` / `go vet ./...` in `be/rest` and `npm run build` in `fe/web/app`.
+There are no tests and no linter configured. Verify with `go build ./...` / `go vet ./...` in `be` (the Go module root) and `npm run build` in `fe/web/app`.
 
 ### Local development
 
@@ -30,11 +30,11 @@ cd fe/web/app && npm install && npm run dev
 
 ```sh
 for f in vervent/sql/0*.sql copart/sql/0*.sql; do psql -d cambercredit -v ON_ERROR_STOP=1 -f "$f"; done
-python3 vervent/load.py vervent/20261111_*_Daily_P50.csv
+(cd be && DATABASE_URL=postgres:///cambercredit go run ./pipeline/cmd/load-vervent "$PWD"/../vervent/20261111_*_Daily_P50.csv)
 python3 copart/load.py copart/CamberSalesInventorySalesReport_2026-10-05.xlsx   # needs openpyxl
 ```
 
-The loaders pipe to the command in `$PSQL` (default `psql -d cambercredit`); the `deploy/load-*.sh` wrappers set it to `kubectl exec -i postgres-0 -- psql ...` to load into the cluster.
+The Vervent loader connects with `DATABASE_URL`; `deploy/load-vervent.sh` port-forwards the cluster's Postgres and runs it. `copart/load.py` pipes to the command in `$PSQL` (default `psql -d cambercredit`), which `deploy/load-copart.sh` sets to `kubectl exec -i postgres-0 -- psql ...`.
 
 Regenerate mock data (fully synthetic, derived from the DDL): `python3 vervent/mock/generate_mock.py`.
 
@@ -54,7 +54,8 @@ Commit history follows this as two commits: the change, then "Ship app image X.Y
 
 `vervent/sql/0*.sql` and `copart/sql/0*.sql` drive everything downstream:
 
-- Each `COMMENT ON COLUMN` starts with the source file's header in `[brackets]`; date columns end with `Source format <fmt>`. `load.py` parses the DDL with regexes to build the column mapping, and refuses a file whose headers don't match. **Adding or renaming a column means editing the DDL and its comment in that format** — not the loader.
+- `vervent/sql` is a symlink to `be/pipeline/vervent/sql`, which lives inside the Go module so the loader can `embed` it (a DDL change needs a rebuild of the loader).
+- Each `COMMENT ON COLUMN` starts with the source file's header in `[brackets]`; date columns end with `Source format <fmt>`. The loaders (`be/pipeline/vervent/ddl.go`, `copart/load.py`) parse the DDL with regexes to build the column mapping, and refuse a file whose headers don't match. **Adding or renaming a column means editing the DDL and its comment in that format** — not the loader.
 - `generate_mock.py` reads the same DDL so mock JSON looks like `SELECT *`.
 - The API reads column names from `information_schema` at startup and returns rows via `row_to_json`, so a new column appears in API responses without Go changes.
 - The DDL is `CREATE ... IF NOT EXISTS`, so `load-schema.sh` never alters an existing table. Schema changes to a live database need a manual `ALTER TABLE` in addition to the DDL edit. (The `copart_vs_vervent` view is `CREATE OR REPLACE`, so it does update.)
@@ -67,7 +68,7 @@ Every table carries `source_file`, `file_date` (parsed from the file name), `loa
 
 Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transactions.transaction_key`, `copart_inventory.lot_nbr`, `copart_sales.lot_nbr`. Copart joins to Vervent by VIN (`copart_sales.vin = vervent_assets.serial_number`); one VIN can map to several assets when a vehicle is re-leased.
 
-### Backend (`be/rest`, single `main` package)
+### Backend (`be/rest`, single `main` package; Go module rooted at `be`)
 
 - `main.go` — routing, Google OIDC sign-in, HMAC-signed stateless session cookie, SPA fallback handler. Access is granted to `AUTH_ALLOWED_EMAILS` or to Workspace accounts whose `hd` claim matches `AUTH_ALLOWED_DOMAIN` (the email suffix alone is deliberately not trusted).
 - Two interchangeable implementations of the `verventAPI` interface: `pgstore.go` (Postgres) and `vervent.go` (in-memory mock JSON). **They must stay behaviorally identical** — same routes, same list contract, same metrics (`metrics.go` holds the shared types and the mock computation; `pgstore.go` reimplements it in SQL). A new endpoint needs both, plus a stub in the mock's `copartRoutes` if it is Copart-only.
@@ -83,7 +84,7 @@ Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transact
 
 ### Deployment shape
 
-Single image (`Dockerfile`: Vite build → Go build → distroless) with `STATIC_DIR` pointing at the bundle. `.dockerignore` is an allowlist — only `be/rest` and `fe/web/app` enter the build context, so new top-level directories needed at build time must be added there. Runs in the `camber` namespace on the `aws009` cluster alongside a Postgres 16 StatefulSet (`deploy/k8s`, applied with kustomize).
+Single image (`Dockerfile`: Vite build → Go build → distroless) with `STATIC_DIR` pointing at the bundle. The image also carries the Vervent loader as `/app/load-vervent` (`be/pipeline`). `.dockerignore` is an allowlist — only `be` and `fe/web/app` enter the build context, so new top-level directories needed at build time must be added there. Runs in the `camber` namespace on the `aws009` cluster alongside a Postgres 16 StatefulSet (`deploy/k8s`, applied with kustomize).
 
 ## Data sensitivity
 

@@ -5,19 +5,18 @@ counterparty has its own chrooted user. This file covers who sends what, what
 has arrived, and how a file gets from the drop box into the cambercredit
 database. Loading itself is described in [`README.md`](README.md#loading-a-vervent-drop).
 
-## Status (checked 2026-11-12)
+## Status (checked 2026-11-16)
 
 | User | uid | Sends | Since | Files received | Auth | Ingested |
 |---|---|---|---|---|---|---|
-| `vervent` | 1001 | Daily servicer reports (AssetSummary, ContractSummary, TransactionHistory CSVs) | 2026-10-06 | 16 files on 5 processing days, last 2026-11-11 | password only | Manually; the 2026-11-10 and 2026-11-11 files are loaded |
+| `vervent` | 1001 | Daily servicer reports (AssetSummary, ContractSummary, TransactionHistory CSVs) | 2026-10-06 | 22 files on 7 processing days, last 2026-11-13 | password only | Manually; the 2026-11-10 and 2026-11-11 files are loaded, 2026-11-12 and 2026-11-13 are not yet |
 | `westlake` | 1002 | Not defined yet (boarding) | account exists | none | password only | n/a |
 | `naln` | 1003 | One combined PDF per funded loan (they can't split it per Funding Checklist document) | 2026-10-30 | 2 test files (2026-11-04 empty `.txt`, 2026-11-05 `NALN TESTING.pdf`), no real loans yet | password only | Nothing reads them yet |
 
 Copart's weekly Sales & Inventory xlsx does **not** come through SFTP.
 
-Server and processor are healthy: the `sftp` pod has run 12 days without a
-restart, the `sftp-processor` CronJob runs every 15 minutes and its last runs
-completed. No user has an SSH key installed (all three `authorized_keys.*`
+Server and processor are healthy: the `sftp-processor` CronJob runs every 15
+minutes and its last runs completed. No user has an SSH key installed (all three `authorized_keys.*`
 are empty).
 
 ### What Vervent has sent
@@ -31,9 +30,12 @@ Folders are the day the processor moved the files, not the as-of date.
 | `2026-10-20` | as-of 2026-10-19 (small test set) |
 | `2026-10-21` | as-of 2026-10-20 (first full drop, old `Contract Summary_P50` naming) |
 | `2026-11-11` | as-of 2026-11-10 and 2026-11-11 (current `*_Daily_P50` naming) |
+| `2026-11-12` | as-of 2026-11-12 |
+| `2026-11-13` | as-of 2026-11-13 |
 
-Nothing arrived between 2026-10-21 and 2026-11-10. Only the `*_Daily_P50.csv`
-files from 2026-11-10 on are in the `vervent/` format that `vervent/load.py`
+Nothing arrived between 2026-10-21 and 2026-11-10, nor on 2026-11-14 or 2026-11-15
+(weekend). Since 2026-11-12 each drop has been processed the same afternoon UTC. Only the `*_Daily_P50.csv`
+files from 2026-11-10 on are in the `vervent/` format that the Vervent loader
 reads; the October files predate it.
 
 ## How it works
@@ -105,7 +107,7 @@ kubectl -n sftp exec deploy/sftp -- tar -C "/home/vervent/processed/$d" -cf - . 
 ```
 
 The `--wildcards` filter skips test files such as `context.txt`. The raw files
-are CRLF; `load.py` normalizes that, so load them as pulled. Use
+are CRLF; the loader normalizes that, so load them as pulled. Use
 `/home/naln/processed/$d` the same way for NALN, into a folder of its own.
 
 ### 3. Load
@@ -136,10 +138,10 @@ NALN: there is no loader. Nothing else to do yet.
 ## Open items
 
 - Ingest is manual end to end. Both pods are on the same node, so the app (or
-  a CronJob running `load.py`) could read `/srv/sftp/vervent/processed`
+  a CronJob running `/app/load-vervent` from the app image) could read `/srv/sftp/vervent/processed`
   directly.
-- Vervent's daily cadence is not regular yet: no files between 2026-10-21 and
-  2026-11-10.
+- Vervent's daily cadence: business days since 2026-11-10 (11-10 to 11-13),
+  after a gap from 2026-10-21 to 2026-11-10. Not yet confirmed as the contract.
 - Westlake has an account but has never connected, and nobody has said what
   they will send.
 - NALN has only sent tests. A real funded-loan PDF still needs a destination

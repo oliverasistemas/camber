@@ -80,5 +80,7 @@ Known source quirks to handle in the transform:
 Rows that are no longer sent are not deleted. If you need that, compare `file_date`
 with the latest load date.
 
-`../load.py` implements this pattern for whole files, with the mapping read from these DDL
-comments; see `../../deploy/README.md` for loading into the cluster.
+The Go loader (`be/pipeline/vervent`, CLI in `be/pipeline/cmd/load-vervent`) implements this
+pattern for whole files, with the mapping read from these DDL comments (embedded at build time,
+so a DDL change needs a rebuild); see `deploy/README.md` for loading into the cluster. This
+directory lives in the Go module so it can be embedded; `vervent/sql` is a symlink to it.

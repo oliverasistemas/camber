@@ -1,6 +1,6 @@
-# Only be/rest and fe/web/app go into the image; keep data and secrets out of the build context.
+# Only be (Go module: API, loader, embedded DDL) and fe/web/app go into the image; keep data and secrets out of the build context.
 *
-!be/rest/
+!be/
 !fe/web/app/
 fe/web/app/node_modules/
 fe/web/app/dist/
