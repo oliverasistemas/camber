@@ -3,6 +3,8 @@ package vervent
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,17 +13,22 @@ import (
 	"strings"
 	"time"
 
+	"camber/pipeline/history"
+
 	"github.com/jackc/pgx/v5"
 )
 
 var fileRE = regexp.MustCompile(`^(\d{8})_(AssetSummary|ContractSummary|TransactionHistory)_Daily_P50\.csv$`)
 
 // File is an extract that has been read and checked against the DDL; nothing has been written yet.
+// Read returns a partly filled File with its error, so a refused file can still be recorded.
 type File struct {
 	Path     string
-	Name     string // base name, stored in source_file
-	Report   *Report
-	FileDate time.Time
+	Name     string    // base name, stored in source_file
+	Report   *Report   // nil if the name did not parse
+	FileDate time.Time // zero if the name did not parse
+	SHA256   string    // hex, of the raw bytes; empty if the file could not be read
+	Bytes    int64
 	header   []string
 	rows     [][]any
 }
@@ -55,15 +62,16 @@ func datePrefix(p string) string {
 }
 
 // Read parses the file name, reads the file and checks its header and row shape against the DDL.
+// The returned File is never nil: on error it carries whatever was known (name, date, hash).
 func Read(path string) (*File, error) {
 	name := filepath.Base(path)
 	m := fileRE.FindStringSubmatch(name)
 	if m == nil {
-		return nil, fmt.Errorf("%s: expected YYYYMMDD_<AssetSummary|ContractSummary|TransactionHistory>_Daily_P50.csv", name)
+		return &File{Path: path, Name: name}, fmt.Errorf("%s: expected YYYYMMDD_<AssetSummary|ContractSummary|TransactionHistory>_Daily_P50.csv", name)
 	}
 	fileDate, err := time.Parse("20060102", m[1])
 	if err != nil {
-		return nil, fmt.Errorf("%s: bad date prefix: %v", name, err)
+		return &File{Path: path, Name: name}, fmt.Errorf("%s: bad date prefix: %v", name, err)
 	}
 	f := &File{Path: path, Name: name, FileDate: fileDate}
 	for _, r := range Reports {
@@ -74,8 +82,10 @@ func Read(path string) (*File, error) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return f, err
 	}
+	sum := sha256.Sum256(data)
+	f.SHA256, f.Bytes = hex.EncodeToString(sum[:]), int64(len(data))
 	// The extracts are CRLF without a final newline; accept LF and a final newline too.
 	data = bytes.TrimPrefix(data, []byte("\xef\xbb\xbf"))
 	data = bytes.ReplaceAll(data, []byte("\r\n"), []byte("\n"))
@@ -87,7 +97,7 @@ func Read(path string) (*File, error) {
 		f.header[i] = strings.TrimSpace(h)
 	}
 	if err := f.checkHeader(); err != nil {
-		return nil, err
+		return f, err
 	}
 
 	// No quoting: a '"' is a literal character, as with the old COPY ... QUOTE E'\x01'.
@@ -96,14 +106,14 @@ func Read(path string) (*File, error) {
 	for i, line := range lines[1:] {
 		lineNo := i + 2
 		if strings.ContainsRune(line, '\r') {
-			return nil, fmt.Errorf("%s line %d: unquoted carriage return found in data", name, lineNo)
+			return f, fmt.Errorf("%s line %d: unquoted carriage return found in data", name, lineNo)
 		}
 		fields := strings.Split(line, "|")
 		if len(fields) > n {
-			return nil, fmt.Errorf("%s line %d: extra data after last expected column", name, lineNo)
+			return f, fmt.Errorf("%s line %d: extra data after last expected column", name, lineNo)
 		}
 		if len(fields) < n {
-			return nil, fmt.Errorf("%s line %d: missing data for column %q", name, lineNo, f.header[len(fields)])
+			return f, fmt.Errorf("%s line %d: missing data for column %q", name, lineNo, f.header[len(fields)])
 		}
 		row := make([]any, n)
 		for j, v := range fields {
@@ -157,8 +167,10 @@ func (f *File) checkHeader() error {
 	return nil
 }
 
-// insertSQL casts the all-text staging columns c0..cN into the table. $1 is source_file,
-// $2 file_date.
+// insertSQL casts the all-text staging columns c0..cN into the table and returns one row of
+// (inserted, updated) counts. $1 is source_file, $2 file_date. Rows the file_date guard or
+// DO NOTHING skips are not RETURNed; xmax = 0 marks a freshly inserted row (undocumented but
+// long-standing Postgres behaviour, used here only for bookkeeping counts).
 func (f *File) insertSQL() string {
 	r := f.Report
 	cols := map[string]Column{}
@@ -173,6 +185,7 @@ func (f *File) insertSQL() string {
 		exprs[i] = castExpr(fmt.Sprintf("c%d", i), c)
 	}
 	var sb strings.Builder
+	sb.WriteString("WITH ins AS (\n")
 	fmt.Fprintf(&sb, "INSERT INTO %s (%s, source_file, file_date)\nSELECT %s, $1::text, $2::date\nFROM stg\n",
 		r.Table, strings.Join(targets, ", "), strings.Join(exprs, ", "))
 	if r.Upsert {
@@ -188,16 +201,20 @@ func (f *File) insertSQL() string {
 	} else {
 		fmt.Fprintf(&sb, "ON CONFLICT (%s) DO NOTHING", quoteIdent(r.Key))
 	}
+	sb.WriteString("\nRETURNING (xmax = 0) AS inserted\n)\n" +
+		"SELECT count(*) FILTER (WHERE inserted), count(*) FILTER (WHERE NOT inserted) FROM ins")
 	return sb.String()
 }
 
 // Load writes the file in one transaction: an all-text staging table filled with COPY, then a
 // cast-and-insert from it, so a bad value fails the whole file with the Postgres cast error.
-// It returns the number of rows in the file.
-func (f *File) Load(ctx context.Context, conn *pgx.Conn) (int64, error) {
+// beforeCommit (if not nil) runs inside the transaction with the file's counts, so a history row
+// written there commits or rolls back with the data.
+func (f *File) Load(ctx context.Context, conn *pgx.Conn, beforeCommit func(pgx.Tx, history.Counts) error) (history.Counts, error) {
+	var c history.Counts
 	tx, err := conn.Begin(ctx)
 	if err != nil {
-		return 0, err
+		return c, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -208,16 +225,21 @@ func (f *File) Load(ctx context.Context, conn *pgx.Conn) (int64, error) {
 		defs[i] = stgCols[i] + " text"
 	}
 	if _, err := tx.Exec(ctx, "CREATE TEMP TABLE stg ("+strings.Join(defs, ", ")+") ON COMMIT DROP"); err != nil {
-		return 0, err
+		return c, err
 	}
-	n, err := tx.CopyFrom(ctx, pgx.Identifier{"stg"}, stgCols, pgx.CopyFromRows(f.rows))
+	if c.Rows, err = tx.CopyFrom(ctx, pgx.Identifier{"stg"}, stgCols, pgx.CopyFromRows(f.rows)); err != nil {
+		return c, err
+	}
+	err = tx.QueryRow(ctx, f.insertSQL(), f.Name, f.FileDate.Format("2006-01-02")).Scan(&c.Inserted, &c.Updated)
 	if err != nil {
-		return 0, err
+		return c, err
 	}
-	if _, err := tx.Exec(ctx, f.insertSQL(), f.Name, f.FileDate.Format("2006-01-02")); err != nil {
-		return 0, err
+	if beforeCommit != nil {
+		if err := beforeCommit(tx, c); err != nil {
+			return c, err
+		}
 	}
-	return n, tx.Commit(ctx)
+	return c, tx.Commit(ctx)
 }
 
 // Summary returns row counts by table and file_date, as (table, file_date, count) rows.

@@ -66,6 +66,8 @@ Type/naming conventions and source-data quirks are documented in `vervent/sql/00
 
 Every table carries `source_file`, `file_date` (parsed from the file name), `loaded_at`. Each file loads in one transaction via an all-text staging table, oldest file first. Contracts, assets and both Copart tables upsert on their key guarded by `file_date <=` so an older file never overwrites newer data; transactions are append-only (`ON CONFLICT DO NOTHING`). Re-loading is always safe. Rows that vanish from later files are not deleted. There are no foreign keys (orphans exist and files arrive in any order).
 
+The Vervent loader records every run and every file it attempts in `load_runs` / `load_files` (`vervent/sql/04_load_history.sql`, package `be/pipeline/history`): the run row is committed first, a file's `ok` row commits in the same transaction as its data, and a `failed` row is written after the rollback (on a fresh connection if the run was interrupted). A run still `running` means the process died. Copart loads are not recorded yet.
+
 Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transactions.transaction_key`, `copart_inventory.lot_nbr`, `copart_sales.lot_nbr`. Copart joins to Vervent by VIN (`copart_sales.vin = vervent_assets.serial_number`); one VIN can map to several assets when a vehicle is re-leased.
 
 ### Backend (`be/rest`, single `main` package; Go module rooted at `be`)

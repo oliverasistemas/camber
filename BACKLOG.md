@@ -16,7 +16,6 @@ Known issues and follow-ups that are not blocking. Remove an item when it is don
   every `vervent/*_Daily_P50.csv`, so the run grows with each day of accumulated files. Fix:
   validate name, header and row shape in a first pass without keeping rows, then re-read each
   file as it loads (or free a file's rows once it is committed and load one day at a time).
-- **Stray line break in the package comment** of `cmd/load-vervent/main.go` (lines 6-8); rewrap.
 
 ### `deploy/load-vervent.sh`
 
@@ -26,38 +25,18 @@ Known issues and follow-ups that are not blocking. Remove an item when it is don
 
 ## Load history
 
-There is no record of what was loaded. Each row carries `source_file`, `file_date` and
-`loaded_at`, but an upsert overwrites them. So nothing shows which files were loaded and when,
-what each one did, or which runs failed. Before the CronJob (above) loads files on its own,
-this also becomes the way to see what it did.
+Done for the Vervent loader (`load_runs` / `load_files`, `vervent/sql/04_load_history.sql`,
+`be/pipeline/history`). Left:
 
-- **Tables** (DDL in `vervent/sql`, shared by Copart; the file needs a `0N_` prefix, because
-  `deploy/load-schema.sh` only applies `vervent/sql/0*.sql`):
-  - `load_runs`: one row per invocation, with `id`, `started_at`, `finished_at`, `status`
-    (`running` / `ok` / `failed`), `error`, `loader` (`vervent` / `copart`), `host`/`user`
-    or `job` name, and `args`.
-  - `load_files`: one row per file attempted in a run, with `run_id`, `source_file`,
-    `file_date`, `table_name`, `sha256`, `bytes`, `rows_in_file`, `inserted`, `updated`,
-    `skipped` (older `file_date` or an existing transaction key), `status`, `error`,
-    `started_at`, `finished_at`.
-- **Writes**: create the run row before loading, in its own committed statement, so a failed
-  run is still recorded. Write each file's `ok` row in the same transaction as its data, so
-  "ok" means committed. On failure that transaction rolls back and takes the row with it, so
-  insert the `failed` row in a separate statement after the rollback. A file refused by the
-  pre-load checks is recorded as `failed` with nothing loaded. Get inserted/updated counts
-  from `RETURNING (xmax = 0)` on the upsert, and get skipped as `rows_in_file` minus both
-  (`xmax = 0` is widely used but undocumented Postgres behaviour; fine for bookkeeping counts).
-- **Uses**:
-  - Skip or warn on a file whose `sha256` was already loaded `ok`. Re-loading stays allowed,
-    since it is idempotent.
-  - Have `load-vervent.sh` print the last N runs.
-  - Optionally add a read-only API endpoint and page, using the generic list contract and
-    `openPGVervent` registration, so the dashboard shows when data was last refreshed.
-- **Scope**: the Go loader first. `copart/load.py` either writes the same rows through psql,
-  or waits until it is ported too.
-- **Schema change on the live DB**: the tables are new, so `deploy/load-schema.sh` creates
-  them (`IF NOT EXISTS`). Like every new table, the API's startup check must not require
-  them unless the endpoint is added.
-- **Backfill**: optionally insert synthetic `load_files` rows for what is already loaded
-  (2026-11-10 to 11-13 Vervent, from `source_file`/`file_date`; Copart from its tables),
-  marked as backfilled.
+- **Copart loads are not recorded.** `copart/load.py` should write the same rows through psql
+  (`loader = 'copart'`), or wait until it is ported to Go and reuse `be/pipeline/history`.
+- **No API endpoint or page.** A read-only list of `load_runs` / `load_files` (generic list
+  contract, one entry in `openPGVervent`, made optional in the startup check) would let the
+  dashboard show when data was last refreshed.
+- **No backfill.** Loads before the history tables existed (Vervent 2026-11-10 to 11-13, the
+  Copart workbook) have no rows. Optionally insert one synthetic run per loader, marked as
+  backfilled in `invoked_by`, with `load_files` rows derived from `source_file`/`file_date`
+  (no hash or counts).
+- **A killed process leaves its run `running`.** `kill -9`, a lost laptop connection or an OOM
+  kill skip the cleanup. Readers should treat an old `running` row as dead; a CronJob could
+  mark runs older than an hour as `failed`.

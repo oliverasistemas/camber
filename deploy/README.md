@@ -57,7 +57,9 @@ The Go loader (`be/pipeline/cmd/load-vervent`, run over a `kubectl port-forward`
 the column mapping and date formats from the DDL comments in `vervent/sql` (embedded in the
 binary at build time), checks every header against them before writing anything, and loads each
 file in one transaction. A header mismatch or a value that doesn't cast fails that file and stops the
-run. Re-loading is safe. If a load fails because the extract changed, fix the DDL, apply the
+run. Every run and file, failed ones included, is recorded in `load_runs` / `load_files` with
+row counts (inserted, updated, unchanged) and a SHA-256; the loader notes a file it has already
+loaded and prints the last runs at the end. Re-loading is safe. If a load fails because the extract changed, fix the DDL, apply the
 change to the cluster by hand (`ALTER TABLE`, since the DDL is `IF NOT EXISTS`), and load again.
 
 ## Sign-in

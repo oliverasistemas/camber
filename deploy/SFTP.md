@@ -117,7 +117,8 @@ deploy/load-vervent.sh vervent/20261111_*_Daily_P50.csv
 ```
 
 It checks every header before sending anything, loads each file in one
-transaction, and prints row counts per table and `file_date` at the end.
+transaction, and prints row counts per table and `file_date` and the last few
+runs at the end. `load_runs` / `load_files` keep the history of every load.
 Re-loading is safe. On a header or cast failure, see
 [`README.md`](README.md#loading-a-vervent-drop).
 
