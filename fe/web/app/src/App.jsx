@@ -5,6 +5,7 @@ import {
   CarOutlined,
   DashboardOutlined,
   FileTextOutlined,
+  HistoryOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -15,6 +16,7 @@ import GlobalSearch from './GlobalSearch.jsx'
 import Dashboard from './Dashboard.jsx'
 import Vervent from './Vervent.jsx'
 import Copart from './Copart.jsx'
+import Loads from './Loads.jsx'
 
 const sections = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
@@ -36,6 +38,15 @@ const sections = [
       { key: '/copart/inventory', label: 'Inventory' },
       { key: '/copart/sales', label: 'Sales' },
       { key: '/copart/vs-vervent', label: 'Vs Vervent' },
+    ],
+  },
+  {
+    key: '/loads',
+    icon: <HistoryOutlined />,
+    label: 'Loads',
+    children: [
+      { key: '/loads/files', label: 'Files' },
+      { key: '/loads/runs', label: 'Runs' },
     ],
   },
 ]
@@ -101,7 +112,7 @@ export default function App() {
           mode="inline"
           items={sections}
           selectedKeys={current ? [current] : []}
-          defaultOpenKeys={['/vervent', '/copart']}
+          defaultOpenKeys={['/vervent', '/copart', '/loads']}
           onClick={({ key }) => navigate(key)}
           style={{ borderInlineEnd: 0, marginTop: 8 }}
         />
@@ -153,6 +164,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/vervent/*" element={<Vervent />} />
             <Route path="/copart/*" element={<Copart />} />
+            <Route path="/loads/*" element={<Loads />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Layout.Content>

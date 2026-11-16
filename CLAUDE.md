@@ -23,7 +23,7 @@ cd fe/web/app && npm install && npm run dev
 ```
 
 - `SESSION_SECRET` is the only required env var. The Google OAuth client JSON (`client_secret_*.json` at the repo root, gitignored) must exist or the API exits at startup.
-- Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless every `vervent_*`/`copart_*` table and the `copart_vs_vervent` view exist.
+- Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless every `vervent_*`/`copart_*` table and the `copart_vs_vervent` view exist (`load_runs`/`load_files` are optional: without them the Loads pages are empty).
 - Other env: `ADDR`, `FRONTEND_URL`, `GOOGLE_REDIRECT_URL`, `GOOGLE_CLIENT_SECRET_FILE`, `VERVENT_MOCK_DIR`, `STATIC_DIR`, `AUTH_ALLOWED_DOMAIN`, `AUTH_ALLOWED_EMAILS` (see `be/rest/main.go`).
 
 ### Local Postgres
@@ -66,7 +66,7 @@ Type/naming conventions and source-data quirks are documented in `vervent/sql/00
 
 Every table carries `source_file`, `file_date` (parsed from the file name), `loaded_at`. Each file loads in one transaction via an all-text staging table, oldest file first. Contracts, assets and both Copart tables upsert on their key guarded by `file_date <=` so an older file never overwrites newer data; transactions are append-only (`ON CONFLICT DO NOTHING`). Re-loading is always safe. Rows that vanish from later files are not deleted. There are no foreign keys (orphans exist and files arrive in any order).
 
-The Vervent loader records every run and every file it attempts in `load_runs` / `load_files` (`vervent/sql/04_load_history.sql`, package `be/pipeline/history`): the run row is committed first, a file's `ok` row commits in the same transaction as its data, and a `failed` row is written after the rollback (on a fresh connection if the run was interrupted). A run still `running` means the process died. Copart loads are not recorded yet.
+The Vervent loader records every run and every file it attempts in `load_runs` / `load_files` (`vervent/sql/04_load_history.sql`, package `be/pipeline/history`): the run row is committed first, a file's `ok` row commits in the same transaction as its data, and a `failed` row is written after the rollback (on a fresh connection if the run was interrupted). A run still `running` means the process died. Copart loads are not recorded yet. The dashboard lists the history under Loads (`/api/loads/runs`, `/api/loads/files`; `Loads.jsx`), with mock rows from `generate_mock.py`.
 
 Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transactions.transaction_key`, `copart_inventory.lot_nbr`, `copart_sales.lot_nbr`. Copart joins to Vervent by VIN (`copart_sales.vin = vervent_assets.serial_number`); one VIN can map to several assets when a vehicle is re-leased.
 
@@ -79,7 +79,7 @@ Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transact
 
 ### Frontend (`fe/web/app`, React 19 + Ant Design 5 + React Router 7, plain JSX)
 
-- `App.jsx` gates everything on `GET /api/me`, owns the sidebar (`sections`) and top-level routes; `Vervent.jsx` and `Copart.jsx` own their sub-routes.
+- `App.jsx` gates everything on `GET /api/me`, owns the sidebar (`sections`) and top-level routes; `Vervent.jsx`, `Copart.jsx` and `Loads.jsx` own their sub-routes.
 - `DataTable.jsx` is the one table component: it speaks the list contract above (server-side paging/sort/filter), so a list page is mostly a column definition. With `urlState` (set on every list page's main table, not on tables embedded in detail pages) the page, sort and filters live in the query string, spelled exactly like the API parameters; filters without a column control render as removable tags. `records.jsx` has `useRecord` for detail pages and the cross-link helpers (`contractLink`, `assetLink`, `vinLink`).
 - **Every card is actionable and drills down: card → filtered list → single record.** A card or chart mark that shows a figure links (`LinkCard.jsx`, or a `Link` per bar) to the list page of the rows it counts, with the filter expressed in the query string using the same conditions the metric uses, so the list total equals the figure. Every list row links on to its record's detail page. A new metric therefore needs a filter the list contract can express, and a new table needs a detail route.
 - All fetches are relative `/api/...` with cookie auth; a 401 triggers a page reload to fall back to the login screen.

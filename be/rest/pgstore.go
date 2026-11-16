@@ -29,6 +29,7 @@ type pgVervent struct {
 	contracts, assets, transactions pgTable
 	copartInventory, copartSales    pgTable
 	copartVsVervent                 pgTable // a view
+	loadRuns, loadFiles             pgTable // optional: left empty until 04_load_history.sql is applied
 }
 
 func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
@@ -44,18 +45,29 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 	for _, t := range []struct {
 		name, key string
 		dst       *pgTable
+		optional  bool
 	}{
-		{"vervent_contracts", "lease_no", &s.contracts},
-		{"vervent_assets", "asset_no", &s.assets},
-		{"vervent_transactions", "transaction_key", &s.transactions},
-		{"copart_inventory", "lot_nbr", &s.copartInventory},
-		{"copart_sales", "lot_nbr", &s.copartSales},
-		{"copart_vs_vervent", "lot_nbr", &s.copartVsVervent},
+		{"vervent_contracts", "lease_no", &s.contracts, false},
+		{"vervent_assets", "asset_no", &s.assets, false},
+		{"vervent_transactions", "transaction_key", &s.transactions, false},
+		{"copart_inventory", "lot_nbr", &s.copartInventory, false},
+		{"copart_sales", "lot_nbr", &s.copartSales, false},
+		{"copart_vs_vervent", "lot_nbr", &s.copartVsVervent, false},
+		{"load_runs", "id", &s.loadRuns, true},
+		{"load_files", "id", &s.loadFiles, true},
 	} {
 		cols, err := tableColumns(ctx, db, t.name)
 		if err != nil {
 			db.Close()
 			return nil, err
+		}
+		if len(cols) == 0 && t.optional {
+			log.Printf("table %s not found; its endpoints serve empty lists", t.name)
+			continue
+		}
+		if len(cols) == 0 {
+			db.Close()
+			return nil, fmt.Errorf("table %s not found; run deploy/load-schema.sh first", t.name)
 		}
 		*t.dst = pgTable{db: db, name: t.name, key: t.key, columns: cols}
 	}
@@ -71,9 +83,6 @@ func tableColumns(ctx context.Context, db *pgxpool.Pool, table string) (map[stri
 	names, err := pgx.CollectRows(rows, pgx.RowTo[string])
 	if err != nil {
 		return nil, err
-	}
-	if len(names) == 0 {
-		return nil, fmt.Errorf("table %s not found; run deploy/load-schema.sh first", table)
 	}
 	cols := make(map[string]bool, len(names))
 	for _, n := range names {
@@ -100,6 +109,13 @@ func (s *pgVervent) copartRoutes(r chi.Router) {
 	r.Get("/vs-vervent", s.copartVsVervent.list)
 	r.Get("/vs-vervent/summary", s.handleComparisonSummary)
 	r.Get("/vs-vervent/{id}", s.copartVsVervent.get)
+}
+
+func (s *pgVervent) loadRoutes(r chi.Router) {
+	r.Get("/runs", s.loadRuns.list)
+	r.Get("/runs/{id}", s.loadRuns.get)
+	r.Get("/files", s.loadFiles.list)
+	r.Get("/files/{id}", s.loadFiles.get)
 }
 
 // comparisonGroup totals copart_vs_vervent by comparison outcome (match, differs, ...).
@@ -136,6 +152,10 @@ func (s *pgVervent) handleComparisonSummary(w http.ResponseWriter, r *http.Reque
 // or, with a filterOps suffix, by comparison in the column's own type.
 // Column names are checked against the table's columns and values are bound, never interpolated.
 func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
+	if t.db == nil { // an optional table that doesn't exist
+		dataset{}.list(w, r)
+		return
+	}
 	q := r.URL.Query()
 	limit, err := intParam(q.Get("limit"), defaultPageLimit)
 	if err != nil || limit < 1 || limit > maxPageLimit {
@@ -230,6 +250,10 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (t pgTable) get(w http.ResponseWriter, r *http.Request) {
+	if t.db == nil {
+		dataset{}.get(w, r)
+		return
+	}
 	var s string
 	err := t.db.QueryRow(r.Context(), fmt.Sprintf("SELECT row_to_json(t)::text FROM %s t WHERE %s::text = $1",
 		pgx.Identifier{t.name}.Sanitize(), pgx.Identifier{t.key}.Sanitize()), chi.URLParam(r, "id")).Scan(&s)

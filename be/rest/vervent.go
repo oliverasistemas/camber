@@ -32,6 +32,8 @@ type verventStore struct {
 	contracts    dataset
 	assets       dataset
 	transactions dataset
+	loadRuns     dataset
+	loadFiles    dataset
 }
 
 func loadVervent(dir string) (*verventStore, error) {
@@ -44,6 +46,8 @@ func loadVervent(dir string) (*verventStore, error) {
 		{"contracts.json", "lease_no", &s.contracts},
 		{"assets.json", "asset_no", &s.assets},
 		{"transactions.json", "transaction_key", &s.transactions},
+		{"load_runs.json", "id", &s.loadRuns},
+		{"load_files.json", "id", &s.loadFiles},
 	} {
 		ds, err := loadDataset(filepath.Join(dir, d.file), d.key)
 		if err != nil {
@@ -93,6 +97,13 @@ func (s *verventStore) copartRoutes(r chi.Router) {
 	r.Get("/vs-vervent", dataset{}.list)
 	r.Get("/vs-vervent/summary", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, []any{}) })
 	r.Get("/vs-vervent/{id}", dataset{}.get)
+}
+
+func (s *verventStore) loadRoutes(r chi.Router) {
+	r.Get("/runs", s.loadRuns.list)
+	r.Get("/runs/{id}", s.loadRuns.get)
+	r.Get("/files", s.loadFiles.list)
+	r.Get("/files/{id}", s.loadFiles.get)
 }
 
 // filterOps are the comparisons a filter parameter can ask for with a suffix, e.g. days_del.gt=0,

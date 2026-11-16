@@ -1,0 +1,72 @@
+[
+  {
+    "id": 1,
+    "loader": "vervent",
+    "started_at": "2026-11-08T06:05:00+00:00",
+    "finished_at": "2026-11-08T06:05:03.452673+00:00",
+    "status": "ok",
+    "error": null,
+    "invoked_by": "mock@localhost",
+    "args": [
+      "20261108_ContractSummary_Daily_P50.csv",
+      "20261108_AssetSummary_Daily_P50.csv",
+      "20261108_TransactionHistory_Daily_P50.csv"
+    ]
+  },
+  {
+    "id": 2,
+    "loader": "vervent",
+    "started_at": "2026-11-09T06:05:00+00:00",
+    "finished_at": "2026-11-09T06:05:04.104483+00:00",
+    "status": "ok",
+    "error": null,
+    "invoked_by": "mock@localhost",
+    "args": [
+      "20261109_ContractSummary_Daily_P50.csv",
+      "20261109_AssetSummary_Daily_P50.csv",
+      "20261109_TransactionHistory_Daily_P50.csv"
+    ]
+  },
+  {
+    "id": 3,
+    "loader": "vervent",
+    "started_at": "2026-11-10T06:00:00+00:00",
+    "finished_at": "2026-11-10T06:00:02.528049+00:00",
+    "status": "failed",
+    "error": "20261110_AssetSummary_Daily_P50.csv: header mismatch: column 14 is \"Status Dt\", the DDL expects \"Status Date\"",
+    "invoked_by": "mock@localhost",
+    "args": [
+      "20261110_ContractSummary_Daily_P50.csv",
+      "20261110_AssetSummary_Daily_P50.csv",
+      "20261110_TransactionHistory_Daily_P50.csv"
+    ]
+  },
+  {
+    "id": 4,
+    "loader": "vervent",
+    "started_at": "2026-11-10T06:05:00+00:00",
+    "finished_at": "2026-11-10T06:05:02.249569+00:00",
+    "status": "ok",
+    "error": null,
+    "invoked_by": "mock@localhost",
+    "args": [
+      "20261110_ContractSummary_Daily_P50.csv",
+      "20261110_AssetSummary_Daily_P50.csv",
+      "20261110_TransactionHistory_Daily_P50.csv"
+    ]
+  },
+  {
+    "id": 5,
+    "loader": "vervent",
+    "started_at": "2026-11-11T06:05:00+00:00",
+    "finished_at": "2026-11-11T06:05:06.888336+00:00",
+    "status": "ok",
+    "error": null,
+    "invoked_by": "mock@localhost",
+    "args": [
+      "20261111_ContractSummary_Daily_P50.csv",
+      "20261111_AssetSummary_Daily_P50.csv",
+      "20261111_TransactionHistory_Daily_P50.csv"
+    ]
+  }
+]

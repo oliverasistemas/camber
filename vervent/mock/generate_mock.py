@@ -8,6 +8,7 @@ real extracts. Codes (statuses, transaction codes, vectors) use values observed 
 the extracts so the data behaves like the real thing.
 
     python3 generate_mock.py            # writes contracts.json, assets.json, transactions.json
+                                        # and the load history, load_runs.json and load_files.json
     python3 generate_mock.py --contracts 200 --seed 7
 """
 
@@ -397,6 +398,58 @@ class Generator:
         self.transactions.sort(key=lambda t: (t["transaction_date_key"], t["transaction_key"]))
 
 
+def load_history(g, days=4):
+    """load_runs and load_files rows (../sql/04_load_history.sql) for the last few daily drops:
+    one run per day loading that day's three files, plus one run that a bad file stopped."""
+    rng = random.Random(g.rng.random())
+    runs, files = [], []
+
+    def run(day, minute, names):
+        started = datetime(day.year, day.month, day.day, 6, minute, tzinfo=timezone.utc)
+        r = {"id": len(runs) + 1, "loader": "vervent", "started_at": started.isoformat(),
+             "finished_at": None, "status": "ok", "error": None, "invoked_by": "mock@localhost",
+             "args": names}
+        runs.append(r)
+        return r, started
+
+    def file(r, at, name, day, table, rows, inserted, error=None):
+        done = at + timedelta(seconds=rng.uniform(0.2, 3))
+        counted = error is None
+        files.append({
+            "id": len(files) + 1, "run_id": r["id"], "source_file": name, "file_date": iso(day),
+            "table_name": table, "sha256": f"{rng.getrandbits(256):064x}",
+            "bytes": rows * rng.randint(900, 1100) + 2048,
+            "rows_in_file": rows if counted else None, "inserted": inserted if counted else None,
+            "updated": rows - inserted if counted and table != "vervent_transactions" else (0 if counted else None),
+            "skipped": (rows - inserted if table == "vervent_transactions" else 0) if counted else None,
+            "status": "failed" if error else "ok", "error": error,
+            "started_at": at.isoformat(), "finished_at": done.isoformat(),
+        })
+        r["finished_at"] = done.isoformat()
+        if error:
+            r["status"], r["error"] = "failed", f"{name}: {error}"
+        return done
+
+    for n, day in enumerate(AS_OF - timedelta(days=d) for d in reversed(range(days))):
+        txns = sum(t["file_date"] == iso(day) for t in g.transactions)
+        drop = [(f"{day:%Y%m%d}_ContractSummary_Daily_P50.csv", "vervent_contracts", len(g.contracts)),
+                (f"{day:%Y%m%d}_AssetSummary_Daily_P50.csv", "vervent_assets", len(g.assets)),
+                (f"{day:%Y%m%d}_TransactionHistory_Daily_P50.csv", "vervent_transactions", txns)]
+        names = [name for name, _, _ in drop]
+        if n == days - 2:
+            # A run stopped by its second file; the files after it are not attempted. The retry
+            # below then skips nothing in the first file, which had committed.
+            r, at = run(day, 0, names)
+            at = file(r, at, *drop[0][:1], day, drop[0][1], drop[0][2], 0)
+            file(r, at, drop[1][0], day, drop[1][1], drop[1][2], 0,
+                 error='header mismatch: column 14 is "Status Dt", the DDL expects "Status Date"')
+        r, at = run(day, 5, names)
+        for name, table, rows in drop:
+            new = rows if n == 0 or table == "vervent_transactions" else 0
+            at = file(r, at, name, day, table, rows, new)
+    return runs, files
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--contracts", type=int, default=60, help="number of original (non-deficiency) contracts")
@@ -406,7 +459,9 @@ def main():
 
     g = Generator(args.seed)
     g.run(args.contracts)
-    for name, rows in [("contracts", g.contracts), ("assets", g.assets), ("transactions", g.transactions)]:
+    runs, files = load_history(g)
+    for name, rows in [("contracts", g.contracts), ("assets", g.assets), ("transactions", g.transactions),
+                       ("load_runs", runs), ("load_files", files)]:
         path = args.out / f"{name}.json"
         path.write_text(json.dumps(rows, indent=2) + "\n")
         print(f"wrote {len(rows):>4} rows -> {path}")

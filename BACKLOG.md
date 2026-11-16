@@ -32,9 +32,9 @@ Done for the Vervent loader (`load_runs` / `load_files`, `vervent/sql/04_load_hi
 - **Copart loads are not recorded.** `copart/load.py` should write the same rows through psql
   (`loader = 'copart'`), or wait until it is ported to Go and reuse `be/pipeline/history`.
   One workbook loads two tables, so record one `load_files` row per table, as the backfill did.
-- **No API endpoint or page.** A read-only list of `load_runs` / `load_files` (generic list
-  contract, one entry in `openPGVervent`, made optional in the startup check) would let the
-  dashboard show when data was last refreshed.
+- **The dashboard doesn't say when data was last refreshed.** The history is listed under Loads
+  (`/api/loads/runs`, `/api/loads/files`); a dashboard card for the latest ok run, linking there,
+  is still missing.
 - **A killed process leaves its run `running`.** `kill -9`, a lost laptop connection or an OOM
   kill skip the cleanup. Readers should treat an old `running` row as dead; a CronJob could
   mark runs older than an hour as `failed`.
