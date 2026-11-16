@@ -9,7 +9,7 @@ database. Loading itself is described in [`README.md`](README.md#loading-a-verve
 
 | User | uid | Sends | Since | Files received | Auth | Ingested |
 |---|---|---|---|---|---|---|
-| `vervent` | 1001 | Daily servicer reports (AssetSummary, ContractSummary, TransactionHistory CSVs) | 2026-10-06 | 22 files on 7 processing days, last 2026-11-13 | password only | Manually; the 2026-11-10 and 2026-11-11 files are loaded, 2026-11-12 and 2026-11-13 are not yet |
+| `vervent` | 1001 | Daily servicer reports (AssetSummary, ContractSummary, TransactionHistory CSVs) | 2026-10-06 | 22 files on 7 processing days, last 2026-11-13 | password only | Manually; everything through 2026-11-13 is loaded (11-12 and 11-13 on 2026-11-16, with the Go loader) |
 | `westlake` | 1002 | Not defined yet (boarding) | account exists | none | password only | n/a |
 | `naln` | 1003 | One combined PDF per funded loan (they can't split it per Funding Checklist document) | 2026-10-30 | 2 test files (2026-11-04 empty `.txt`, 2026-11-05 `NALN TESTING.pdf`), no real loans yet | password only | Nothing reads them yet |
 
