@@ -95,9 +95,24 @@ func (s *verventStore) copartRoutes(r chi.Router) {
 	r.Get("/vs-vervent/{id}", dataset{}.get)
 }
 
+// filterOps are the comparisons a filter parameter can ask for with a suffix, e.g. days_del.gt=0,
+// and their SQL operators. Without a suffix the filter is an exact match.
+var filterOps = map[string]string{"gt": ">", "gte": ">=", "lt": "<", "lte": "<=", "ne": "IS DISTINCT FROM"}
+
+// splitFilter splits a filter parameter into its column and operator ("" for exact match).
+func splitFilter(param string) (col, op string, ok bool) {
+	col, op, found := strings.Cut(param, ".")
+	if !found {
+		return col, "", true
+	}
+	_, ok = filterOps[op]
+	return col, op, ok
+}
+
 // list returns a page of rows. sort=col orders ascending and sort=-col descending, with nulls
 // last either way. Any other query parameter except limit/offset filters on the column of that
-// name by exact match, e.g. /transactions?contract_number=5000080213&trans=200.
+// name by exact match, e.g. /transactions?contract_number=5000080213&trans=200, or with a
+// filterOps suffix by comparison, e.g. /contracts?days_del.gt=0. col.ne also matches nulls.
 func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	limit, err := intParam(q.Get("limit"), defaultPageLimit)
@@ -120,6 +135,12 @@ func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 	q.Del("limit")
 	q.Del("offset")
 	q.Del("sort")
+	for param := range q {
+		if _, _, ok := splitFilter(param); !ok {
+			http.Error(w, "unknown filter operator in "+param, http.StatusBadRequest)
+			return
+		}
+	}
 
 	matched := make([]row, 0)
 	for _, rw := range d.rows {
@@ -152,13 +173,47 @@ func (d dataset) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func matches(rw row, filters map[string][]string) bool {
-	for col, want := range filters {
+	for param, want := range filters {
+		col, op, _ := splitFilter(param)
 		v, ok := rw[col]
-		if !ok || str(v) != want[0] {
+		if !ok || !filterMatch(v, op, want[0]) {
 			return false
 		}
 	}
 	return true
+}
+
+// filterMatch applies one filter to a value. Comparisons are numeric for numbers and lexical
+// otherwise (ISO dates order correctly); a null only ever satisfies ne.
+func filterMatch(v any, op, want string) bool {
+	switch op {
+	case "":
+		return str(v) == want
+	case "ne":
+		return str(v) != want
+	}
+	if v == nil {
+		return false
+	}
+	c := cmp.Compare(str(v), want)
+	if n, ok := v.(json.Number); ok {
+		f, _ := n.Float64()
+		w, err := strconv.ParseFloat(want, 64)
+		if err != nil {
+			return false
+		}
+		c = cmp.Compare(f, w)
+	}
+	switch op {
+	case "gt":
+		return c > 0
+	case "gte":
+		return c >= 0
+	case "lt":
+		return c < 0
+	default:
+		return c <= 0
+	}
 }
 
 // compareValues orders numbers numerically, strings (including ISO dates) lexically and

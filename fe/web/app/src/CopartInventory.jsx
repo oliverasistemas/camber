@@ -48,5 +48,5 @@ export const columns = [
 ]
 
 export default function CopartInventory() {
-  return <DataTable endpoint="/api/copart/inventory" rowKey="lot_nbr" columns={columns} noun="vehicles" />
+  return <DataTable endpoint="/api/copart/inventory" rowKey="lot_nbr" columns={columns} noun="vehicles" urlState />
 }

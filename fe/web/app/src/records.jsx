@@ -29,5 +29,6 @@ export function useRecord(endpoint) {
 // Cross-links between records, for table columns and detail pages.
 export const contractLink = (leaseNo) => leaseNo && <Link to={`/vervent/contracts/${encodeURIComponent(leaseNo)}`}>{leaseNo}</Link>
 export const assetLink = (assetNo, label = assetNo) => assetNo != null && <Link to={`/vervent/assets/${assetNo}`}>{label}</Link>
+export const transactionLink = (key) => key != null && <Link to={`/vervent/transactions/${encodeURIComponent(key)}`}>{key}</Link>
 // A VIN can belong to more than one Vervent asset (a vehicle that was re-leased), so it opens a lookup.
 export const vinLink = (vin) => vin && <Link to={`/vervent/assets/vin/${encodeURIComponent(vin)}`}>{vin}</Link>

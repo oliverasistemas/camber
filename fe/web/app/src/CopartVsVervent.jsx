@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Alert, Card, Col, Flex, Row, Statistic, Tag, Typography } from 'antd'
+import { Alert, Col, Flex, Row, Statistic, Tag, Typography } from 'antd'
 import DataTable, { money } from './DataTable.jsx'
+import LinkCard from './LinkCard.jsx'
 import { assetLink, contractLink, vinLink } from './records.jsx'
 
 // comparison values from the copart_vs_vervent view, in display order.
@@ -37,7 +38,8 @@ const columns = [
 ]
 
 // CopartVsVervent is /copart/vs-vervent: every Copart sale against the Vervent asset with the
-// same VIN, comparing Copart net proceeds with Vervent SALE PROCEEDS.
+// same VIN, comparing Copart net proceeds with Vervent SALE PROCEEDS. Each outcome card filters
+// the table below to its sales.
 export default function CopartVsVervent() {
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState(null)
@@ -62,7 +64,7 @@ export default function CopartVsVervent() {
           const g = groups[o.key]
           return (
             <Col key={o.key} xs={24} sm={12} lg={6}>
-              <Card style={{ height: '100%' }} loading={!summary && !error}>
+              <LinkCard to={`?${new URLSearchParams({ comparison: o.key })}`} loading={!summary && !error}>
                 <Statistic title={o.label} value={g?.sales ?? 0} suffix="sales" />
                 <Typography.Text type="secondary">
                   {o.key === 'differs' && g
@@ -71,12 +73,12 @@ export default function CopartVsVervent() {
                       ? `Copart net ${money(g.copart_net)}`
                       : ' '}
                 </Typography.Text>
-              </Card>
+              </LinkCard>
             </Col>
           )
         })}
       </Row>
-      <DataTable endpoint="/api/copart/vs-vervent" rowKey="lot_nbr" columns={columns} noun="sales" />
+      <DataTable endpoint="/api/copart/vs-vervent" rowKey="lot_nbr" columns={columns} noun="sales" urlState />
     </Flex>
   )
 }

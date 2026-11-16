@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -130,7 +132,8 @@ func (s *pgVervent) handleComparisonSummary(w http.ResponseWriter, r *http.Reque
 }
 
 // list mirrors dataset.list: limit/offset paging, sort=col or sort=-col with nulls last, and any
-// other parameter filters on that column by exact match of its text form ("null" matches NULL).
+// other parameter filters on that column by exact match of its text form ("null" matches NULL)
+// or, with a filterOps suffix, by comparison in the column's own type.
 // Column names are checked against the table's columns and values are bound, never interpolated.
 func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -155,17 +158,31 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 
 	var where []string
 	var args []any
-	for col, vals := range q {
+	for param, vals := range q {
+		col, op, ok := splitFilter(param)
+		if !ok {
+			http.Error(w, "unknown filter operator in "+param, http.StatusBadRequest)
+			return
+		}
 		if !t.columns[col] {
 			http.Error(w, "unknown filter column "+col, http.StatusBadRequest)
 			return
 		}
-		if vals[0] == "null" {
-			where = append(where, pgx.Identifier{col}.Sanitize()+" IS NULL")
+		ident := pgx.Identifier{col}.Sanitize()
+		if vals[0] == "null" && op == "" {
+			where = append(where, ident+" IS NULL")
+			continue
+		}
+		if vals[0] == "null" && op == "ne" {
+			where = append(where, ident+" IS NOT NULL")
 			continue
 		}
 		args = append(args, vals[0])
-		where = append(where, fmt.Sprintf("%s::text = $%d", pgx.Identifier{col}.Sanitize(), len(args)))
+		if op == "" {
+			where = append(where, fmt.Sprintf("%s::text = $%d", ident, len(args)))
+		} else {
+			where = append(where, fmt.Sprintf("%s %s $%d", ident, filterOps[op], len(args)))
+		}
 	}
 	from := pgx.Identifier{t.name}.Sanitize() + " t"
 	if len(where) > 0 {
@@ -183,6 +200,11 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var total int
 	if err := t.db.QueryRow(ctx, "SELECT count(*) FROM "+from, args...).Scan(&total); err != nil {
+		// Class 22 is a data exception: a comparison value that doesn't parse as the column's type.
+		if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) && strings.HasPrefix(pgErr.Code, "22") {
+			http.Error(w, "invalid filter value", http.StatusBadRequest)
+			return
+		}
 		serverError(w, err)
 		return
 	}

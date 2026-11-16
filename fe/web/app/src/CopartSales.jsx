@@ -32,5 +32,5 @@ export const columns = [
 ]
 
 export default function CopartSales() {
-  return <DataTable endpoint="/api/copart/sales" rowKey="lot_nbr" columns={columns} noun="sales" />
+  return <DataTable endpoint="/api/copart/sales" rowKey="lot_nbr" columns={columns} noun="sales" urlState />
 }

@@ -2,7 +2,7 @@ import { Tag } from 'antd'
 import DataTable, { money } from './DataTable.jsx'
 import { assetLink, contractLink } from './records.jsx'
 
-export const statusColors = { NLSE: 'green', ULSE: 'blue', USLD: 'default', URIN: 'orange' }
+export const statusColors = { NLSE: 'green', ULSE: 'blue', USLD: 'default', URIN: 'orange', NRIV: 'gold' }
 
 export const columns = [
   { title: 'Asset No', dataIndex: 'asset_no', fixed: 'left', render: (v) => assetLink(v) },
@@ -33,5 +33,5 @@ export const columns = [
 ]
 
 export default function Assets() {
-  return <DataTable endpoint="/api/vervent/assets" rowKey="asset_no" columns={columns} noun="assets" />
+  return <DataTable endpoint="/api/vervent/assets" rowKey="asset_no" columns={columns} noun="assets" urlState />
 }

@@ -1,25 +1,52 @@
 import { useEffect, useState } from 'react'
 import { Alert, Card, Col, Row, Spin, Statistic, Tooltip, Typography } from 'antd'
+import { Link } from 'react-router-dom'
 import { money } from './DataTable.jsx'
+import LinkCard from './LinkCard.jsx'
 import PageHeader from './PageHeader.jsx'
 
 const SERIES = '#2a78d6' // single-series bars: categorical slot 1
 
+// Every figure links to the list of rows it counts, filtered through the query string with the
+// same conditions the metric uses (be/rest/pgstore.go handleMetrics); keep the two in step.
+const list = (path, params) => `${path}?${new URLSearchParams(params)}`
+const active = { is_account_open: 'true' }
+const delinquent = { ...active, 'days_del.gt': '0' }
+const links = {
+  active: list('/vervent/contracts', active),
+  receivables: list('/vervent/contracts', { ...active, sort: '-remaining_receivables' }),
+  delinquent: list('/vervent/contracts', { ...delinquent, sort: '-days_del' }),
+  bucket: (b) => list('/vervent/contracts', { ...delinquent, curr_delinq: b, sort: '-days_del' }),
+  assetStatus: (code) => list('/vervent/assets', { status: code }),
+  // Cash transactions in the 30 days up to as_of, the latest transaction date.
+  collections: (asOf) => {
+    const since = new Date(`${asOf}T00:00:00Z`)
+    if (isNaN(since)) return '/vervent/transactions'
+    since.setUTCDate(since.getUTCDate() - 30)
+    return list('/vervent/transactions', {
+      'transaction_date_key.gt': since.toISOString().slice(0, 10),
+      'is_non_cash.ne': 'true',
+      sort: '-payment_amount',
+    })
+  },
+}
+
 // toView reshapes /api/vervent/metrics for the tiles and charts.
 const toView = (m) => ({
   ...m,
-  delinquency: m.delinquency_buckets.map((b) => ({ label: b.bucket, value: b.contracts })),
-  assetStatus: m.asset_status.map((s) => ({ code: s.status, label: s.label, value: s.assets })),
+  delinquency: m.delinquency_buckets.map((b) => ({ label: b.bucket, value: b.contracts, to: links.bucket(b.bucket) })),
+  assetStatus: m.asset_status.map((s) => ({ code: s.status, label: s.label, value: s.assets, to: links.assetStatus(s.status) })),
 })
 
 // ColumnChart: one series of vertical bars, rounded data-ends on the baseline, hover tooltip per bar.
+// Each bar links to its rows.
 function ColumnChart({ data, unit }) {
   const max = Math.max(1, ...data.map((d) => d.value))
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 180, borderBottom: '1px solid #d9d9d9' }}>
       {data.map((d) => (
         <Tooltip key={d.label} title={`${d.label} days: ${d.value} ${unit}`}>
-          <div style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', cursor: 'default' }}>
+          <Link to={d.to} style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {d.value || ''}
             </Typography.Text>
@@ -32,7 +59,7 @@ function ColumnChart({ data, unit }) {
                 borderRadius: '4px 4px 0 0',
               }}
             />
-          </div>
+          </Link>
         </Tooltip>
       ))}
     </div>
@@ -52,13 +79,14 @@ function ColumnAxis({ data }) {
 }
 
 // BarList: one series of horizontal bars with the label and value as text beside each bar.
+// Each row links to its rows.
 function BarList({ data, total }) {
   const max = Math.max(1, ...data.map((d) => d.value))
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {data.map((d) => (
         <Tooltip key={d.code} title={`${d.label} (${d.code}): ${d.value} of ${total} assets`} placement="topLeft">
-          <div style={{ display: 'grid', gridTemplateColumns: '160px 1fr 40px', alignItems: 'center', gap: 8 }}>
+          <Link to={d.to} style={{ display: 'grid', gridTemplateColumns: '160px 1fr 40px', alignItems: 'center', gap: 8 }}>
             <Typography.Text>{d.label}</Typography.Text>
             <div style={{ height: 12 }}>
               <div
@@ -73,7 +101,7 @@ function BarList({ data, total }) {
             <Typography.Text type="secondary" style={{ textAlign: 'right' }}>
               {d.value}
             </Typography.Text>
-          </div>
+          </Link>
         </Tooltip>
       ))}
     </div>
@@ -102,21 +130,21 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" subtitle={`Vervent portfolio 50 · data as of ${data.as_of}`} />
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={12} lg={6}>
-          <Card style={{ height: '100%' }}>
+          <LinkCard to={links.active}>
             <Statistic
               title="Active contracts"
               value={data.active_contracts}
               suffix={<Typography.Text type="secondary">/ {data.total_contracts}</Typography.Text>}
             />
-          </Card>
+          </LinkCard>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card style={{ height: '100%' }}>
+          <LinkCard to={links.receivables}>
             <Statistic title="Outstanding receivables (active)" value={money(data.outstanding_receivables)} />
-          </Card>
+          </LinkCard>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card style={{ height: '100%' }}>
+          <LinkCard to={links.delinquent}>
             <Statistic
               title="Delinquency rate"
               value={data.delinquency_rate}
@@ -126,21 +154,25 @@ export default function Dashboard() {
             <Typography.Text type="secondary">
               {data.delinquent_contracts} contracts · {money(data.past_due)} past due
             </Typography.Text>
-          </Card>
+          </LinkCard>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card style={{ height: '100%' }}>
+          <LinkCard to={links.collections(data.as_of)}>
             <Statistic title="Collections, last 30 days" value={money(data.collections_30d)} />
-          </Card>
+          </LinkCard>
         </Col>
         <Col xs={24} lg={12}>
-          <Card style={{ height: '100%' }} title="Delinquent active contracts by days past due">
+          <Card
+            style={{ height: '100%' }}
+            title="Delinquent active contracts by days past due"
+            extra={<Link to={links.delinquent}>View all</Link>}
+          >
             <ColumnChart data={data.delinquency} unit="contracts" />
             <ColumnAxis data={data.delinquency} />
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card style={{ height: '100%' }} title="Assets by status">
+          <Card style={{ height: '100%' }} title="Assets by status" extra={<Link to="/vervent/assets">View all</Link>}>
             <BarList data={data.assetStatus} total={data.total_assets} />
           </Card>
         </Col>

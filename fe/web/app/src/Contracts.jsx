@@ -34,5 +34,5 @@ const columns = [
 ]
 
 export default function Contracts() {
-  return <DataTable endpoint="/api/vervent/contracts" rowKey="lease_no" columns={columns} noun="contracts" />
+  return <DataTable endpoint="/api/vervent/contracts" rowKey="lease_no" columns={columns} noun="contracts" urlState />
 }
