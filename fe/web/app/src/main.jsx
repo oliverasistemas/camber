@@ -2,6 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { App as AntApp, ConfigProvider } from 'antd'
+import '@fontsource-variable/inter'
+import './app.css'
 import App from './App.jsx'
 
 const theme = {
@@ -10,11 +12,11 @@ const theme = {
     colorBgLayout: '#f5f6f8',
     borderRadius: 8,
     fontFamily:
-      "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+      "'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
   },
   components: {
     Layout: { headerBg: '#fff', headerHeight: 56, headerPadding: '0 24px', siderBg: '#fff' },
-    Menu: { itemBorderRadius: 6, itemMarginInline: 8, activeBarBorderWidth: 0 },
+    Menu: { itemBorderRadius: 6, itemMarginInline: 8, activeBarBorderWidth: 0, subMenuItemBg: 'transparent' },
     Card: { headerFontSize: 14 },
   },
 }

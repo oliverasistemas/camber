@@ -1,0 +1,51 @@
+/* Figures in table columns line up digit for digit. */
+.ant-table {
+  font-variant-numeric: tabular-nums;
+}
+
+/* LinkCard: the corner chevron marks the card as a link before it is hovered. */
+.link-card {
+  display: block;
+  height: 100%;
+  border-radius: 8px;
+}
+.link-card-cue {
+  position: absolute;
+  top: 28px;
+  right: 24px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.25);
+  transition: color 0.15s;
+}
+.link-card:hover .link-card-cue,
+.link-card:focus-visible .link-card-cue {
+  color: #2a78d6;
+}
+
+/* Chart marks and legend rows that link to the rows they count. */
+.chart-link {
+  border-radius: 4px;
+}
+.chart-link .chart-mark {
+  transition: opacity 0.15s;
+}
+.chart-link:hover .chart-mark,
+.chart-link:focus-visible .chart-mark {
+  opacity: 0.75;
+}
+.chart-link:hover .chart-label {
+  text-decoration: underline;
+}
+
+.link-card:focus-visible,
+.chart-link:focus-visible {
+  outline: 2px solid #2a78d6;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .link-card-cue,
+  .chart-link .chart-mark {
+    transition: none;
+  }
+}
