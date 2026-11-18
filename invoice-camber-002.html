@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invoice 2026-002 — Adolfo Olivera</title>
+<style>
+  :root { color-scheme: light; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #1a1a1a;
+    background: #fff;
+    max-width: 50rem;
+    margin: 0 auto;
+    padding: 3rem 2.5rem;
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2.5rem; }
+  h1 { font-size: 1.6rem; letter-spacing: 0.08em; font-weight: 600; }
+  .invoice-meta { text-align: right; font-size: 0.95rem; }
+  .invoice-meta div { margin-bottom: 0.15rem; }
+  .label { color: #777; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+  .parties { display: flex; gap: 4rem; margin-bottom: 2rem; }
+  .parties .label { margin-bottom: 0.35rem; }
+  .rate-note { margin-bottom: 1.25rem; font-size: 0.95rem; color: #444; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; }
+  th { text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #777; border-bottom: 2px solid #1a1a1a; padding: 0 0.5rem 0.4rem 0; }
+  th.num, td.num { text-align: right; white-space: nowrap; }
+  td { padding: 0.4rem 0.5rem 0.4rem 0; border-bottom: 1px solid #e4e4e4; vertical-align: top; }
+  td.date { white-space: nowrap; color: #444; }
+  td.type { white-space: nowrap; }
+  .tag { display: inline-block; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.1rem 0.45rem; border-radius: 3px; border: 1px solid; }
+  .tag.meeting { color: #5b21b6; border-color: #c4b5fd; background: #f5f3ff; }
+  .tag.analysis { color: #92400e; border-color: #fcd34d; background: #fffbeb; }
+  .tag.documentation { color: #065f46; border-color: #6ee7b7; background: #ecfdf5; }
+  .tag.coding { color: #1e40af; border-color: #93c5fd; background: #eff6ff; }
+  tr.week th { border-bottom: none; background: #f4f4f2; color: #555; padding: 0.35rem 0.5rem; font-size: 0.72rem; }
+  tr.subtotal td { border-bottom: 1px solid #bbb; font-size: 0.85rem; color: #555; padding: 0.3rem 0.5rem 0.3rem 0; }
+  .totals { margin-left: auto; width: 18rem; }
+  .totals .row { display: flex; justify-content: space-between; padding: 0.3rem 0; font-size: 0.95rem; }
+  .totals .grand { border-top: 2px solid #1a1a1a; font-weight: 700; font-size: 1.1rem; padding-top: 0.55rem; margin-top: 0.3rem; }
+  .payment { margin-top: 2.25rem; padding-top: 1.1rem; border-top: 1px solid #ddd; font-size: 0.92rem; }
+  .payment .label { margin-bottom: 0.35rem; }
+  footer { margin-top: 2.25rem; font-size: 0.85rem; color: #777; }
+  @media print { body { padding: 1rem 0; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>INVOICE</h1>
+  </div>
+  <div class="invoice-meta">
+    <div><span class="label">Invoice No.</span> 2026-002</div>
+    <div><span class="label">Date</span> November 17, 2026</div>
+    <div><span class="label">Due</span> December 2, 2026 (Net 15)</div>
+  </div>
+</header>
+
+<div class="parties">
+  <div>
+    <div class="label">From</div>
+    <div><strong>Adolfo Olivera</strong></div>
+    <div>Software Consulting</div>
+    <div>olivera.adolfo@gmail.com</div>
+  </div>
+  <div>
+    <div class="label">Bill To</div>
+    <div><strong>Camber Credit</strong></div>
+    <div>Attn: Russell Abrams</div>
+  </div>
+</div>
+
+<div class="rate-note">Software development and advisory — October 8 to November 17, 2026. All hours billed at <strong>$60.00/hr</strong>.</div>
+
+<table>
+  <thead>
+    <tr>
+      <th style="width: 6.5rem;">Date</th>
+      <th style="width: 7.5rem;">Type</th>
+      <th>Work performed</th>
+      <th class="num">Hours</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr class="week"><th colspan="4">Week of October 5 (continued)</th></tr>
+    <tr><td class="date">Thu, Oct 8</td><td class="type"><span class="tag coding">Coding</span></td><td>Collections data pipeline; per-lease monthly collections page and API; app image 1.2.0</td><td class="num">2.00</td></tr>
+    <tr class="subtotal"><td></td><td></td><td>Week subtotal</td><td class="num">2.00</td></tr>
+
+    <tr class="week"><th colspan="4">Week of October 12</th></tr>
+    <tr><td class="date">Tue, Oct 13</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber / TRC: LUE weekly</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Wed, Oct 14</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Weekly NALN–Camber integration discussion</td><td class="num">0.75</td></tr>
+    <tr class="subtotal"><td></td><td></td><td>Week subtotal</td><td class="num">1.25</td></tr>
+
+    <tr class="week"><th colspan="4">Week of October 19</th></tr>
+    <tr><td class="date">Tue, Oct 20</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber / TRC: LUE weekly</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Tue, Oct 20</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber – Cox Automotive: API introductory meeting</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Wed, Oct 21</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Weekly NALN–Camber integration discussion</td><td class="num">0.75</td></tr>
+    <tr><td class="date">Wed, Oct 21</td><td class="type"><span class="tag coding">Coding</span></td><td>Google sign-in; Vervent intake (schema, Go processor); pipeline pages (import list, column picker, contract page); app images 1.4.0–1.8.0</td><td class="num">4.00</td></tr>
+    <tr><td class="date">Thu, Oct 22</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Servicing data pipelines &amp; reporting</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Thu, Oct 22</td><td class="type"><span class="tag documentation">Documentation</span></td><td>Vervent import runbook</td><td class="num">1.00</td></tr>
+    <tr><td class="date">Fri, Oct 23</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber scorecard</td><td class="num">0.50</td></tr>
+    <tr class="subtotal"><td></td><td></td><td>Week subtotal</td><td class="num">7.75</td></tr>
+
+    <tr class="week"><th colspan="4">Week of October 26</th></tr>
+    <tr><td class="date">Mon, Oct 26</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Denali staging integration update</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Tue, Oct 27</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber / TRC: LUE weekly</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Wed, Oct 28</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Weekly NALN–Camber integration discussion</td><td class="num">0.75</td></tr>
+    <tr><td class="date">Wed, Oct 28</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Working session with Brad</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Fri, Oct 30</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Denali staging integration update</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Fri, Oct 30</td><td class="type"><span class="tag analysis">Analysis</span></td><td>NALN counter notifications; Westlake meeting notes</td><td class="num">1.50</td></tr>
+    <tr><td class="date">Fri, Oct 30</td><td class="type"><span class="tag documentation">Documentation</span></td><td>NALN sFTP drop documentation</td><td class="num">1.00</td></tr>
+    <tr class="subtotal"><td></td><td></td><td>Week subtotal</td><td class="num">5.25</td></tr>
+
+    <tr class="week"><th colspan="4">Week of November 2</th></tr>
+    <tr><td class="date">Tue, Nov 3</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber / TRC: LUE weekly</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Tue, Nov 3</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber Credit – eVault demo and proposal (Wolters Kluwer)</td><td class="num">1.00</td></tr>
+    <tr><td class="date">Tue, Nov 3</td><td class="type"><span class="tag analysis">Analysis</span></td><td>NALN guidelines v1.2 vs Karus program</td><td class="num">2.00</td></tr>
+    <tr><td class="date">Wed, Nov 4</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Weekly NALN–Camber integration discussion</td><td class="num">0.75</td></tr>
+    <tr><td class="date">Wed, Nov 4</td><td class="type"><span class="tag coding">Coding</span></td><td>Copart weekly Sales &amp; Inventory report: schema, loader, reconciliation view; Copart tabs on the pipeline page</td><td class="num">3.00</td></tr>
+    <tr><td class="date">Wed, Nov 4</td><td class="type"><span class="tag analysis">Analysis</span></td><td>Copart vs Vervent discovery: VIN errors, proceeds gaps</td><td class="num">1.50</td></tr>
+    <tr class="subtotal"><td></td><td></td><td>Week subtotal</td><td class="num">8.75</td></tr>
+
+    <tr class="week"><th colspan="4">Week of November 9</th></tr>
+    <tr><td class="date">Wed, Nov 11</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Weekly NALN–Camber integration discussion</td><td class="num">0.75</td></tr>
+    <tr><td class="date">Wed, Nov 11</td><td class="type"><span class="tag coding">Coding</span></td><td>Vervent loader: accept slash-free headers; 2026-11-11 drop loaded</td><td class="num">1.00</td></tr>
+    <tr><td class="date">Thu, Nov 12</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber / TRC: LUE weekly</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Thu, Nov 12</td><td class="type"><span class="tag coding">Coding</span></td><td>Dashboard rework (layout, Copart inventory and sales, contract and asset pages, Copart vs Vervent comparison, Workspace sign-in check); app images 1.1.0–1.5.1</td><td class="num">5.00</td></tr>
+    <tr><td class="date">Thu, Nov 12</td><td class="type"><span class="tag documentation">Documentation</span></td><td>SFTP drop box status and runbook</td><td class="num">0.75</td></tr>
+    <tr class="subtotal"><td></td><td></td><td>Week subtotal</td><td class="num">8.00</td></tr>
+
+    <tr class="week"><th colspan="4">Week of November 16</th></tr>
+    <tr><td class="date">Mon, Nov 16</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber Credit API update</td><td class="num">0.50</td></tr>
+    <tr><td class="date">Mon, Nov 16</td><td class="type"><span class="tag coding">Coding</span></td><td>Dashboard drill-downs, global search, Go port of the Vervent loader, load history and Loads pages, original-file download; app images 1.6.0–1.9.0</td><td class="num">6.00</td></tr>
+    <tr><td class="date">Mon, Nov 16</td><td class="type"><span class="tag documentation">Documentation</span></td><td>CLAUDE.md and backlog</td><td class="num">0.75</td></tr>
+    <tr><td class="date">Tue, Nov 17</td><td class="type"><span class="tag meeting">Meeting</span></td><td>Camber / TRC: LUE weekly</td><td class="num">0.50</td></tr>
+    <tr class="subtotal"><td></td><td></td><td>Week subtotal</td><td class="num">7.75</td></tr>
+
+</table>
+
+<div class="totals">
+  <div class="row"><span>Total hours</span><span>40.75</span></div>
+  <div class="row"><span>Rate</span><span>$60.00/hr</span></div>
+  <div class="row grand"><span>Total Due</span><span>$2,445.00</span></div>
+</div>
+
+<div class="payment">
+  <div class="label">Payment</div>
+  <div><strong>Bank transfer:</strong></div>
+  <table style="width: auto; margin: 0.4rem 0 0; font-size: 0.9rem;">
+    <tbody>
+      <tr><td style="padding: 0.1rem 1.5rem 0.1rem 0; border: none; color: #777;">Beneficiary</td><td style="padding: 0.1rem 0; border: none;">Adolfo Olivera</td></tr>
+      <tr><td style="padding: 0.1rem 1.5rem 0.1rem 0; border: none; color: #777;">Bank</td><td style="padding: 0.1rem 0; border: none;">Citibank, 111 Wall Street, New York, NY 10043 USA</td></tr>
+      <tr><td style="padding: 0.1rem 1.5rem 0.1rem 0; border: none; color: #777;">Routing (ABA)</td><td style="padding: 0.1rem 0; border: none;">031100209</td></tr>
+      <tr><td style="padding: 0.1rem 1.5rem 0.1rem 0; border: none; color: #777;">SWIFT</td><td style="padding: 0.1rem 0; border: none;">CITIUS33</td></tr>
+      <tr><td style="padding: 0.1rem 1.5rem 0.1rem 0; border: none; color: #777;">Account</td><td style="padding: 0.1rem 0; border: none;">70585760001779225 (checking)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  Thank you. Please reach out with any questions regarding this invoice.
+</footer>
+
+</body>
+</html>
