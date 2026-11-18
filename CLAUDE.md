@@ -8,7 +8,7 @@ The Camber Credit portfolio dashboard, live at https://camber.inmatics.io. It sh
 
 ## Commands
 
-There are no tests and no linter configured. Verify with `go build ./...` / `go vet ./...` in `be` (the Go module root) and `npm run build` in `fe/web/app`.
+There are no tests and no linter configured. `./lint.sh` runs the verification checks: `go vet ./...` and `go build ./...` in `be` (the Go module root), then `npm run build` in `fe/web/app`. `.githooks/pre-commit` runs it on every commit once a clone sets `git config core.hooksPath .githooks`.
 
 ### Local development
 
