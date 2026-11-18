@@ -1,0 +1,2 @@
+Bobby, Eddie,
+                  I am attaching the Westlake Data Dictionary so we can start specifying the endpoint

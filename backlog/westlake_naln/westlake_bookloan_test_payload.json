@@ -1,0 +1,54 @@
+[
+  {
+    "acctNbr": "CAMBERDUMMY0001",
+    "origAccNbr": "CAMBERDUMMY0001",
+    "poolName": "CAMBER",
+    "contract": {
+      "contractDt": "2026-10-13",
+      "firstPayDate": "2026-11-27",
+      "instStartDt": "2026-10-13",
+      "maturityDate": "2031-10-27",
+      "contractTerm": 60,
+      "contractAPR": 9.99,
+      "contractRate": 9.99,
+      "financedAmt": 25000.0,
+      "financeCharge": 6840.8,
+      "totalAmt": 31840.8,
+      "paymentAmt": 530.68,
+      "paymentFreq": "MO",
+      "principalBalance": 25000.0,
+      "dueDay": 27,
+      "accStatus": "ACTIVE",
+      "contractState": "CA",
+      "contractType": "SI",
+      "econtractInd": "N",
+      "unsecuredIndicator": "N"
+    },
+    "borrowerDetail": {
+      "firstName": "Dummy",
+      "lastName": "Borrower",
+      "ssn": "000000001",
+      "address1": "123 Test St",
+      "city": "Testville",
+      "state": "CA",
+      "stateCd": "CA",
+      "zip": "90001",
+      "homePhone": "5555550100",
+      "mobileNbr1": "5555550101",
+      "emailAddress": "dummy.borrower@example.com",
+      "birthDate": "1990-01-01",
+      "militaryInd": "N",
+      "language": "English"
+    },
+    "assetDetail": {
+      "assetVin": "1HGCM82633A004352",
+      "assetYear": 2024,
+      "assetMake": "Honda",
+      "assetModel": "Accord",
+      "bookValue": 24000.0,
+      "stateCd": "CA"
+    },
+    "origId": "1256829",
+    "company": "Camber"
+  }
+]
