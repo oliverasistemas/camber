@@ -12,12 +12,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -104,28 +102,7 @@ func main() {
 		}
 	}
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Use(middleware.Recoverer)
-
-	r.Route("/api", func(r chi.Router) {
-		r.Get("/health", func(w http.ResponseWriter, r *http.Request) { w.Write([]byte("ok")) })
-		r.Get("/auth/google/login", srv.handleLogin)
-		r.Get("/auth/google/callback", srv.handleCallback)
-		r.Post("/auth/logout", srv.handleLogout)
-
-		r.With(srv.requireAuth).Get("/me", srv.handleMe)
-		r.With(srv.requireAuth).Route("/vervent", vervent.routes)
-		r.With(srv.requireAuth).Route("/copart", vervent.copartRoutes)
-		r.With(srv.requireAuth).Route("/loads", vervent.loadRoutes)
-		r.With(srv.requireAuth).Get("/search", vervent.handleSearch)
-	})
-
-	// In production one process serves the built SPA too (STATIC_DIR=fe/web/app/dist); in
-	// development Vite serves it and proxies /api here.
-	if dir := os.Getenv("STATIC_DIR"); dir != "" {
-		r.Handle("/*", spaHandler(dir))
-	}
+	r := newRouter(srv, vervent)
 
 	addr := env("ADDR", ":8080")
 	log.Printf("listening on %s", addr)
@@ -261,24 +238,6 @@ func (s *server) allowed(u User, hd string) bool {
 		return true
 	}
 	return strings.ToLower(hd) == s.allowedDomain && strings.HasSuffix(email, "@"+s.allowedDomain)
-}
-
-// spaHandler serves files from dir and falls back to index.html for any other path, so
-// BrowserRouter routes like /vervent/contracts work on reload. Unknown /api paths still 404.
-func spaHandler(dir string) http.Handler {
-	files := http.FileServer(http.Dir(dir))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/api/") {
-			http.NotFound(w, r)
-			return
-		}
-		if f, err := os.Stat(filepath.Join(dir, filepath.Clean("/"+r.URL.Path))); err != nil || f.IsDir() {
-			w.Header().Set("Cache-Control", "no-cache")
-			http.ServeFile(w, r, filepath.Join(dir, "index.html"))
-			return
-		}
-		files.ServeHTTP(w, r)
-	})
 }
 
 // sign encodes the session as base64(json).base64(hmac).
