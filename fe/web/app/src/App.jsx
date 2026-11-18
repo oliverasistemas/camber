@@ -1,63 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { Avatar, Button, Dropdown, Flex, Grid, Layout, Menu, Spin, Typography } from 'antd'
-import {
-  CarOutlined,
-  DashboardOutlined,
-  FileTextOutlined,
-  HistoryOutlined,
-  LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-} from '@ant-design/icons'
-import Logo from './Logo.jsx'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { Avatar, Button, Dropdown, Flex, Grid, Layout, Spin, Typography } from 'antd'
+import { LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
 import Login from './Login.jsx'
+import Sidebar from './Sidebar.jsx'
 import GlobalSearch from './GlobalSearch.jsx'
 import Dashboard from './Dashboard.jsx'
 import Vervent from './Vervent.jsx'
 import Copart from './Copart.jsx'
 import Loads from './Loads.jsx'
 
-const sections = [
-  { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-  {
-    key: '/vervent',
-    icon: <FileTextOutlined />,
-    label: 'Vervent',
-    children: [
-      { key: '/vervent/contracts', label: 'Contracts' },
-      { key: '/vervent/assets', label: 'Assets' },
-      { key: '/vervent/transactions', label: 'Transactions' },
-    ],
-  },
-  {
-    key: '/copart',
-    icon: <CarOutlined />,
-    label: 'Copart',
-    children: [
-      { key: '/copart/inventory', label: 'Inventory' },
-      { key: '/copart/sales', label: 'Sales' },
-      { key: '/copart/vs-vervent', label: 'Vs Vervent' },
-    ],
-  },
-  {
-    key: '/loads',
-    icon: <HistoryOutlined />,
-    label: 'Loads',
-    children: [
-      { key: '/loads/files', label: 'Files' },
-      { key: '/loads/runs', label: 'Runs' },
-    ],
-  },
-]
-
-const leaves = sections.flatMap((s) => s.children ?? [s])
-
 export default function App() {
   const [user, setUser] = useState(undefined)
   const [collapsed, setCollapsed] = useState(false)
-  const navigate = useNavigate()
-  const { pathname } = useLocation()
   const screens = Grid.useBreakpoint()
 
   useEffect(() => {
@@ -87,36 +42,9 @@ export default function App() {
 
   if (!user) return <Login />
 
-  const current = leaves.find((s) => pathname.startsWith(s.key))?.key
-
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Layout.Sider
-        collapsible
-        collapsed={collapsed}
-        trigger={null}
-        width={224}
-        collapsedWidth={64}
-        style={{
-          borderRight: '1px solid #eceef1',
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-          overflow: 'auto',
-        }}
-      >
-        <div style={{ height: 56, display: 'flex', alignItems: 'center', padding: '0 18px' }}>
-          <Logo collapsed={collapsed} />
-        </div>
-        <Menu
-          mode="inline"
-          items={sections}
-          selectedKeys={current ? [current] : []}
-          defaultOpenKeys={['/vervent', '/copart', '/loads']}
-          onClick={({ key }) => navigate(key)}
-          style={{ borderInlineEnd: 0, marginTop: 8 }}
-        />
-      </Layout.Sider>
+      <Sidebar collapsed={collapsed} />
       <Layout>
         <Layout.Header
           style={{
