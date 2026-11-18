@@ -8,8 +8,9 @@ import PageHeader from './PageHeader.jsx'
 // Days-past-due buckets are ordered, so they take one hue that darkens with age.
 const AGING = ['#86b6ef', '#5598e7', '#3987e5', '#256abf', '#1c5cab', '#104281', '#0d366b']
 // Asset statuses are categories: each keeps its own colour whichever statuses are present.
-const STATUS_COLORS = { NLSE: '#2a78d6', ULSE: '#eb6834', URIN: '#1baf7a', NRIV: '#eda100', USLD: '#e87ba4' }
-const OTHER_STATUS = '#898781'
+// Sold assets have left the portfolio, so they recede in grey behind the live statuses.
+const STATUS_COLORS = { NLSE: '#2a78d6', ULSE: '#eb6834', URIN: '#1baf7a', NRIV: '#eda100', USLD: '#898781' }
+const OTHER_STATUS = '#c3c2b7'
 
 // Counts are shown exactly; only dollar headlines are abbreviated (compactMoney).
 const count = (v) => Number(v).toLocaleString('en-US')
@@ -102,6 +103,9 @@ function ColumnChart({ data, unit, axisTitle }) {
   )
 }
 
+// Only the figures: Inter's tabular setting also widens the hyphen in a label like Re-leased.
+const tabular = { fontVariantNumeric: 'tabular-nums' }
+
 // StackedBar: one bar split by category, with a legend giving each category's count and share of
 // the total. Segments and legend rows link to their rows; a sliver keeps a clickable minimum width.
 function StackedBar({ data, total, unit }) {
@@ -124,7 +128,7 @@ function StackedBar({ data, total, unit }) {
           </Tooltip>
         ))}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', marginTop: 16, fontVariantNumeric: 'tabular-nums' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', marginTop: 16 }}>
         {data.map((d) => (
           <Link
             key={d.code}
@@ -134,8 +138,8 @@ function StackedBar({ data, total, unit }) {
           >
             <span className="chart-mark" style={{ width: 10, height: 10, borderRadius: 2, background: color(d) }} />
             <Typography.Text className="chart-label">{d.label}</Typography.Text>
-            <Typography.Text>{count(d.value)}</Typography.Text>
-            <Typography.Text type="secondary" style={{ textAlign: 'right' }}>
+            <Typography.Text style={tabular}>{count(d.value)}</Typography.Text>
+            <Typography.Text type="secondary" style={{ ...tabular, textAlign: 'right' }}>
               {share(d.value, total)}
             </Typography.Text>
           </Link>
