@@ -34,6 +34,7 @@ type verventStore struct {
 	transactions dataset
 	loadRuns     dataset
 	loadFiles    dataset
+	snapshots    dataset // vervent_contract_snapshots: byKey is unused, lease_no repeats per day
 }
 
 func loadVervent(dir string) (*verventStore, error) {
@@ -48,6 +49,7 @@ func loadVervent(dir string) (*verventStore, error) {
 		{"transactions.json", "transaction_key", &s.transactions},
 		{"load_runs.json", "id", &s.loadRuns},
 		{"load_files.json", "id", &s.loadFiles},
+		{"contract_snapshots.json", "lease_no", &s.snapshots},
 	} {
 		ds, err := loadDataset(filepath.Join(dir, d.file), d.key)
 		if err != nil {
@@ -80,8 +82,10 @@ func loadDataset(path, key string) (dataset, error) {
 
 func (s *verventStore) routes(r chi.Router) {
 	r.Get("/metrics", s.handleMetrics)
+	r.Get("/metrics/history", s.handleMetricsHistory)
 	r.Get("/contracts", s.contracts.list)
 	r.Get("/contracts/{id}", s.contracts.get)
+	r.Get("/contract-snapshots", s.snapshots.list)
 	r.Get("/assets", s.assets.list)
 	r.Get("/assets/{id}", s.assets.get)
 	r.Get("/transactions", s.transactions.list)

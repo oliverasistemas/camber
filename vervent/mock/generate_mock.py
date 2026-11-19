@@ -8,7 +8,8 @@ real extracts. Codes (statuses, transaction codes, vectors) use values observed 
 the extracts so the data behaves like the real thing.
 
     python3 generate_mock.py            # writes contracts.json, assets.json, transactions.json
-                                        # and the load history, load_runs.json and load_files.json
+                                        # the load history, load_runs.json and load_files.json,
+                                        # and the daily history, contract_snapshots.json
     python3 generate_mock.py --contracts 200 --seed 7
 """
 
@@ -450,6 +451,60 @@ def load_history(g, days=4):
     return runs, files
 
 
+def business_days(end, n):
+    """The n weekdays up to and including end, oldest first."""
+    days, d = [], end
+    while len(days) < n:
+        if d.weekday() < 5:
+            days.append(d)
+        d -= timedelta(days=1)
+    return days[::-1]
+
+
+def contract_snapshots(g, days=15):
+    """vervent_contract_snapshots rows (../sql/05_vervent_contract_snapshots.sql): each contract's
+    receivables and delinquency on each of the last few business days. The last day equals the
+    contract row; earlier days run the clock back (more receivable left, fewer days delinquent),
+    and a few contracts that are current today were delinquent for a while and cured. Newest day
+    first, then lease number: the order the API lists them in."""
+    rng = random.Random(g.rng.random())
+    cols = [c for c, _ in sql_columns(SQL_DIR / "05_vervent_contract_snapshots.sql")]
+    rows = []
+    for c in g.contracts:
+        pmt = c["curr_pymt"] or 0
+        # (first, last) days back of a delinquency that has since cured
+        cured = None
+        if c["is_account_open"] and not c["days_del"] and rng.random() < 0.25:
+            last = rng.randint(1, 12)
+            cured = (last + rng.randint(3, 20), last)
+        for day in business_days(AS_OF, days):
+            back = (AS_OF - day).days
+            if c["commence_date"] and c["commence_date"] > iso(day):
+                continue  # not booked yet
+            days_del = max(c["days_del"] - back, 0) if c["days_del"] else 0
+            if cured and cured[1] <= back <= cured[0]:
+                days_del = cured[0] - back + 1
+            bucket = next((b for lim, b in DELINQ_BUCKETS if days_del and days_del <= lim),
+                          "181+" if days_del > 180 else None)
+            past_due = money(pmt * (days_del // 30 + (1 if days_del else 0)))
+            remaining = c["remaining_receivables"]
+            if c["is_account_open"]:
+                remaining = money(remaining + pmt * back / 30)
+            row = dict.fromkeys(cols)
+            row.update({k: c[k] for k in cols if k in c})
+            row.update({
+                "file_date": iso(day), "remaining_receivables": remaining,
+                "past_due_receivables": past_due, "total_past_due": past_due,
+                "days_del": days_del, "curr_delinq": bucket,
+                "source_file": f"{day:%Y%m%d}_ContractSummary_Daily_P50.csv",
+                "loaded_at": datetime(day.year, day.month, day.day, 6, 5, tzinfo=timezone.utc).isoformat(),
+            })
+            rows.append(row)
+    rows.sort(key=lambda r: r["lease_no"])
+    rows.sort(key=lambda r: r["file_date"], reverse=True)
+    return rows
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--contracts", type=int, default=60, help="number of original (non-deficiency) contracts")
@@ -460,8 +515,9 @@ def main():
     g = Generator(args.seed)
     g.run(args.contracts)
     runs, files = load_history(g)
+    snapshots = contract_snapshots(g)
     for name, rows in [("contracts", g.contracts), ("assets", g.assets), ("transactions", g.transactions),
-                       ("load_runs", runs), ("load_files", files)]:
+                       ("load_runs", runs), ("load_files", files), ("contract_snapshots", snapshots)]:
         path = args.out / f"{name}.json"
         path.write_text(json.dumps(rows, indent=2) + "\n")
         print(f"wrote {len(rows):>4} rows -> {path}")

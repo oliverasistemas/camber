@@ -49,3 +49,24 @@
     transition: none;
   }
 }
+
+/* Trend chart: each day's column is a link; the tooltip follows the hovered day. */
+.trend-day:focus-visible {
+  outline: none;
+}
+.trend-day:focus-visible circle {
+  stroke: #2a78d6;
+  fill: #fff;
+}
+.trend-tip {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  padding: 6px 10px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}

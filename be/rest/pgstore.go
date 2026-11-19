@@ -22,6 +22,7 @@ type pgTable struct {
 	name    string
 	key     string
 	columns map[string]bool // whitelist for sort and filter column names
+	order   string          // default ORDER BY and tie-break for a requested sort; the key if empty
 }
 
 type pgVervent struct {
@@ -30,6 +31,7 @@ type pgVervent struct {
 	copartInventory, copartSales    pgTable
 	copartVsVervent                 pgTable // a view
 	loadRuns, loadFiles             pgTable // optional: left empty until 04_load_history.sql is applied
+	snapshots                       pgTable // optional: left empty until 05_vervent_contract_snapshots.sql is applied
 }
 
 func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
@@ -55,6 +57,7 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		{"copart_vs_vervent", "lot_nbr", &s.copartVsVervent, false},
 		{"load_runs", "id", &s.loadRuns, true},
 		{"load_files", "id", &s.loadFiles, true},
+		{"vervent_contract_snapshots", "lease_no", &s.snapshots, true},
 	} {
 		cols, err := tableColumns(ctx, db, t.name)
 		if err != nil {
@@ -71,6 +74,8 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		}
 		*t.dst = pgTable{db: db, name: t.name, key: t.key, columns: cols}
 	}
+	// One row per contract per day: newest day first, as generate_mock.py writes the mock rows.
+	s.snapshots.order = `"file_date" DESC, "lease_no"`
 	return s, nil
 }
 
@@ -93,8 +98,10 @@ func tableColumns(ctx context.Context, db *pgxpool.Pool, table string) (map[stri
 
 func (s *pgVervent) routes(r chi.Router) {
 	r.Get("/metrics", s.handleMetrics)
+	r.Get("/metrics/history", s.handleMetricsHistory)
 	r.Get("/contracts", s.contracts.list)
 	r.Get("/contracts/{id}", s.contracts.get)
+	r.Get("/contract-snapshots", s.snapshots.list)
 	r.Get("/assets", s.assets.list)
 	r.Get("/assets/{id}", s.assets.get)
 	r.Get("/transactions", s.transactions.list)
@@ -224,6 +231,9 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 		from += " WHERE " + strings.Join(where, " AND ")
 	}
 	order := pgx.Identifier{t.key}.Sanitize()
+	if t.order != "" {
+		order = t.order
+	}
 	if sortCol != "" {
 		dir := "ASC"
 		if desc {
@@ -348,6 +358,36 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	m.PastDue = round2(m.PastDue)
 	m.Collections30d = round2(m.Collections30d)
 	writeJSON(w, m)
+}
+
+// handleMetricsHistory computes the same figures as verventStore.metricsHistory, in SQL.
+func (s *pgVervent) handleMetricsHistory(w http.ResponseWriter, r *http.Request) {
+	days := []metricsDay{}
+	if s.snapshots.db == nil { // the snapshot table doesn't exist yet
+		writeJSON(w, days)
+		return
+	}
+	rows, err := s.db.Query(r.Context(), `
+		SELECT file_date::text, count(*), count(*) FILTER (WHERE is_account_open),
+		       coalesce(sum(remaining_receivables) FILTER (WHERE is_account_open), 0)::float8,
+		       coalesce(sum(total_past_due) FILTER (WHERE is_account_open), 0)::float8,
+		       count(*) FILTER (WHERE is_account_open AND days_del > 0)
+		  FROM vervent_contract_snapshots GROUP BY file_date ORDER BY file_date`)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	var d metricsDay
+	_, err = pgx.ForEachRow(rows, []any{&d.FileDate, &d.TotalContracts, &d.ActiveContracts, &d.OutstandingReceivables,
+		&d.PastDue, &d.DelinquentContracts}, func() error {
+		days = append(days, d.finish())
+		return nil
+	})
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	writeJSON(w, days)
 }
 
 // collectCounts runs a "SELECT key, count" query into dst.

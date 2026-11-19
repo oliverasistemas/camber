@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { compactMoney, money } from './DataTable.jsx'
 import LinkCard from './LinkCard.jsx'
 import PageHeader from './PageHeader.jsx'
+import TrendChart from './TrendChart.jsx'
 
 // Days-past-due buckets are ordered, so they take one hue that darkens with age.
 const AGING = ['#86b6ef', '#5598e7', '#3987e5', '#256abf', '#1c5cab', '#104281', '#0d366b']
@@ -49,6 +50,56 @@ const links = {
       sort: '-payment_amount',
     })
   },
+}
+
+// A day on a trend chart links to that day's rows in the contract history, filtered the way
+// metricsDay counts them (be/rest/metrics.go), so the list total equals the day's count.
+const history = '/vervent/contracts/history'
+const dayLinks = {
+  receivables: (date) => list(history, { file_date: date, ...active, sort: '-remaining_receivables' }),
+  delinquent: (date) => list(history, { file_date: date, ...delinquent, sort: '-days_del' }),
+}
+
+// toTrends reshapes /api/vervent/metrics/history into the two series.
+const toTrends = (days) => ({
+  receivables: days.map((d) => ({
+    date: d.file_date,
+    value: d.outstanding_receivables,
+    note: `${count(d.active_contracts)} active contracts`,
+    to: dayLinks.receivables(d.file_date),
+  })),
+  delinquency: days.map((d) => ({
+    date: d.file_date,
+    value: d.delinquency_rate,
+    note: `${count(d.delinquent_contracts)} of ${count(d.active_contracts)} active contracts`,
+    to: dayLinks.delinquent(d.file_date),
+  })),
+})
+
+// change describes the move from the first to the last day of a series, e.g. "-$325.3K since Nov 10".
+const change = (series, format) => {
+  const delta = series[series.length - 1].value - series[0].value
+  const sign = delta > 0 ? '+' : delta < 0 ? '\u2212' : ''
+  return `${sign}${format(Math.abs(delta))} since ${day(series[0].date)}`
+}
+
+// TrendCard: a trend chart in a card, or a note while there are not yet two days to connect.
+function TrendCard({ title, series, format, axis, delta }) {
+  const enough = series.length >= 2
+  return (
+    <Card style={{ height: '100%' }} title={title}>
+      {enough ? (
+        <>
+          <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+            {change(series, delta)}
+          </Typography.Text>
+          <TrendChart data={series} format={format} axis={axis} label={title} />
+        </>
+      ) : (
+        <Typography.Text type="secondary">The trend appears once two daily files have been loaded.</Typography.Text>
+      )}
+    </Card>
+  )
 }
 
 // toView reshapes /api/vervent/metrics for the tiles and charts.
@@ -174,7 +225,7 @@ function Loading() {
           </Card>
         </Col>
       ))}
-      {[0, 1].map((i) => (
+      {[0, 1, 2, 3].map((i) => (
         <Col key={i} {...chartCol}>
           <Card>
             <Skeleton active paragraph={{ rows: 6 }} />
@@ -191,12 +242,13 @@ export default function Dashboard() {
 
   const load = useCallback(() => {
     setError(null)
-    fetch('/api/vervent/metrics')
-      .then((res) => {
+    const get = (url) =>
+      fetch(url).then((res) => {
         if (res.status === 401) window.location.reload()
         return res.ok ? res.json() : Promise.reject(new Error(res.statusText))
       })
-      .then((m) => setData(toView(m)))
+    Promise.all([get('/api/vervent/metrics'), get('/api/vervent/metrics/history')])
+      .then(([m, days]) => setData({ ...toView(m), trends: toTrends(days) }))
       .catch((err) => setError(err.message))
   }, [])
 
@@ -267,6 +319,24 @@ export default function Dashboard() {
             value={compactMoney(data.collections_30d)}
             exact={money(data.collections_30d)}
             note={asOf && `Cash payments, ${day(data.as_of, -29)} to ${day(data.as_of)}`}
+          />
+        </Col>
+        <Col {...chartCol}>
+          <TrendCard
+            title="Outstanding receivables by day"
+            series={data.trends.receivables}
+            format={money}
+            axis={compactMoney}
+            delta={compactMoney}
+          />
+        </Col>
+        <Col {...chartCol}>
+          <TrendCard
+            title="Delinquency rate by day"
+            series={data.trends.delinquency}
+            format={(v) => `${v.toFixed(2)}%`}
+            axis={(v) => `${Number(v.toFixed(2))}%`}
+            delta={(v) => `${v.toFixed(2)} pts`}
           />
         </Col>
         <Col {...chartCol}>

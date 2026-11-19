@@ -4,6 +4,7 @@ import DataTable, { money } from './DataTable.jsx'
 import PageHeader from './PageHeader.jsx'
 import { columns as assetColumns } from './Assets.jsx'
 import { columns as transactionColumns } from './Transactions.jsx'
+import { columns as historyColumns, snapshotKey } from './ContractHistory.jsx'
 import { useRecord } from './records.jsx'
 
 // The lease number and lessee are already in the page header, so drop them from the tables.
@@ -11,8 +12,10 @@ const assetCols = assetColumns.filter((c) => !['lease', 'name'].includes(c.dataI
 const transactionCols = transactionColumns.filter(
   (c) => !['contract_number', 'name'].includes(c.dataIndex),
 )
+const historyCols = historyColumns.filter((c) => c.dataIndex !== 'lease_no').map(({ filters, ...c }) => c)
 
-// ContractDetail is /vervent/contracts/:leaseNo: the contract, its assets and its transactions.
+// ContractDetail is /vervent/contracts/:leaseNo: the contract, its assets, its transactions and
+// its day-by-day receivables and delinquency.
 export default function ContractDetail() {
   const { leaseNo } = useParams()
   const { record: c, error } = useRecord(`/api/vervent/contracts/${encodeURIComponent(leaseNo)}`)
@@ -75,6 +78,17 @@ export default function ContractDetail() {
             columns={transactionCols}
             noun="transactions"
             baseFilters={{ contract_number: c.lease_no }}
+            pageSize={10}
+          />
+        </div>
+        <div>
+          <Typography.Title level={5}>Daily history</Typography.Title>
+          <DataTable
+            endpoint="/api/vervent/contract-snapshots"
+            rowKey={snapshotKey}
+            columns={historyCols}
+            noun="days"
+            baseFilters={{ lease_no: c.lease_no }}
             pageSize={10}
           />
         </div>

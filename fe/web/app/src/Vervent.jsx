@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import PageHeader from './PageHeader.jsx'
 import Contracts from './Contracts.jsx'
+import ContractHistory from './ContractHistory.jsx'
 import Assets from './Assets.jsx'
 import Transactions from './Transactions.jsx'
 import ContractDetail from './ContractDetail.jsx'
@@ -16,6 +17,8 @@ const pages = [
 
 // Each page is its own route (/vervent/contracts, /vervent/assets, /vervent/transactions),
 // reached from the sidebar, so it can be linked to and survives a reload.
+// /vervent/contracts/history is the daily history of every contract, the drill-down of the
+// dashboard's trend charts; its rows link to the contract.
 // Every record has a detail route: /vervent/contracts/:leaseNo, /vervent/assets/:assetNo,
 // /vervent/transactions/:key and /vervent/assets/vin/:vin (the target of Copart VIN links).
 export default function Vervent() {
@@ -34,6 +37,15 @@ export default function Vervent() {
           }
         />
       ))}
+      <Route
+        path="contracts/history"
+        element={
+          <>
+            <PageHeader title="Contract history" subtitle="Vervent portfolio 50, receivables and delinquency by daily file" />
+            <ContractHistory />
+          </>
+        }
+      />
       <Route path="contracts/:leaseNo" element={<ContractDetail />} />
       <Route path="assets/vin/:vin" element={<AssetsByVin />} />
       <Route path="assets/:assetNo" element={<AssetDetail />} />

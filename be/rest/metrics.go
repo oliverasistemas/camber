@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"slices"
+	"strings"
 	"time"
 )
 
@@ -108,6 +110,62 @@ func (s *verventStore) metrics() verventMetrics {
 	m.PastDue = round2(m.PastDue)
 	m.Collections30d = round2(m.Collections30d)
 	return m
+}
+
+// metricsDay is the contract figures of verventMetrics for one ContractSummary file date, from
+// vervent_contract_snapshots. The figures cover the contracts open that day.
+type metricsDay struct {
+	FileDate               string  `json:"file_date"`
+	TotalContracts         int     `json:"total_contracts"`
+	ActiveContracts        int     `json:"active_contracts"`
+	OutstandingReceivables float64 `json:"outstanding_receivables"`
+	PastDue                float64 `json:"past_due"`
+	DelinquentContracts    int     `json:"delinquent_contracts"`
+	DelinquencyRate        float64 `json:"delinquency_rate"` // percent of active contracts
+}
+
+// finish derives the rate and rounds the sums once the counts and sums are in.
+func (d metricsDay) finish() metricsDay {
+	d.DelinquencyRate = 0
+	if d.ActiveContracts > 0 {
+		d.DelinquencyRate = float64(d.DelinquentContracts) / float64(d.ActiveContracts) * 100
+	}
+	d.OutstandingReceivables = round2(d.OutstandingReceivables)
+	d.PastDue = round2(d.PastDue)
+	return d
+}
+
+func (s *verventStore) handleMetricsHistory(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, s.metricsHistory())
+}
+
+// metricsHistory returns one metricsDay per snapshot date, oldest first.
+func (s *verventStore) metricsHistory() []metricsDay {
+	byDate := map[string]*metricsDay{}
+	for _, c := range s.snapshots.rows {
+		date, _ := c["file_date"].(string)
+		d := byDate[date]
+		if d == nil {
+			d = &metricsDay{FileDate: date}
+			byDate[date] = d
+		}
+		d.TotalContracts++
+		if open, _ := c["is_account_open"].(bool); !open {
+			continue
+		}
+		d.ActiveContracts++
+		d.OutstandingReceivables += num(c["remaining_receivables"])
+		d.PastDue += num(c["total_past_due"])
+		if num(c["days_del"]) > 0 {
+			d.DelinquentContracts++
+		}
+	}
+	days := make([]metricsDay, 0, len(byDate))
+	for _, d := range byDate {
+		days = append(days, d.finish())
+	}
+	slices.SortFunc(days, func(a, b metricsDay) int { return strings.Compare(a.FileDate, b.FileDate) })
+	return days
 }
 
 // num reads a JSON number column; null or non-numeric values count as 0.
