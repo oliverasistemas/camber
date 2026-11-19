@@ -6,7 +6,8 @@
 // Every file's name, header and row shape are checked against the embedded DDL before anything
 // is written. Files load oldest first, one transaction each, and the run stops at the first
 // failure. Contracts and assets upsert so an older file never overwrites newer data;
-// transactions are append-only. Re-loading is safe.
+// transactions are append-only. Every ContractSummary file, older ones included, also writes its
+// day to vervent_contract_snapshots. Re-loading is safe.
 //
 // Each run and every file it attempts is recorded in load_runs / load_files
 // (vervent/sql/04_load_history.sql). Set LOAD_INVOKED_BY to name the caller (for example a Job);
@@ -110,6 +111,9 @@ func main() {
 		}
 		fmt.Printf("%s: %d rows (%d inserted, %d updated, %d unchanged)\n",
 			f.Name, c.Rows, c.Inserted, c.Updated, c.Skipped())
+		if s := f.Report.Snapshot; s != nil {
+			fmt.Printf("%s: %d rows for %s\n", s.Table, f.Snapshotted, f.FileDate.Format("2006-01-02"))
+		}
 	}
 	if err := run.Finish(conn, nil); err != nil {
 		fail("closing run %d: %v", run.ID, err)

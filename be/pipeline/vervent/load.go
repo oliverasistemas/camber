@@ -29,8 +29,10 @@ type File struct {
 	FileDate time.Time // zero if the name did not parse
 	SHA256   string    // hex, of the raw bytes; empty if the file could not be read
 	Bytes    int64
-	header   []string
-	rows     [][]any
+	// Snapshotted is the number of rows Load wrote to the report's snapshot table.
+	Snapshotted int64
+	header      []string
+	rows        [][]any
 }
 
 // Sort orders paths oldest first and, within a day, contracts before assets before transactions.
@@ -206,8 +208,37 @@ func (f *File) insertSQL() string {
 	return sb.String()
 }
 
+// snapshotSQL copies the snapshot columns of every staged row into the report's snapshot table,
+// with the same casts as insertSQL. $1 is source_file, $2 file_date. It reads the staging table,
+// not the main table, so a file older than the data already loaded still records its day.
+func (f *File) snapshotSQL() string {
+	r := f.Report
+	pos := map[string]int{}
+	for i, h := range f.header {
+		pos[h] = i
+	}
+	var targets, exprs, sets []string
+	for _, name := range r.Snapshot.Columns {
+		for _, c := range r.Columns {
+			if c.Name != name {
+				continue
+			}
+			q := quoteIdent(name)
+			targets = append(targets, q)
+			exprs = append(exprs, castExpr(fmt.Sprintf("c%d", pos[c.Header]), c))
+			if name != r.Key {
+				sets = append(sets, q+" = EXCLUDED."+q)
+			}
+		}
+	}
+	return fmt.Sprintf("INSERT INTO %s (%s, source_file, file_date)\nSELECT %s, $1::text, $2::date\nFROM stg\n"+
+		"ON CONFLICT (file_date, %s) DO UPDATE SET %s, source_file = EXCLUDED.source_file, loaded_at = now()",
+		r.Snapshot.Table, strings.Join(targets, ", "), strings.Join(exprs, ", "), quoteIdent(r.Key), strings.Join(sets, ", "))
+}
+
 // Load writes the file in one transaction: an all-text staging table filled with COPY, then a
 // cast-and-insert from it, so a bad value fails the whole file with the Postgres cast error.
+// A report with a snapshot table also gets its rows for the file's date there (f.Snapshotted).
 // beforeCommit (if not nil) runs inside the transaction with the file's counts, so a history row
 // written there commits or rolls back with the data.
 func (f *File) Load(ctx context.Context, conn *pgx.Conn, beforeCommit func(pgx.Tx, history.Counts) error) (history.Counts, error) {
@@ -234,6 +265,13 @@ func (f *File) Load(ctx context.Context, conn *pgx.Conn, beforeCommit func(pgx.T
 	if err != nil {
 		return c, err
 	}
+	if f.Report.Snapshot != nil {
+		tag, err := tx.Exec(ctx, f.snapshotSQL(), f.Name, f.FileDate.Format("2006-01-02"))
+		if err != nil {
+			return c, fmt.Errorf("%s: %w", f.Report.Snapshot.Table, err)
+		}
+		f.Snapshotted = tag.RowsAffected()
+	}
 	if beforeCommit != nil {
 		if err := beforeCommit(tx, c); err != nil {
 			return c, err
@@ -248,6 +286,7 @@ func Summary(ctx context.Context, conn *pgx.Conn) ([][3]string, error) {
 		select 'vervent_contracts' as tbl, file_date::text, count(*)::text from vervent_contracts group by 2
 		union all select 'vervent_assets', file_date::text, count(*)::text from vervent_assets group by 2
 		union all select 'vervent_transactions', file_date::text, count(*)::text from vervent_transactions group by 2
+		union all select 'vervent_contract_snapshots', file_date::text, count(*)::text from vervent_contract_snapshots group by 2
 		order by 1, 2`)
 	if err != nil {
 		return nil, err
