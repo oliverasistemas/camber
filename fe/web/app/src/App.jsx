@@ -6,6 +6,7 @@ import Login from './Login.jsx'
 import Sidebar from './Sidebar.jsx'
 import GlobalSearch from './GlobalSearch.jsx'
 import Dashboard from './Dashboard.jsx'
+import Servicing from './Servicing.jsx'
 import Vervent from './Vervent.jsx'
 import Copart from './Copart.jsx'
 import Loads from './Loads.jsx'
@@ -90,6 +91,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/servicing/*" element={<Servicing />} />
             <Route path="/vervent/*" element={<Vervent />} />
             <Route path="/copart/*" element={<Copart />} />
             <Route path="/loads/*" element={<Loads />} />

@@ -48,7 +48,7 @@ function useTableQuery(urlState, pageSize, defaultSort) {
   return [query, setQuery]
 }
 
-// DataTable shows one /api/vervent/* or /api/copart/* list with server-side paging, sorting and filtering.
+// DataTable shows one /api/vervent/*, /api/copart/* or /api/servicing/* list with server-side paging, sorting and filtering.
 // Every column is sortable; a column with `filters` filters on its dataIndex by exact match.
 // baseFilters are fixed column filters always sent, e.g. { lease: '5000080213' }.
 // urlState keeps the page, sort and filters in the query string: for the one main table of a list

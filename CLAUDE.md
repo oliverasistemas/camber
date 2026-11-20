@@ -23,7 +23,7 @@ cd fe/web/app && npm install && npm run dev
 ```
 
 - `SESSION_SECRET` is the only required env var. The Google OAuth client JSON (`client_secret_*.json` at the repo root, gitignored) must exist or the API exits at startup.
-- Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless every `vervent_*`/`copart_*` table and the `copart_vs_vervent` view exist (`load_runs`/`load_files` are optional: without them the Loads pages are empty).
+- Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless every `vervent_*`/`copart_*` table and the `copart_vs_vervent` view exist (`load_runs`/`load_files`, `vervent_contract_snapshots` and the `lease_terminations` view are optional: without them their pages are empty).
 - Other env: `ADDR`, `FRONTEND_URL`, `GOOGLE_REDIRECT_URL`, `GOOGLE_CLIENT_SECRET_FILE`, `VERVENT_MOCK_DIR`, `STATIC_DIR`, `AUTH_ALLOWED_DOMAIN`, `AUTH_ALLOWED_EMAILS` (see `be/rest/main.go`), and `LOAD_FILES_DIR` (see `be/rest/loadfiles.go`).
 
 ### Local Postgres
@@ -58,7 +58,7 @@ Commit history follows this as two commits: the change, then "Ship app image X.Y
 - Each `COMMENT ON COLUMN` starts with the source file's header in `[brackets]`; date columns end with `Source format <fmt>`. The loaders (`be/pipeline/vervent/ddl.go`, `copart/load.py`) parse the DDL with regexes to build the column mapping, and refuse a file whose headers don't match. **Adding or renaming a column means editing the DDL and its comment in that format** — not the loader.
 - `generate_mock.py` reads the same DDL so mock JSON looks like `SELECT *`.
 - The API reads column names from `information_schema` at startup and returns rows via `row_to_json`, so a new column appears in API responses without Go changes.
-- The DDL is `CREATE ... IF NOT EXISTS`, so `load-schema.sh` never alters an existing table. Schema changes to a live database need a manual `ALTER TABLE` in addition to the DDL edit. (The `copart_vs_vervent` view is `CREATE OR REPLACE`, so it does update.)
+- The DDL is `CREATE ... IF NOT EXISTS`, so `load-schema.sh` never alters an existing table. Schema changes to a live database need a manual `ALTER TABLE` in addition to the DDL edit. (The `copart_vs_vervent` and `lease_terminations` views are `CREATE OR REPLACE`, so they do update, as long as columns are only added at the end.)
 
 Type/naming conventions and source-data quirks are documented in `vervent/sql/00_README.md`.
 
@@ -72,6 +72,10 @@ The Vervent loader records every run and every file it attempts in `load_runs` /
 
 Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transactions.transaction_key`, `copart_inventory.lot_nbr`, `copart_sales.lot_nbr`. Copart joins to Vervent by VIN (`copart_sales.vin = vervent_assets.serial_number`); one VIN can map to several assets when a vehicle is re-leased.
 
+### Lease terminations
+
+`lease_terminations` (`copart/sql/04_lease_terminations.sql`) is a view with one row per vehicle contract (`class = 'V'`, each has exactly one asset): the contract's terms and status, the Copart lot assigned during or after that lease and before the vehicle's next one, and that lot's sale. It is the part of the Master Servicing lease termination tracker (`backlog/servicing_dashboard`) that Vervent and Copart supply. `stage` (on lease / returned / sold) comes from the Vervent asset status and is provisional, as are the mileage terms (`contr_udf_18`/`contr_udf_19`, unvalidated) and `gain_loss` (net proceeds minus residual). The API serves it under `/api/servicing/terminations` with a `/summary` of units and residual per group (`be/rest/servicing.go`, both backends); the summary returns the dates behind its two maturity groups so the cards can link to exactly the rows counted. The mock rows are `vervent/mock/lease_terminations.json`, which `generate_mock.py` computes with the view's rules and no Copart data: **change the view and that function together.** The page is `/servicing/terminations` (`Terminations.jsx`), with a per-lease page (`TerminationDetail.jsx`) laid out in the tracker's stages that also lists the tracker fields with no source yet.
+
 ### Backend (`be/rest`, single `main` package; Go module rooted at `be`)
 
 - `main.go` — routing, Google OIDC sign-in, HMAC-signed stateless session cookie, SPA fallback handler. Access is granted to `AUTH_ALLOWED_EMAILS` or to Workspace accounts whose `hd` claim matches `AUTH_ALLOWED_DOMAIN` (the email suffix alone is deliberately not trusted).
@@ -81,7 +85,7 @@ Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transact
 
 ### Frontend (`fe/web/app`, React 19 + Ant Design 5 + React Router 7, plain JSX)
 
-- `App.jsx` gates everything on `GET /api/me`, owns the sidebar (`sections`) and top-level routes; `Vervent.jsx`, `Copart.jsx` and `Loads.jsx` own their sub-routes.
+- `App.jsx` gates everything on `GET /api/me`, owns the sidebar (`sections`) and top-level routes; `Servicing.jsx`, `Vervent.jsx`, `Copart.jsx` and `Loads.jsx` own their sub-routes.
 - `DataTable.jsx` is the one table component: it speaks the list contract above (server-side paging/sort/filter), so a list page is mostly a column definition. With `urlState` (set on every list page's main table, not on tables embedded in detail pages) the page, sort and filters live in the query string, spelled exactly like the API parameters; filters without a column control render as removable tags. `records.jsx` has `useRecord` for detail pages and the cross-link helpers (`contractLink`, `assetLink`, `vinLink`).
 - **Every card is actionable and drills down: card → filtered list → single record.** A card or chart mark that shows a figure links (`LinkCard.jsx`, or a `Link` per bar) to the list page of the rows it counts, with the filter expressed in the query string using the same conditions the metric uses, so the list total equals the figure. Every list row links on to its record's detail page. A new metric therefore needs a filter the list contract can express, and a new table needs a detail route.
 - The dashboard's two trend charts (`TrendChart.jsx`, hand-drawn SVG, no chart library) plot `/api/vervent/metrics/history`. Each day's point links to `/vervent/contracts/history` (`ContractHistory.jsx`) filtered to that `file_date` with the metric's conditions; its rows link to the contract, whose page also lists its own daily history.

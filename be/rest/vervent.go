@@ -35,6 +35,7 @@ type verventStore struct {
 	loadRuns     dataset
 	loadFiles    dataset
 	snapshots    dataset // vervent_contract_snapshots: byKey is unused, lease_no repeats per day
+	terminations dataset // the lease_terminations view, without Copart data
 }
 
 func loadVervent(dir string) (*verventStore, error) {
@@ -50,6 +51,7 @@ func loadVervent(dir string) (*verventStore, error) {
 		{"load_runs.json", "id", &s.loadRuns},
 		{"load_files.json", "id", &s.loadFiles},
 		{"contract_snapshots.json", "lease_no", &s.snapshots},
+		{"lease_terminations.json", "lease_no", &s.terminations},
 	} {
 		ds, err := loadDataset(filepath.Join(dir, d.file), d.key)
 		if err != nil {
@@ -101,6 +103,12 @@ func (s *verventStore) copartRoutes(r chi.Router) {
 	r.Get("/vs-vervent", dataset{}.list)
 	r.Get("/vs-vervent/summary", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, []any{}) })
 	r.Get("/vs-vervent/{id}", dataset{}.get)
+}
+
+func (s *verventStore) servicingRoutes(r chi.Router) {
+	r.Get("/terminations", s.terminations.list)
+	r.Get("/terminations/summary", s.handleTerminationSummary)
+	r.Get("/terminations/{id}", s.terminations.get)
 }
 
 func (s *verventStore) loadRoutes(r chi.Router) {

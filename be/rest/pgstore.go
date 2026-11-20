@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// pgTable serves one vervent_* or copart_* table with the same API as the mock dataset: rows come back as
+// pgTable serves one table or view with the same API as the mock dataset: rows come back as
 // row_to_json, so the JSON matches what generate_mock.py writes.
 type pgTable struct {
 	db      *pgxpool.Pool
@@ -32,6 +32,7 @@ type pgVervent struct {
 	copartVsVervent                 pgTable // a view
 	loadRuns, loadFiles             pgTable // optional: left empty until 04_load_history.sql is applied
 	snapshots                       pgTable // optional: left empty until 05_vervent_contract_snapshots.sql is applied
+	terminations                    pgTable // a view; optional: left empty until 04_lease_terminations.sql is applied
 }
 
 func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
@@ -58,6 +59,7 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		{"load_runs", "id", &s.loadRuns, true},
 		{"load_files", "id", &s.loadFiles, true},
 		{"vervent_contract_snapshots", "lease_no", &s.snapshots, true},
+		{"lease_terminations", "lease_no", &s.terminations, true},
 	} {
 		cols, err := tableColumns(ctx, db, t.name)
 		if err != nil {
@@ -116,6 +118,12 @@ func (s *pgVervent) copartRoutes(r chi.Router) {
 	r.Get("/vs-vervent", s.copartVsVervent.list)
 	r.Get("/vs-vervent/summary", s.handleComparisonSummary)
 	r.Get("/vs-vervent/{id}", s.copartVsVervent.get)
+}
+
+func (s *pgVervent) servicingRoutes(r chi.Router) {
+	r.Get("/terminations", s.terminations.list)
+	r.Get("/terminations/summary", s.handleTerminationSummary)
+	r.Get("/terminations/{id}", s.terminations.get)
 }
 
 func (s *pgVervent) loadRoutes(r chi.Router) {

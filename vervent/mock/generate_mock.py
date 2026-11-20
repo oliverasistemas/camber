@@ -9,7 +9,8 @@ the extracts so the data behaves like the real thing.
 
     python3 generate_mock.py            # writes contracts.json, assets.json, transactions.json
                                         # the load history, load_runs.json and load_files.json,
-                                        # and the daily history, contract_snapshots.json
+                                        # the daily history, contract_snapshots.json,
+                                        # and the lease_terminations view, lease_terminations.json
     python3 generate_mock.py --contracts 200 --seed 7
 """
 
@@ -137,6 +138,7 @@ class Generator:
         r = self.rng
         c = blank_row(self.c_cols)
         is_def = deficiency_of is not None
+        miles = random.Random(lease_no)  # its own stream, so the mileage terms don't shift every other draw
         if is_def:
             commence = deficiency_of["closed"] + timedelta(days=r.randint(10, 60))
             term = 1
@@ -229,7 +231,9 @@ class Generator:
             "broker": dealer[0] + 1, "broker_name": dealer[1].upper(), "asset_brand": "None",
             "prin_pd_ltd": money(cost - remaining * 0.9) if not closed else cost, "int_rate": 0,
             "contr_udf_13": 0, "contr_udf_30": int(lease_no.rstrip("D")[-5:]),
-            "contr_udf_19": "5001", "contr_udf_25": r.choice("YN"), "contr_udf_26": r.choice("YN"),
+            "contr_udf_3": "5001", "contr_udf_18": 0 if is_def else miles.choice([10000, 12000, 12000, 15000]),
+            "contr_udf_19": None if is_def else miles.choice(["0.22"] * 8 + ["0.20", "0.25"]),
+            "contr_udf_25": r.choice("YN"), "contr_udf_26": r.choice("YN"),
             "mod_reason": None, "mod_date": None, "as_of_date": iso(AS_OF), "source": "VEH",
             "curr_contract_rcvbl": remaining, "remaining_payments": float(remaining_pmts),
             "total_past_due": past_due, "accr_prin": 0 if closed else money(remaining * 0.9),
@@ -505,6 +509,53 @@ def contract_snapshots(g, days=15):
     return rows
 
 
+def lease_terminations(g):
+    """The rows of the lease_terminations view (../../copart/sql/04_lease_terminations.sql) over the
+    mock contracts and assets: one per vehicle contract, in the view's column order. There is no mock
+    Copart data, so the Copart columns are null and sales are the Vervent ones."""
+    assets = {a["lease"]: a for a in g.assets if a["lease"]}
+    rows = []
+    for c in g.contracts:
+        a = assets.get(c["lease_no"])
+        if c["class"] != "V" or a is None:
+            continue
+        closed, maturity = c["closed_date_key"], c["maturity_date"]
+        allowance = int(c["contr_udf_18"]) if 1000 <= (c["contr_udf_18"] or 0) <= 50000 else None
+        rate = c["contr_udf_19"]
+        rate = float(rate) if rate and re.fullmatch(r"[0-9]*\.[0-9]+", rate) and 0 < float(rate) < 5 else None
+        sold = a["status"] == "USLD"
+        proceeds = a["sale_proceeds"] or None
+        rows.append({
+            "lease_no": c["lease_no"], "asset_no": a["asset_no"], "vin": a["serial_number"],
+            "model_year": a["eheld_lessee"], "make": a["eheld_return"], "model": a["model"],
+            "vehicle": c["first_asset_desc"], "lessee_name": c["lessee_name"], "lessee_state": c["lessee_state"],
+            "term": c["term"], "lease_date": c["lease_date"], "maturity_date": maturity,
+            "orig_cost": c["orig_cost"], "residual": c["tot_residual"], "payment": c["curr_pymt"],
+            "lessor_yield": c["lessor_yield"],
+            "stage": "sold" if sold else "returned" if a["status"] in ("URIN", "NRIV") else "on lease",
+            "account_status": c["account_status"], "ls_status": c["ls_status"], "ls_status_date": c["ls_status_date"],
+            "asset_status": a["status"], "repo_status": a["curr_repo_status"],
+            "repo_status_date": a["curr_repo_status_date"],
+            "termination_date": closed,
+            "days_vs_maturity": (date.fromisoformat(closed) - date.fromisoformat(maturity)).days if closed else None,
+            "early_termination": closed < maturity if closed else None,
+            "est_payoff": c["est_payoff"], "remaining_receivables": c["remaining_receivables"],
+            "total_past_due": c["total_past_due"], "days_del": c["days_del"],
+            "annual_mileage_allowance": allowance,
+            "total_mileage_allowance": allowance and round(allowance * c["term"] / 12),
+            "mileage_overage_rate": rate, "odometer": None, "excess_miles": None, "excess_mileage_fee": None,
+            "lot_nbr": None, "copart_status": None, "copart_received_date": None, "days_in_yard": None,
+            "copart_location": None, "auto_grade_score": None, "title_status": None, "reserve_amount": None,
+            "nada_acv_value": None, "proquote": None, "runs_at_auction": None,
+            "sale_date": a["sold_date"], "sale_channel": "Other" if sold else None,
+            "gross_sale_price": None, "sale_fees": None, "copart_net_proceeds": None,
+            "vervent_sale_proceeds": a["sale_proceeds"], "net_sale_proceeds": proceeds,
+            "gain_loss": money(proceeds - c["tot_residual"]) if proceeds and c["tot_residual"] else None,
+        })
+    rows.sort(key=lambda r: r["lease_no"])
+    return rows
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--contracts", type=int, default=60, help="number of original (non-deficiency) contracts")
@@ -517,7 +568,8 @@ def main():
     runs, files = load_history(g)
     snapshots = contract_snapshots(g)
     for name, rows in [("contracts", g.contracts), ("assets", g.assets), ("transactions", g.transactions),
-                       ("load_runs", runs), ("load_files", files), ("contract_snapshots", snapshots)]:
+                       ("load_runs", runs), ("load_files", files), ("contract_snapshots", snapshots),
+                       ("lease_terminations", lease_terminations(g))]:
         path = args.out / f"{name}.json"
         path.write_text(json.dumps(rows, indent=2) + "\n")
         print(f"wrote {len(rows):>4} rows -> {path}")

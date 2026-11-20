@@ -24,6 +24,7 @@ func newRouter(srv *server, vervent verventAPI) chi.Router {
 		r.With(srv.requireAuth).Get("/me", srv.handleMe)
 		r.With(srv.requireAuth).Route("/vervent", vervent.routes)
 		r.With(srv.requireAuth).Route("/copart", vervent.copartRoutes)
+		r.With(srv.requireAuth).Route("/servicing", vervent.servicingRoutes)
 		r.With(srv.requireAuth).Route("/loads", vervent.loadRoutes)
 		r.With(srv.requireAuth).Get("/search", vervent.handleSearch)
 	})

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-// useRecord fetches one row from an /api/{vervent,copart}/<table>/{id} endpoint. record is
+// useRecord fetches one row from an /api/{vervent,copart,servicing}/<table>/{id} endpoint. record is
 // undefined while loading and null when the id doesn't exist.
 export function useRecord(endpoint) {
   const [state, setState] = useState({ record: undefined, error: null })
@@ -28,6 +28,7 @@ export function useRecord(endpoint) {
 
 // Cross-links between records, for table columns and detail pages.
 export const contractLink = (leaseNo) => leaseNo && <Link to={`/vervent/contracts/${encodeURIComponent(leaseNo)}`}>{leaseNo}</Link>
+export const terminationLink = (leaseNo) => leaseNo && <Link to={`/servicing/terminations/${encodeURIComponent(leaseNo)}`}>{leaseNo}</Link>
 export const assetLink = (assetNo, label = assetNo) => assetNo != null && <Link to={`/vervent/assets/${assetNo}`}>{label}</Link>
 export const transactionLink = (key) => key != null && <Link to={`/vervent/transactions/${encodeURIComponent(key)}`}>{key}</Link>
 export const loadRunLink = (id, label = id) => id != null && <Link to={`/loads/runs/${id}`}>{label}</Link>
