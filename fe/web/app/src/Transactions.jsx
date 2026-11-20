@@ -1,6 +1,7 @@
 import { Tag } from 'antd'
 import DataTable, { money } from './DataTable.jsx'
 import { contractLink, transactionLink } from './records.jsx'
+import { portfolioColumn, usePortfolios } from './portfolios.jsx'
 
 const descriptions = [
   'ACCRUAL NORMAL CYCLE',
@@ -50,12 +51,15 @@ export const columns = [
   { title: 'Operator', dataIndex: 'oper_inits' },
 ]
 
+// The list page adds the portfolio after the contract; the tables embedded in a lease's page don't need it.
 export default function Transactions() {
+  const portfolios = usePortfolios()
+  const withPortfolio = columns.flatMap((c) => (c.dataIndex === 'contract_number' ? [c, portfolioColumn(portfolios)] : [c]))
   return (
     <DataTable
       endpoint="/api/vervent/transactions"
       rowKey="transaction_key"
-      columns={columns}
+      columns={withPortfolio}
       noun="transactions"
       urlState
     />

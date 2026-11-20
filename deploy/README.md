@@ -28,7 +28,8 @@ export KUBECONFIG=/tmp/aws009.kubeconfig
 deploy/create-secrets.sh         # DB + sign-in secrets, ECR pull creds
 deploy/push.sh 1.0.0             # build + push the image (pin matches k8s/kustomization.yaml)
 kubectl apply -k deploy/k8s      # Postgres comes up; the app pod restarts until the schema exists
-deploy/load-schema.sh            # vervent_* and copart_* tables
+deploy/load-schema.sh            # portfolio, vervent_* and copart_* tables and views
+deploy/load-portfolios.sh        # Camber's lease list: which leases are Camber's, and their portfolios
 deploy/load-vervent.sh           # every vervent/*_Daily_P50.csv
 deploy/load-copart.sh            # every copart/*.xlsx
 deploy/deploy.sh                 # waits for both pods

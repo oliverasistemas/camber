@@ -1,5 +1,6 @@
 [
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000100,
     "customer_key": 2000000002600,
     "account_group_key": "V",
@@ -231,6 +232,7 @@
     "camber_lease_id": "5000080213"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000101,
     "customer_key": 2000000002601,
     "account_group_key": "V",
@@ -462,6 +464,7 @@
     "camber_lease_id": "5000049887"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000102,
     "customer_key": 2000000002602,
     "account_group_key": "V",
@@ -693,6 +696,7 @@
     "camber_lease_id": "5000062722"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000103,
     "customer_key": 2000000002603,
     "account_group_key": "V",
@@ -924,6 +928,7 @@
     "camber_lease_id": "5000098546"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000104,
     "customer_key": 2000000002604,
     "account_group_key": "V",
@@ -1155,6 +1160,7 @@
     "camber_lease_id": "5000046782"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000105,
     "customer_key": 2000000002605,
     "account_group_key": "V",
@@ -1386,6 +1392,7 @@
     "camber_lease_id": "5000077019"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000106,
     "customer_key": 2000000002606,
     "account_group_key": "V",
@@ -1617,6 +1624,7 @@
     "camber_lease_id": "5000058260"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000107,
     "customer_key": 2000000002607,
     "account_group_key": "V",
@@ -1848,6 +1856,7 @@
     "camber_lease_id": "5000026165"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "account_key": 2000000000108,
     "customer_key": 2000000002608,
     "account_group_key": "V",
@@ -2079,6 +2088,7 @@
     "camber_lease_id": "5000085581"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "account_key": 2000000000109,
     "customer_key": 2000000002609,
     "account_group_key": "EDEF",
@@ -2310,6 +2320,7 @@
     "camber_lease_id": "5000085581"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000110,
     "customer_key": 2000000002610,
     "account_group_key": "V",
@@ -2541,6 +2552,7 @@
     "camber_lease_id": "5000056599"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000111,
     "customer_key": 2000000002611,
     "account_group_key": "V",
@@ -2772,6 +2784,7 @@
     "camber_lease_id": "5000044411"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000112,
     "customer_key": 2000000002612,
     "account_group_key": "V",
@@ -3003,6 +3016,7 @@
     "camber_lease_id": "5000087967"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000113,
     "customer_key": 2000000002613,
     "account_group_key": "V",
@@ -3234,6 +3248,7 @@
     "camber_lease_id": "5000026172"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000114,
     "customer_key": 2000000002614,
     "account_group_key": "V",
@@ -3465,6 +3480,7 @@
     "camber_lease_id": "5000035095"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000115,
     "customer_key": 2000000002615,
     "account_group_key": "V",
@@ -3696,6 +3712,7 @@
     "camber_lease_id": "5000060505"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "account_key": 2000000000116,
     "customer_key": 2000000002616,
     "account_group_key": "V",
@@ -3927,6 +3944,7 @@
     "camber_lease_id": "5000027911"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000117,
     "customer_key": 2000000002617,
     "account_group_key": "V",
@@ -4158,6 +4176,7 @@
     "camber_lease_id": "5000060549"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000118,
     "customer_key": 2000000002618,
     "account_group_key": "V",
@@ -4389,6 +4408,7 @@
     "camber_lease_id": "5000056856"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000119,
     "customer_key": 2000000002619,
     "account_group_key": "EDEF",
@@ -4620,6 +4640,7 @@
     "camber_lease_id": "5000056856"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000120,
     "customer_key": 2000000002620,
     "account_group_key": "V",
@@ -4851,6 +4872,7 @@
     "camber_lease_id": "5000044148"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "account_key": 2000000000121,
     "customer_key": 2000000002621,
     "account_group_key": "V",
@@ -5082,6 +5104,7 @@
     "camber_lease_id": "5000039768"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000122,
     "customer_key": 2000000002622,
     "account_group_key": "V",
@@ -5313,6 +5336,7 @@
     "camber_lease_id": "5000024009"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000123,
     "customer_key": 2000000002623,
     "account_group_key": "V",
@@ -5544,6 +5568,7 @@
     "camber_lease_id": "5000058112"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000124,
     "customer_key": 2000000002624,
     "account_group_key": "V",
@@ -5775,6 +5800,7 @@
     "camber_lease_id": "5000094139"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000125,
     "customer_key": 2000000002625,
     "account_group_key": "V",
@@ -6006,6 +6032,7 @@
     "camber_lease_id": "5000094625"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000126,
     "customer_key": 2000000002626,
     "account_group_key": "V",
@@ -6237,6 +6264,7 @@
     "camber_lease_id": "5000071212"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000127,
     "customer_key": 2000000002627,
     "account_group_key": "V",
@@ -6468,6 +6496,7 @@
     "camber_lease_id": "5000098229"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000128,
     "customer_key": 2000000002628,
     "account_group_key": "V",
@@ -6699,6 +6728,7 @@
     "camber_lease_id": "5000026659"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000129,
     "customer_key": 2000000002629,
     "account_group_key": "V",
@@ -6930,6 +6960,7 @@
     "camber_lease_id": "5000023389"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000130,
     "customer_key": 2000000002630,
     "account_group_key": "V",
@@ -7161,6 +7192,7 @@
     "camber_lease_id": "5000094156"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000131,
     "customer_key": 2000000002631,
     "account_group_key": "V",
@@ -7392,6 +7424,7 @@
     "camber_lease_id": "5000058812"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000132,
     "customer_key": 2000000002632,
     "account_group_key": "V",
@@ -7623,6 +7656,7 @@
     "camber_lease_id": "5000099295"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000133,
     "customer_key": 2000000002633,
     "account_group_key": "V",
@@ -7854,6 +7888,7 @@
     "camber_lease_id": "5000071399"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "account_key": 2000000000134,
     "customer_key": 2000000002634,
     "account_group_key": "V",
@@ -8085,6 +8120,7 @@
     "camber_lease_id": "5000015750"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000135,
     "customer_key": 2000000002635,
     "account_group_key": "V",
@@ -8316,6 +8352,7 @@
     "camber_lease_id": "5000044782"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000136,
     "customer_key": 2000000002636,
     "account_group_key": "V",
@@ -8547,6 +8584,7 @@
     "camber_lease_id": "5000059230"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000137,
     "customer_key": 2000000002637,
     "account_group_key": "EDEF",
@@ -8778,6 +8816,7 @@
     "camber_lease_id": "5000059230"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000138,
     "customer_key": 2000000002638,
     "account_group_key": "V",
@@ -9009,6 +9048,7 @@
     "camber_lease_id": "5000049888"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000139,
     "customer_key": 2000000002639,
     "account_group_key": "V",
@@ -9240,6 +9280,7 @@
     "camber_lease_id": "5000071939"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000140,
     "customer_key": 2000000002640,
     "account_group_key": "V",
@@ -9471,6 +9512,7 @@
     "camber_lease_id": "5000028866"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000141,
     "customer_key": 2000000002641,
     "account_group_key": "V",
@@ -9702,6 +9744,7 @@
     "camber_lease_id": "5000041354"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000142,
     "customer_key": 2000000002642,
     "account_group_key": "V",
@@ -9933,6 +9976,7 @@
     "camber_lease_id": "5000073027"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000143,
     "customer_key": 2000000002643,
     "account_group_key": "V",
@@ -10164,6 +10208,7 @@
     "camber_lease_id": "5000050531"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000144,
     "customer_key": 2000000002644,
     "account_group_key": "V",
@@ -10395,6 +10440,7 @@
     "camber_lease_id": "5000091176"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000145,
     "customer_key": 2000000002645,
     "account_group_key": "V",
@@ -10626,6 +10672,7 @@
     "camber_lease_id": "5000075292"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000146,
     "customer_key": 2000000002646,
     "account_group_key": "V",
@@ -10857,6 +10904,7 @@
     "camber_lease_id": "5000031596"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000147,
     "customer_key": 2000000002647,
     "account_group_key": "V",
@@ -11088,6 +11136,7 @@
     "camber_lease_id": "5000050345"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000148,
     "customer_key": 2000000002648,
     "account_group_key": "V",
@@ -11319,6 +11368,7 @@
     "camber_lease_id": "5000096667"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000149,
     "customer_key": 2000000002649,
     "account_group_key": "V",
@@ -11550,6 +11600,7 @@
     "camber_lease_id": "5000042427"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000150,
     "customer_key": 2000000002650,
     "account_group_key": "V",
@@ -11781,6 +11832,7 @@
     "camber_lease_id": "5000085007"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000151,
     "customer_key": 2000000002651,
     "account_group_key": "V",
@@ -12012,6 +12064,7 @@
     "camber_lease_id": "5000090900"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000152,
     "customer_key": 2000000002652,
     "account_group_key": "V",
@@ -12243,6 +12296,7 @@
     "camber_lease_id": "5000031098"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000153,
     "customer_key": 2000000002653,
     "account_group_key": "V",
@@ -12474,6 +12528,7 @@
     "camber_lease_id": "5000068970"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "account_key": 2000000000154,
     "customer_key": 2000000002654,
     "account_group_key": "V",
@@ -12705,6 +12760,7 @@
     "camber_lease_id": "5000096846"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000155,
     "customer_key": 2000000002655,
     "account_group_key": "V",
@@ -12936,6 +12992,7 @@
     "camber_lease_id": "5000030405"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "account_key": 2000000000156,
     "customer_key": 2000000002656,
     "account_group_key": "V",
@@ -13167,6 +13224,7 @@
     "camber_lease_id": "5000096980"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000157,
     "customer_key": 2000000002657,
     "account_group_key": "V",
@@ -13398,6 +13456,7 @@
     "camber_lease_id": "5000086277"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "account_key": 2000000000158,
     "customer_key": 2000000002658,
     "account_group_key": "EDEF",
@@ -13629,6 +13688,7 @@
     "camber_lease_id": "5000086277"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000159,
     "customer_key": 2000000002659,
     "account_group_key": "V",
@@ -13860,6 +13920,7 @@
     "camber_lease_id": "5000080025"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000160,
     "customer_key": 2000000002660,
     "account_group_key": "V",
@@ -14091,6 +14152,7 @@
     "camber_lease_id": "5000070956"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000161,
     "customer_key": 2000000002661,
     "account_group_key": "V",
@@ -14322,6 +14384,7 @@
     "camber_lease_id": "5000082832"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "account_key": 2000000000162,
     "customer_key": 2000000002662,
     "account_group_key": "V",
@@ -14553,6 +14616,7 @@
     "camber_lease_id": "5000084707"
   },
   {
+    "camber_portfolio": null,
     "account_key": 2000000000163,
     "customer_key": 2000000002663,
     "account_group_key": "V",

@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu } from 'antd'
 import { AuditOutlined, CameraOutlined, CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined } from '@ant-design/icons'
 import Logo from './Logo.jsx'
+import { camberList } from './portfolios.jsx'
 
 const sections = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
@@ -50,6 +51,9 @@ const sections = [
 
 const leaves = sections.flatMap((s) => s.children ?? [s])
 
+// The lists of the servicer's rows open on Camber's leases.
+const camberOnly = ['/servicing/terminations', '/vervent/contracts', '/vervent/assets', '/vervent/transactions']
+
 export default function Sidebar({ collapsed }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -78,7 +82,7 @@ export default function Sidebar({ collapsed }) {
         items={sections}
         selectedKeys={current ? [current] : []}
         defaultOpenKeys={['/portfolio', '/servicing', '/vervent', '/copart', '/loads']}
-        onClick={({ key }) => navigate(key)}
+        onClick={({ key }) => navigate(camberOnly.includes(key) ? camberList(key) : key)}
         style={{ borderInlineEnd: 0, marginTop: 8 }}
       />
     </Layout.Sider>

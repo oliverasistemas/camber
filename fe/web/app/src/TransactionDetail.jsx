@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { money } from './DataTable.jsx'
 import PageHeader from './PageHeader.jsx'
 import { contractLink, useRecord } from './records.jsx'
+import { camberList } from './portfolios.jsx'
 
 // What a transaction's amount was applied to; only the non-zero ones are shown.
 const allocations = [
@@ -39,7 +40,7 @@ export default function TransactionDetail() {
   const crumbs = (
     <Breadcrumb
       style={{ marginBottom: 12 }}
-      items={[{ title: <Link to="/vervent/transactions">Transactions</Link> }, { title: key }]}
+      items={[{ title: <Link to={camberList('/vervent/transactions')}>Transactions</Link> }, { title: key }]}
     />
   )
   if (t === undefined) return <Spin style={{ display: 'block', margin: '64px auto' }} />

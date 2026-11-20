@@ -1,10 +1,11 @@
-import { Alert, Breadcrumb, Card, Col, Descriptions, Flex, Result, Row, Spin, Statistic, Tag, Typography } from 'antd'
+import { Alert, Breadcrumb, Card, Col, Descriptions, Flex, Result, Row, Spin, Statistic, Table, Tag, Typography } from 'antd'
 import { Link, useParams } from 'react-router-dom'
 import DataTable, { dateTime, money } from './DataTable.jsx'
 import LinkCard from './LinkCard.jsx'
 import PageHeader from './PageHeader.jsx'
 import { count, kindTag, rate, snapshotPath, title } from './Snapshots.jsx'
 import { useRecord } from './records.jsx'
+import { portfolioColumn, usePortfolios } from './portfolios.jsx'
 
 export const contractKey = (r) => `${r.snapshot_id}|${r.contract_no}`
 export const contractPath = (r) => `${snapshotPath(r.snapshot_id)}/contracts/${encodeURIComponent(r.contract_no)}`
@@ -38,8 +39,48 @@ export const contractColumns = [
   { title: 'Maturity', dataIndex: 'maturity_date' },
 ]
 
-// Every row here has the snapshot's date, so the table drops that column.
-const columns = contractColumns.filter((c) => c.dataIndex !== 'as_of')
+// Every row here has the snapshot's date, so the table drops that column; the portfolio follows the contract.
+const columns = (portfolios) =>
+  contractColumns
+    .filter((c) => c.dataIndex !== 'as_of')
+    .flatMap((c) => (c.dataIndex === 'contract_no' ? [c, portfolioColumn(portfolios, 'portfolio')] : [c]))
+
+// ByPortfolio: the snapshot's totals per portfolio (/api/snapshots/:id/portfolios), computed from
+// its rows with the formulas of its own totals. A portfolio filters the contract table below to
+// its rows. A snapshot taken before the lease list was loaded also holds leases that are not
+// Camber's; they are its last row.
+function ByPortfolio({ id, rows }) {
+  const { record: totals } = useRecord(`/api/snapshots/${encodeURIComponent(id)}/portfolios`)
+  if (!totals?.length) return null
+  const right = { align: 'right' }
+  return (
+    <div>
+      <Typography.Title level={5}>By portfolio</Typography.Title>
+      <Card styles={{ body: { padding: 0, overflow: 'hidden' } }}>
+        <Table
+          size="small"
+          rowKey={(t) => t.portfolio ?? ''}
+          dataSource={totals}
+          pagination={false}
+          scroll={{ x: 'max-content' }}
+          columns={[
+            {
+              title: 'Portfolio',
+              dataIndex: 'portfolio',
+              render: (v) => <Link to={rows({ portfolio: v ?? 'null' })}>{v ?? 'Not in a portfolio'}</Link>,
+            },
+            { title: 'Outstanding Receivables', dataIndex: 'outstanding_receivables', ...right, render: money },
+            { title: 'Active', dataIndex: 'active_contracts', ...right, render: count },
+            { title: 'Contracts', dataIndex: 'total_contracts', ...right, render: count },
+            { title: 'Past Due', dataIndex: 'past_due', ...right, render: money },
+            { title: 'Delinquent', dataIndex: 'delinquent_contracts', ...right, render: count },
+            { title: 'Delinquency Rate', key: 'delinquency_rate', ...right, render: (_, t) => rate(t) },
+          ]}
+        />
+      </Card>
+    </div>
+  )
+}
 
 const cardCol = { xs: 24, sm: 12, lg: 6 }
 
@@ -60,6 +101,7 @@ function Figure({ to, title, value, formula }) {
 export default function SnapshotDetail() {
   const { id } = useParams()
   const { record: s, error } = useRecord(`/api/snapshots/${encodeURIComponent(id)}`)
+  const portfolios = usePortfolios()
 
   const crumbs = (
     <Breadcrumb
@@ -135,6 +177,7 @@ export default function SnapshotDetail() {
             ]}
           />
         </Card>
+        <ByPortfolio id={s.id} rows={rows} />
         <div>
           <Typography.Title level={5}>Contracts in this snapshot</Typography.Title>
           <Typography.Paragraph type="secondary">
@@ -144,7 +187,7 @@ export default function SnapshotDetail() {
           <DataTable
             endpoint="/api/snapshots/contracts"
             rowKey={contractKey}
-            columns={columns}
+            columns={columns(portfolios)}
             noun="contracts"
             baseFilters={{ snapshot_id: s.id }}
             sums={['outstanding_receivables', 'past_due']}

@@ -6,6 +6,7 @@ import { statusColors } from './Assets.jsx'
 import { columns as inventoryColumns } from './CopartInventory.jsx'
 import { columns as salesColumns } from './CopartSales.jsx'
 import { contractLink, useRecord } from './records.jsx'
+import { camberList } from './portfolios.jsx'
 
 // The vehicle is already described in the page header, so drop it from the Copart tables.
 const vehicleFields = ['vin', 'year', 'make', 'model']
@@ -21,7 +22,7 @@ export default function AssetDetail() {
   const crumbs = (
     <Breadcrumb
       style={{ marginBottom: 12 }}
-      items={[{ title: <Link to="/vervent/assets">Assets</Link> }, { title: assetNo }]}
+      items={[{ title: <Link to={camberList('/vervent/assets')}>Assets</Link> }, { title: assetNo }]}
     />
   )
   if (a === undefined) return <Spin style={{ display: 'block', margin: '64px auto' }} />

@@ -4,6 +4,7 @@ import { money } from './DataTable.jsx'
 import PageHeader from './PageHeader.jsx'
 import { miles, signedMoney, stageTag } from './Terminations.jsx'
 import { assetLink, contractLink, useRecord, vinLink } from './records.jsx'
+import { camberList } from './portfolios.jsx'
 
 const days = (v) => (v == null ? '' : `${v} days`)
 const yesNo = (v) => (v == null ? '' : v ? 'Yes' : 'No')
@@ -158,7 +159,7 @@ export default function TerminationDetail() {
   const crumbs = (
     <Breadcrumb
       style={{ marginBottom: 12 }}
-      items={[{ title: <Link to="/servicing/terminations">Lease terminations</Link> }, { title: leaseNo }]}
+      items={[{ title: <Link to={camberList('/servicing/terminations')}>Lease terminations</Link> }, { title: leaseNo }]}
     />
   )
   if (t === undefined) return <Spin style={{ display: 'block', margin: '64px auto' }} />

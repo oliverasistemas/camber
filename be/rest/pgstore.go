@@ -27,7 +27,8 @@ type pgTable struct {
 }
 
 type pgVervent struct {
-	db                              *pgxpool.Pool
+	db *pgxpool.Pool
+	// The vervent_*_list views: the tables with camber_portfolio (vervent/sql/05_portfolio_views.sql).
 	contracts, assets, transactions pgTable
 	copartInventory, copartSales    pgTable
 	copartVsVervent                 pgTable // a view
@@ -35,7 +36,8 @@ type pgVervent struct {
 	// Portfolio snapshots (snapshots.go); optional: left empty until portfolio/sql is applied.
 	// snapshotContracts is the portfolio_snapshot_contract_list view.
 	snapshots, snapshotContracts pgTable
-	terminations                    pgTable // a view; optional: left empty until 04_lease_terminations.sql is applied
+	terminations                 pgTable // a view; optional: left empty until 04_lease_terminations.sql is applied
+	portfolios                   pgTable // optional: left empty until portfolio/sql/02_portfolios.sql is applied
 }
 
 func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
@@ -53,9 +55,9 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		dst       *pgTable
 		optional  bool
 	}{
-		{"vervent_contracts", "lease_no", &s.contracts, false},
-		{"vervent_assets", "asset_no", &s.assets, false},
-		{"vervent_transactions", "transaction_key", &s.transactions, false},
+		{"vervent_contract_list", "lease_no", &s.contracts, false},
+		{"vervent_asset_list", "asset_no", &s.assets, false},
+		{"vervent_transaction_list", "transaction_key", &s.transactions, false},
 		{"copart_inventory", "lot_nbr", &s.copartInventory, false},
 		{"copart_sales", "lot_nbr", &s.copartSales, false},
 		{"copart_vs_vervent", "lot_nbr", &s.copartVsVervent, false},
@@ -64,6 +66,7 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		{"portfolio_snapshots", "id", &s.snapshots, true},
 		{"portfolio_snapshot_contract_list", "contract_no", &s.snapshotContracts, true},
 		{"lease_terminations", "lease_no", &s.terminations, true},
+		{"portfolios", "name", &s.portfolios, true},
 	} {
 		cols, err := tableColumns(ctx, db, t.name)
 		if err != nil {
@@ -137,6 +140,10 @@ func (s *pgVervent) copartRoutes(r chi.Router) {
 	r.Get("/vs-vervent", s.copartVsVervent.list)
 	r.Get("/vs-vervent/summary", s.handleComparisonSummary)
 	r.Get("/vs-vervent/{id}", s.copartVsVervent.get)
+}
+
+func (s *pgVervent) portfolioRoutes(r chi.Router) {
+	r.Get("/", s.portfolios.list)
 }
 
 func (s *pgVervent) servicingRoutes(r chi.Router) {
@@ -401,15 +408,16 @@ func (t pgTable) get(w http.ResponseWriter, r *http.Request) {
 // handleMetrics computes the same figures as verventStore.metrics, in SQL.
 func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	portfolio := r.URL.Query().Get("portfolio")
 	var m verventMetrics
 	err := s.db.QueryRow(ctx, `
-		SELECT (SELECT count(*) FROM vervent_contracts),
-		       (SELECT count(*) FROM vervent_assets),
+		SELECT (SELECT count(*) FROM vervent_contract_list WHERE `+inPortfolio+`),
+		       (SELECT count(*) FROM vervent_asset_list WHERE `+inPortfolio+`),
 		       count(*),
 		       coalesce(sum(remaining_receivables), 0)::float8,
 		       coalesce(sum(total_past_due), 0)::float8,
 		       count(*) FILTER (WHERE days_del > 0)
-		  FROM vervent_contracts WHERE is_account_open`).
+		  FROM vervent_contract_list WHERE is_account_open AND `+inPortfolio, portfolio).
 		Scan(&m.TotalContracts, &m.TotalAssets, &m.ActiveContracts, &m.OutstandingReceivables, &m.PastDue,
 			&m.DelinquentContracts)
 	if err != nil {
@@ -421,8 +429,8 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	buckets := map[string]int{}
-	err = collectCounts(ctx, s.db, buckets, `SELECT curr_delinq, count(*) FROM vervent_contracts
-		WHERE is_account_open AND days_del > 0 AND curr_delinq IS NOT NULL GROUP BY 1`)
+	err = collectCounts(ctx, s.db, buckets, `SELECT curr_delinq, count(*) FROM vervent_contract_list
+		WHERE is_account_open AND days_del > 0 AND curr_delinq IS NOT NULL AND `+inPortfolio+` GROUP BY 1`, portfolio)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -437,10 +445,10 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		SELECT a.d::text,
 		       coalesce(sum(t.payment_amount) FILTER (WHERE t.transaction_date_key > a.d - 30), 0)::float8,
 		       coalesce(sum(t.payment_amount) FILTER (WHERE t.transaction_date_key >= date_trunc('month', a.d)::date), 0)::float8
-		  FROM a LEFT JOIN vervent_transactions t
+		  FROM a LEFT JOIN (SELECT * FROM vervent_transaction_list WHERE `+inPortfolio+`) t
 		    -- the last 30 days and the month to date both fall within the last 31 days
 		    ON t.transaction_date_key > a.d - 31 AND t.is_non_cash IS NOT TRUE
-		 GROUP BY a.d`).Scan(&asOf, &m.Collections30d, &m.CollectionsMTD)
+		 GROUP BY a.d`, portfolio).Scan(&asOf, &m.Collections30d, &m.CollectionsMTD)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -450,7 +458,8 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	statuses := map[string]int{}
-	err = collectCounts(ctx, s.db, statuses, `SELECT status, count(*) FROM vervent_assets WHERE status IS NOT NULL GROUP BY 1`)
+	err = collectCounts(ctx, s.db, statuses, `SELECT status, count(*) FROM vervent_asset_list
+		WHERE status IS NOT NULL AND `+inPortfolio+` GROUP BY 1`, portfolio)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -469,8 +478,8 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 // collectCounts runs a "SELECT key, count" query into dst.
-func collectCounts(ctx context.Context, db *pgxpool.Pool, dst map[string]int, sql string) error {
-	rows, err := db.Query(ctx, sql)
+func collectCounts(ctx context.Context, db *pgxpool.Pool, dst map[string]int, sql string, args ...any) error {
+	rows, err := db.Query(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

@@ -23,18 +23,20 @@ cd fe/web/app && npm install && npm run dev
 ```
 
 - `SESSION_SECRET` is the only required env var. The Google OAuth client JSON (`client_secret_*.json` at the repo root, gitignored) must exist or the API exits at startup.
-- Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless every `vervent_*`/`copart_*` table and the `copart_vs_vervent` view exist (`load_runs`/`load_files`, the `portfolio_snapshots` tables and the `lease_terminations` view are optional: without them their pages are empty).
+- Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless the `vervent_*_list` views, the `copart_*` tables and the `copart_vs_vervent` view exist (`load_runs`/`load_files`, the `portfolio_snapshots` tables, `portfolios` and the `lease_terminations` view are optional: without them their pages are empty).
 - Other env: `ADDR`, `FRONTEND_URL`, `GOOGLE_REDIRECT_URL`, `GOOGLE_CLIENT_SECRET_FILE`, `VERVENT_MOCK_DIR`, `STATIC_DIR`, `AUTH_ALLOWED_DOMAIN`, `AUTH_ALLOWED_EMAILS` (see `be/rest/main.go`), and `LOAD_FILES_DIR` (see `be/rest/loadfiles.go`).
 
 ### Local Postgres
 
 ```sh
-for f in vervent/sql/0*.sql copart/sql/0*.sql portfolio/sql/0*.sql; do psql -d cambercredit -v ON_ERROR_STOP=1 -f "$f"; done
+# in this order: the Vervent and Copart views read the portfolio tables
+for f in portfolio/sql/0*.sql vervent/sql/0*.sql copart/sql/0*.sql; do psql -d cambercredit -v ON_ERROR_STOP=1 -f "$f"; done
+python3 portfolio/load.py "portfolio/Camber Credit - Lease IDs & Portfolios.xlsx"   # needs openpyxl; before the Vervent files, whose snapshot needs it
 (cd be && DATABASE_URL=postgres:///cambercredit go run ./pipeline/cmd/load-vervent "$PWD"/../vervent/20261111_*_Daily_P50.csv)
 python3 copart/load.py copart/CamberSalesInventorySalesReport_2026-10-05.xlsx   # needs openpyxl
 ```
 
-The Vervent loader connects with `DATABASE_URL`; `deploy/load-vervent.sh` port-forwards the cluster's Postgres and runs it. `copart/load.py` pipes to the command in `$PSQL` (default `psql -d cambercredit`), which `deploy/load-copart.sh` sets to `kubectl exec -i postgres-0 -- psql ...`.
+The Vervent loader connects with `DATABASE_URL`; `deploy/load-vervent.sh` port-forwards the cluster's Postgres and runs it. `copart/load.py` and `portfolio/load.py` pipe to the command in `$PSQL` (default `psql -d cambercredit`), which `deploy/load-copart.sh` and `deploy/load-portfolios.sh` set to `kubectl exec -i postgres-0 -- psql ...`.
 
 Regenerate mock data (fully synthetic, derived from the DDL): `python3 vervent/mock/generate_mock.py`.
 
@@ -46,13 +48,13 @@ deploy/push.sh <new-tag>      # build the image and push to ECR; tags are immuta
 deploy/deploy.sh              # kubectl apply -k + wait for rollout
 ```
 
-Commit history follows this as two commits: the change, then "Ship app image X.Y.Z (…)". If a build depends on new tables/views, run `deploy/load-schema.sh` first or the new pod crash-loops. `deploy/README.md` covers cluster access (kubectl needs an SSH tunnel from non-allowlisted IPs), secrets, sign-in allowlist, and loading vendor drops; `deploy/SFTP.md` covers the Vervent SFTP drop box.
+Commit history follows this as two commits: the change, then "Ship app image X.Y.Z (…)". If a build depends on new tables/views, run `deploy/load-schema.sh` first or the new pod crash-loops. `deploy/load-portfolios.sh` loads Camber's lease list; until it has run, every figure is zero and the Vervent loader refuses to take a snapshot. `deploy/README.md` covers cluster access (kubectl needs an SSH tunnel from non-allowlisted IPs), secrets, sign-in allowlist, and loading vendor drops; `deploy/SFTP.md` covers the Vervent SFTP drop box.
 
 ## Architecture
 
 ### The DDL is the source of truth
 
-`vervent/sql/0*.sql` and `copart/sql/0*.sql` drive everything downstream (`portfolio/sql` holds the snapshot tables, which no vendor file loads into):
+`vervent/sql/0*.sql` and `copart/sql/0*.sql` drive everything downstream (`portfolio/sql` holds the snapshot tables and Camber's portfolios, which no vendor file loads into):
 
 - `vervent/sql` is a symlink to `be/pipeline/vervent/sql`, which lives inside the Go module so the loader can `embed` it (a DDL change needs a rebuild of the loader).
 - Each `COMMENT ON COLUMN` starts with the source file's header in `[brackets]`; date columns end with `Source format <fmt>`. The loaders (`be/pipeline/vervent/ddl.go`, `copart/load.py`) parse the DDL with regexes to build the column mapping, and refuse a file whose headers don't match. **Adding or renaming a column means editing the DDL and its comment in that format** — not the loader.
@@ -63,6 +65,14 @@ Commit history follows this as two commits: the change, then "Ship app image X.Y
 
 Type/naming conventions and source-data quirks are documented in `vervent/sql/00_README.md`.
 
+### Portfolios: which leases are Camber's
+
+Vervent's files hold every lease it services under its portfolio 50, and many are not Camber's. `portfolio_leases` (`portfolio/sql/02_portfolios.sql`) lists the Camber lease ids that are, each with its portfolio (`portfolios`). `portfolio/load.py` loads it from Camber's own list (`portfolio/*.xlsx`); the list is the whole truth each time, so a lease missing from a newer one loses its portfolio. Servicer-neutral like the snapshots, which is why `portfolio/sql` loads first.
+
+- The API lists the `vervent_contract_list` / `vervent_asset_list` / `vervent_transaction_list` views (`vervent/sql/05_portfolio_views.sql`): each table with `camber_portfolio` as its first column, null for a lease that is not Camber's (`vervent_transactions.portfolio` is Vervent's own, always 50). `lease_terminations` has `camber_portfolio` too, and snapshot contract rows have `lease_id` and `portfolio`. A deficiency contract takes the portfolio of its lease, through `camber_lease_id` (as a function, `vervent_camber_lease_id`, for assets, transactions and staged rows). Mock rows carry the same columns (`generate_mock.py`, plus `portfolios.json`).
+- **Everything the dashboard counts is Camber's leases only**: `/api/vervent/metrics`, `/api/servicing/terminations/summary` and `/api/snapshots/history` take `?portfolio=<name>` and otherwise count every row with a portfolio (`inPortfolio` in `be/rest/metrics.go`, both backends). The lists themselves are not restricted: a figure's link carries `camber_portfolio=<name>` or `camber_portfolio.ne=null` (`inPortfolio` in `portfolios.jsx`), and the sidebar and breadcrumbs open the Vervent lists and the terminations with the latter, shown as a removable "Camber's leases" tag. Rows that are not Camber's stay loaded and are listed with `camber_portfolio=null`. Copart pages and the search box are not restricted.
+- A table column added with `ALTER TABLE` shows in its view only after `05_portfolio_views.sql` runs again (`load-schema.sh`); dropping or retyping a column needs `DROP VIEW` first.
+
 ### Load semantics
 
 Every table carries `source_file`, `file_date` (parsed from the file name), `loaded_at`. Each file loads in one transaction via an all-text staging table, oldest file first. Contracts, assets and both Copart tables upsert on their key guarded by `file_date <=` so an older file never overwrites newer data; transactions are append-only (`ON CONFLICT DO NOTHING`). Re-loading is always safe. Rows that vanish from later files are not deleted. There are no foreign keys (orphans exist and files arrive in any order).
@@ -71,10 +81,11 @@ Every table carries `source_file`, `file_date` (parsed from the file name), `loa
 
 A snapshot is a frozen copy of the portfolio at a point in time (`portfolio/sql/01_portfolio_snapshots.sql`): a `portfolio_snapshots` row with the totals as they were, and one `portfolio_snapshot_contracts` row per contract. The tables are **servicer-neutral so they outlive Vervent**: columns are named for what they mean (`contract_no`, `is_open`, `outstanding_receivables`, `days_delinquent`, …) and each contract row keeps the servicer's whole row in `servicer_row` (jsonb). Nothing that reads snapshots uses Vervent column names. The mapping from `vervent_contracts` is `verventColumns` in `be/pipeline/portfolio/snapshot.go`, mirrored by `SNAPSHOT_COLUMNS` in `generate_mock.py`; a new servicer adds a mapping there.
 
+- A snapshot holds the contracts of Camber's leases only (`Capture` joins `portfolio_leases` and fails while it is empty), each with its `lease_id` and `portfolio`. Daily snapshots taken before the lease list was loaded (2026-11) hold every contract and their totals count them all; their rows were labelled afterwards, and the ones without a portfolio are not Camber's. Re-loading one of those files rebuilds its day with Camber's leases only.
 - `daily`: the loader takes one from every ContractSummary file, in the file's transaction and from the staged rows, so it is not guarded by `file_date` and re-loading an old file rebuilds that day (same snapshot id). The loader fails if the tables don't exist.
 - `manual`: `POST /api/snapshots {name, note}` (the "Take snapshot" button) copies `vervent_contracts` as it stands. Snapshots are create-only.
 - Both go through `portfolio.Capture`, which copies the rows and then computes the header totals from them: active = `is_open`; outstanding receivables and past due = sums over open contracts; delinquent = open with `days_delinquent > 0`. **The dashboard's by-day charts and anything by-day read these totals**, not the Vervent tables.
-- `/api/snapshots` (`be/rest/snapshots.go`, both backends): the snapshots and `/contracts` (the `portfolio_snapshot_contract_list` view, which leaves out `servicer_row`) speak the list contract; `/history` is the daily totals oldest first; `/{id}/contracts/{contract}` is one row with `servicer_row`. The mock rows are `vervent/mock/portfolio_snapshots.json` and `portfolio_snapshot_contracts.json`, without `servicer_row` (the mock API fills it from `contracts.json`).
+- `/api/snapshots` (`be/rest/snapshots.go`, both backends): the snapshots and `/contracts` (the `portfolio_snapshot_contract_list` view, which leaves out `servicer_row`) speak the list contract; `/history` is the daily totals oldest first (the frozen header totals, or with `?portfolio=` that portfolio's rows totalled); `/{id}/portfolios` is one snapshot's totals per portfolio, computed from its rows; `/{id}/contracts/{contract}` is one row with `servicer_row`. The mock rows are `vervent/mock/portfolio_snapshots.json` and `portfolio_snapshot_contracts.json`, without `servicer_row` (the mock API fills it from `contracts.json`).
 - A snapshot with full rows is about 19 MB for ~5,900 contracts, so daily snapshots grow the database by roughly that per file.
 
 The Vervent loader records every run and every file it attempts in `load_runs` / `load_files` (`vervent/sql/04_load_history.sql`, package `be/pipeline/history`): the run row is committed first, a file's `ok` row commits in the same transaction as its data, and a `failed` row is written after the rollback (on a fresh connection if the run was interrupted). A run still `running` means the process died. Copart loads are not recorded yet. The dashboard lists the history under Loads (`/api/loads/runs`, `/api/loads/files`; `Loads.jsx`), with mock rows from `generate_mock.py`. A file's page offers the original for download (`/api/loads/files/{id}/download`, `be/rest/loadfiles.go`): the app pod mounts the SFTP drop box's `vervent/processed` folder read-only as `LOAD_FILES_DIR` and serves the file of that name whose SHA-256 matches the recorded one, so files that never passed through the drop box (Copart, anything deleted from it) have no download.

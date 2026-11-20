@@ -210,21 +210,25 @@ func (f *File) insertSQL() string {
 }
 
 // snapshotSource is the staged rows as a portfolio snapshot source: every column cast as
-// insertSQL casts it and named as in the report's table, plus source_file and file_date. It reads
-// the staging table, not the main table, so a file older than the data already loaded still
-// records its day.
+// insertSQL casts it and named as in the report's table, plus source_file, file_date and the
+// computed camber_lease_id, last as in the table. It reads the staging table, not the main table,
+// so a file older than the data already loaded still records its day.
 func (f *File) snapshotSource() portfolio.Source {
 	cols := map[string]Column{}
 	for _, c := range f.Report.Columns {
 		cols[c.Header] = c
 	}
 	exprs := make([]string, len(f.header))
+	var leaseID string
 	for i, h := range f.header {
 		c := cols[h]
 		exprs[i] = castExpr(fmt.Sprintf("c%d", i), c) + " AS " + quoteIdent(c.Name)
+		if c.Name == f.Report.Key {
+			leaseID = "vervent_camber_lease_id(" + castExpr(fmt.Sprintf("c%d", i), c) + ")"
+		}
 	}
-	return portfolio.Vervent(fmt.Sprintf("(SELECT %s, %s::text AS source_file, %s::date AS file_date FROM stg)",
-		strings.Join(exprs, ", "), quoteLiteral(f.Name), quoteLiteral(f.FileDate.Format("2006-01-02"))))
+	return portfolio.Vervent(fmt.Sprintf("(SELECT %s, %s::text AS source_file, %s::date AS file_date, %s AS %s FROM stg)",
+		strings.Join(exprs, ", "), quoteLiteral(f.Name), quoteLiteral(f.FileDate.Format("2006-01-02")), leaseID, computedLeaseID))
 }
 
 func quoteLiteral(s string) string {

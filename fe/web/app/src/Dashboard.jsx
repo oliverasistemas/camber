@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Card, Col, Row, Skeleton, Statistic, Tooltip, Typography } from 'antd'
-import { Link } from 'react-router-dom'
+import { Alert, Button, Card, Col, Row, Select, Skeleton, Statistic, Tooltip, Typography } from 'antd'
+import { Link, useSearchParams } from 'react-router-dom'
 import { compactMoney, money } from './DataTable.jsx'
 import LinkCard from './LinkCard.jsx'
 import PageHeader from './PageHeader.jsx'
 import TrendChart from './TrendChart.jsx'
+import { inPortfolio, usePortfolios } from './portfolios.jsx'
 
 // Days-past-due buckets are ordered, so they take one hue that darkens with age.
 const AGING = ['#86b6ef', '#5598e7', '#3987e5', '#256abf', '#1c5cab', '#104281', '#0d366b']
@@ -30,48 +31,59 @@ const day = (iso, offset = 0, options) => {
 
 // Every figure links to the list of rows it counts, filtered through the query string with the
 // same conditions the metric uses (be/rest/pgstore.go handleMetrics); keep the two in step.
+// The figures count Camber's leases, or those of the portfolio picked in the header, so every
+// link carries that condition too (inPortfolio).
 const list = (path, params) => `${path}?${new URLSearchParams(params)}`
-const active = { is_account_open: 'true' }
-const delinquent = { ...active, 'days_del.gt': '0' }
-const links = {
-  active: list('/vervent/contracts', active),
-  receivables: list('/vervent/contracts', { ...active, sort: '-remaining_receivables' }),
-  delinquent: list('/vervent/contracts', { ...delinquent, sort: '-days_del' }),
-  bucket: (b) => list('/vervent/contracts', { ...delinquent, curr_delinq: b, sort: '-days_del' }),
-  assetStatus: (code) => list('/vervent/assets', { status: code }),
-  // Cash transactions in the 30 days up to as_of, the latest transaction date.
-  collections: (asOf) => {
-    const since = new Date(`${asOf}T00:00:00Z`)
-    if (isNaN(since)) return '/vervent/transactions'
-    since.setUTCDate(since.getUTCDate() - 30)
-    return list('/vervent/transactions', {
-      'transaction_date_key.gt': since.toISOString().slice(0, 10),
-      'is_non_cash.ne': 'true',
-      sort: '-payment_amount',
-    })
-  },
-  // Cash transactions from the first of as_of's month.
-  collectionsMonth: (asOf) =>
-    list('/vervent/transactions', {
-      'transaction_date_key.gte': `${String(asOf).slice(0, 7)}-01`,
-      'is_non_cash.ne': 'true',
-      sort: '-payment_amount',
-    }),
+const linksFor = (portfolio) => {
+  const owned = inPortfolio(portfolio)
+  const active = { ...owned, is_account_open: 'true' }
+  const delinquent = { ...active, 'days_del.gt': '0' }
+  return {
+    active: list('/vervent/contracts', active),
+    receivables: list('/vervent/contracts', { ...active, sort: '-remaining_receivables' }),
+    delinquent: list('/vervent/contracts', { ...delinquent, sort: '-days_del' }),
+    bucket: (b) => list('/vervent/contracts', { ...delinquent, curr_delinq: b, sort: '-days_del' }),
+    assets: list('/vervent/assets', owned),
+    assetStatus: (code) => list('/vervent/assets', { ...owned, status: code }),
+    // Cash transactions in the 30 days up to as_of, the latest transaction date.
+    collections: (asOf) => {
+      const since = new Date(`${asOf}T00:00:00Z`)
+      if (isNaN(since)) return list('/vervent/transactions', owned)
+      since.setUTCDate(since.getUTCDate() - 30)
+      return list('/vervent/transactions', {
+        ...owned,
+        'transaction_date_key.gt': since.toISOString().slice(0, 10),
+        'is_non_cash.ne': 'true',
+        sort: '-payment_amount',
+      })
+    },
+    // Cash transactions from the first of as_of's month.
+    collectionsMonth: (asOf) =>
+      list('/vervent/transactions', {
+        ...owned,
+        'transaction_date_key.gte': `${String(asOf).slice(0, 7)}-01`,
+        'is_non_cash.ne': 'true',
+        sort: '-payment_amount',
+      }),
+  }
 }
 
 // The trend charts plot the daily portfolio snapshots. A day links to its snapshot, filtered the
 // way the snapshot's totals count its rows (portfolio/sql/01_portfolio_snapshots.sql), so the
-// rows listed are the ones behind the day's figure and their total equals it.
+// rows listed are the ones behind the day's figure and their total equals it. With a portfolio
+// picked the days are the totals of that portfolio's rows, and the links select those rows.
 const snapshot = (id, params) => list(`/portfolio/snapshots/${id}`, params)
-const openOnly = { is_open: 'true' }
-const dayLinks = {
-  receivables: (id) => snapshot(id, { ...openOnly, sort: '-outstanding_receivables' }),
-  delinquent: (id) => snapshot(id, { ...openOnly, 'days_delinquent.gt': '0', sort: '-days_delinquent' }),
+const dayLinksFor = (portfolio) => {
+  const openOnly = { ...(portfolio && { portfolio }), is_open: 'true' }
+  return {
+    receivables: (id) => snapshot(id, { ...openOnly, sort: '-outstanding_receivables' }),
+    delinquent: (id) => snapshot(id, { ...openOnly, 'days_delinquent.gt': '0', sort: '-days_delinquent' }),
+  }
 }
 const byDay = '/portfolio/snapshots?kind=daily'
 
 // toTrends reshapes /api/snapshots/history into the two series.
-const toTrends = (days) => ({
+const toTrends = (days, dayLinks) => ({
   receivables: days.map((d) => ({
     date: d.as_of,
     value: d.outstanding_receivables,
@@ -114,8 +126,9 @@ function TrendCard({ title, series, format, axis, delta }) {
 }
 
 // toView reshapes /api/vervent/metrics for the tiles and charts.
-const toView = (m) => ({
+const toView = (m, links) => ({
   ...m,
+  links,
   delinquency: m.delinquency_buckets.map((b) => ({ label: b.bucket, value: b.contracts, to: links.bucket(b.bucket) })),
   assetStatus: m.asset_status.map((s) => ({ code: s.status, label: s.label, value: s.assets, to: links.assetStatus(s.status) })),
 })
@@ -251,25 +264,46 @@ function Loading() {
 export default function Dashboard() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
+  const portfolios = usePortfolios()
+  // The portfolio picked lives in the query string (?portfolio=), so a filtered dashboard can be linked to.
+  const [params, setParams] = useSearchParams()
+  const portfolio = params.get('portfolio') ?? ''
 
   const load = useCallback(() => {
     setError(null)
+    const query = `?${new URLSearchParams(portfolio ? { portfolio } : {})}`
     const get = (url) =>
       fetch(url).then((res) => {
         if (res.status === 401) window.location.reload()
         return res.ok ? res.json() : Promise.reject(new Error(res.statusText))
       })
-    Promise.all([get('/api/vervent/metrics'), get('/api/snapshots/history')])
-      .then(([m, days]) => setData({ ...toView(m), trends: toTrends(days) }))
-      .catch((err) => setError(err.message))
-  }, [])
+    let cancelled = false
+    Promise.all([get(`/api/vervent/metrics${query}`), get(`/api/snapshots/history${query}`)])
+      .then(([m, days]) => !cancelled && setData({ ...toView(m, linksFor(portfolio)), trends: toTrends(days, dayLinksFor(portfolio)) }))
+      .catch((err) => !cancelled && setError(err.message))
+    // The figures of a portfolio picked since are on their way: drop these.
+    return () => {
+      cancelled = true
+    }
+  }, [portfolio])
 
   useEffect(load, [load])
+
+  const picker = (
+    <Select
+      aria-label="Portfolio"
+      value={portfolio}
+      onChange={(v) => setParams(v ? { portfolio: v } : {})}
+      options={[{ value: '', label: 'All portfolios' }, ...portfolios.map((p) => ({ value: p, label: p }))]}
+      popupMatchSelectWidth={false}
+      style={{ minWidth: 200 }}
+    />
+  )
 
   if (error) {
     return (
       <>
-        <PageHeader title="Dashboard" />
+        <PageHeader title="Dashboard" extra={picker} />
         <Alert
           type="error"
           message={`Couldn't load the dashboard: ${error}`}
@@ -285,16 +319,17 @@ export default function Dashboard() {
   if (!data) {
     return (
       <>
-        <PageHeader title="Dashboard" subtitle="Vervent portfolio 50" />
+        <PageHeader title="Dashboard" subtitle="Camber's leases at Vervent" extra={picker} />
         <Loading />
       </>
     )
   }
 
   const asOf = day(data.as_of, 0, { year: 'numeric' })
+  const links = data.links
   return (
     <>
-      <PageHeader title="Dashboard" subtitle={`Vervent portfolio 50${asOf && `, data as of ${asOf}`}`} />
+      <PageHeader title="Dashboard" subtitle={`Camber's leases at Vervent${asOf && `, data as of ${asOf}`}`} extra={picker} />
       <Row gutter={[16, 16]}>
         <Col {...tileCol}>
           <Tile
@@ -370,7 +405,7 @@ export default function Dashboard() {
           </Card>
         </Col>
         <Col {...chartCol}>
-          <Card style={{ height: '100%' }} title="Assets by status" extra={<Link to="/vervent/assets">View all</Link>}>
+          <Card style={{ height: '100%' }} title="Assets by status" extra={<Link to={links.assets}>View all</Link>}>
             <StackedBar data={data.assetStatus} total={data.total_assets} unit="assets" />
           </Card>
         </Col>

@@ -2,7 +2,8 @@
 """Generate synthetic Vervent P50 mock data as JSON.
 
 Every row carries every column from ../sql/0*_vervent_*.sql (snake_case, as the
-tables store them), so the JSON looks like a `SELECT *` from those tables.
+tables store them) after camber_portfolio, so the JSON looks like a `SELECT *` from the
+vervent_*_list views (../sql/05_portfolio_views.sql), which is what the API lists.
 All names, addresses, VINs and amounts are fabricated; nothing is copied from the
 real extracts. Codes (statuses, transaction codes, vectors) use values observed in
 the extracts so the data behaves like the real thing.
@@ -11,7 +12,8 @@ the extracts so the data behaves like the real thing.
                                         # the load history, load_runs.json and load_files.json,
                                         # the portfolio snapshots, portfolio_snapshots.json and
                                         # portfolio_snapshot_contracts.json,
-                                        # and the lease_terminations view, lease_terminations.json
+                                        # the lease_terminations view, lease_terminations.json,
+                                        # and Camber's portfolios, portfolios.json
     python3 generate_mock.py --contracts 200 --seed 7
 """
 
@@ -91,9 +93,30 @@ def camber_lease_id(lease_no):
     return lease_no
 
 
-def blank_row(cols):
-    """Unpopulated columns: 0 for money/rates (as in the extracts), null for everything else."""
-    return {c: (0 if t.startswith("numeric") else None) for c, t in cols}
+# Camber's portfolios (../../portfolio/sql/02_portfolios.sql) and the share of leases in each; the
+# rest are leases Vervent services that are not Camber's.
+PORTFOLIOS = [("Camber Credit 2026-1 (Securitized)", 0.55), ("Camber Credit 2026-1 (Non-Securitized)", 0.10),
+              ("Camber Credit 2025-2", 0.15)]
+
+
+def camber_portfolio(lease_no):
+    """The camber_portfolio of a row of lease_no: the portfolio of its Camber lease, so a deficiency
+    contract gets its lease's, or None for a lease that is not Camber's. Null without a lease."""
+    if not lease_no:
+        return None
+    x = random.Random("portfolio " + camber_lease_id(lease_no)).random()  # its own stream, like the mileage terms
+    for name, share in PORTFOLIOS:
+        if x < share:
+            return name
+        x -= share
+    return None
+
+
+def blank_row(cols, lease_no=None):
+    """Unpopulated columns: 0 for money/rates (as in the extracts), null for everything else.
+    camber_portfolio comes first, as in the views."""
+    return {"camber_portfolio": camber_portfolio(lease_no),
+            **{c: (0 if t.startswith("numeric") else None) for c, t in cols}}
 
 
 def iso(d):
@@ -145,7 +168,7 @@ class Generator:
 
     def contract(self, lease_no, who, dealer, vehicle, *, deficiency_of=None):
         r = self.rng
-        c = blank_row(self.c_cols)
+        c = blank_row(self.c_cols, lease_no)
         is_def = deficiency_of is not None
         miles = random.Random(lease_no)  # its own stream, so the mileage terms don't shift every other draw
         if is_def:
@@ -261,7 +284,7 @@ class Generator:
 
     def asset(self, lease_no, who, dealer, vehicle, k, orig_lease=None):
         r = self.rng
-        a = blank_row(self.a_cols)
+        a = blank_row(self.a_cols, lease_no)
         is_def = k["is_def"]
         closed = k["closed"]
         if is_def:
@@ -309,7 +332,7 @@ class Generator:
     def txn(self, k, who, kind, when, amount=None):
         r = self.rng
         code, desc, dv, cv, non_cash, field, ops = kind
-        t = blank_row(self.t_cols)
+        t = blank_row(self.t_cols, k["row"]["lease_no"])
         if amount is None:
             amount = {None: k["pmt"] * 0.02, "payment": k["pmt"], "sales_tax": k["pmt"] * 0.08,
                       "property_tax": r.uniform(80, 900), "late_charge": min(k["pmt"] * 0.05, 50),
@@ -491,6 +514,7 @@ def portfolio_snapshots(g, days=15):
     (../../portfolio/sql/01_portfolio_snapshots.sql): a daily snapshot for each of the last few
     business days and one manual snapshot of the last day.
 
+    A snapshot holds the contracts of Camber's leases only, each with its lease id and portfolio.
     The last day's rows equal the contract rows; earlier days run the clock back (more receivable
     left, fewer days delinquent), and a few contracts that are current today were delinquent for a
     while and cured. Each snapshot's totals are computed from its rows, as portfolio.Capture does.
@@ -500,6 +524,8 @@ def portfolio_snapshots(g, days=15):
     dates = business_days(AS_OF, days)
     by_day = {day: [] for day in dates}
     for c in sorted(g.contracts, key=lambda c: c["lease_no"]):
+        if c["camber_portfolio"] is None:
+            continue
         pmt = c["curr_pymt"] or 0
         # (first, last) days back of a delinquency that has since cured
         cured = None
@@ -523,6 +549,7 @@ def portfolio_snapshots(g, days=15):
                 "outstanding_receivables": remaining,
                 "past_due": money(pmt * (days_del // 30 + (1 if days_del else 0))),
                 "days_delinquent": days_del, "delinquency_bucket": bucket,
+                "lease_id": c["camber_lease_id"], "portfolio": c["camber_portfolio"],
             })
             by_day[day].append(row)
 
@@ -597,6 +624,7 @@ def lease_terminations(g):
             "gross_sale_price": None, "sale_fees": None, "copart_net_proceeds": None,
             "vervent_sale_proceeds": a["sale_proceeds"], "net_sale_proceeds": proceeds,
             "gain_loss": money(proceeds - c["tot_residual"]) if proceeds and c["tot_residual"] else None,
+            "camber_portfolio": c["camber_portfolio"],
         })
     rows.sort(key=lambda r: r["lease_no"])
     return rows
@@ -613,10 +641,12 @@ def main():
     g.run(args.contracts)
     runs, files = load_history(g)
     snapshots, snapshot_contracts = portfolio_snapshots(g)
+    portfolios = [{"name": name, "loaded_at": LOADED_AT}
+                  for name in sorted({c["camber_portfolio"] for c in g.contracts if c["camber_portfolio"]})]
     for name, rows in [("contracts", g.contracts), ("assets", g.assets), ("transactions", g.transactions),
                        ("load_runs", runs), ("load_files", files),
                        ("portfolio_snapshots", snapshots), ("portfolio_snapshot_contracts", snapshot_contracts),
-                       ("lease_terminations", lease_terminations(g))]:
+                       ("lease_terminations", lease_terminations(g)), ("portfolios", portfolios)]:
         path = args.out / f"{name}.json"
         path.write_text(json.dumps(rows, indent=2) + "\n")
         print(f"wrote {len(rows):>4} rows -> {path}")

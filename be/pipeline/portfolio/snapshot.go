@@ -1,6 +1,7 @@
 // Package portfolio takes portfolio snapshots: frozen, servicer-neutral copies of the contracts
 // at a point in time (portfolio_snapshots / portfolio_snapshot_contracts,
-// portfolio/sql/01_portfolio_snapshots.sql).
+// portfolio/sql/01_portfolio_snapshots.sql). A snapshot holds the contracts of Camber's leases,
+// the ones in portfolio_leases (portfolio/sql/02_portfolios.sql), each with its portfolio.
 //
 // The loader takes a daily snapshot for every ContractSummary file and the API takes a manual one
 // on demand; both go through Capture, so the mapping from the servicer's columns and the totals
@@ -9,6 +10,7 @@ package portfolio
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -42,6 +44,7 @@ type Source struct {
 // payment columns are the ones the lease_terminations view reads.
 var verventColumns = []Mapping{
 	{"contract_no", "lease_no"},
+	{"lease_id", "camber_lease_id"},
 	{"status", "ls_status"},
 	{"is_open", "is_account_open"},
 	{"commencement_date", "commence_date"},
@@ -79,13 +82,25 @@ func (src Source) from(column string) string {
 	panic("portfolio: " + src.Servicer + " has no mapping for " + column)
 }
 
-// Capture copies every row of src into a new snapshot and returns its id and the number of
-// contracts copied. The totals on the header are then computed from the rows just copied, so they
-// always equal the sums over the snapshot's contract rows.
+// ErrNoLeases is Capture's error while portfolio_leases is empty: a snapshot then would hold no
+// contracts and its day would read as a portfolio of nothing.
+var ErrNoLeases = errors.New("no lease is assigned to a portfolio; load the lease list first (portfolio/load.py)")
+
+// Capture copies the rows of src whose lease is in portfolio_leases into a new snapshot, each
+// with its portfolio, and returns its id and the number of contracts copied. The totals on the
+// header are then computed from the rows just copied, so they always equal the sums over the
+// snapshot's contract rows.
 //
 // A servicer has one daily snapshot per as-of date: taking it again replaces its totals and its
 // contract rows and keeps its id.
 func Capture(ctx context.Context, tx pgx.Tx, src Source, s Snapshot) (id, contracts int64, err error) {
+	var listed bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM portfolio_leases)`).Scan(&listed); err != nil {
+		return 0, 0, fmt.Errorf("portfolio_leases: %w", err)
+	}
+	if !listed {
+		return 0, 0, ErrNoLeases
+	}
 	err = tx.QueryRow(ctx, `
 INSERT INTO portfolio_snapshots (kind, as_of, name, note, taken_by, servicer, source_file,
        total_contracts, active_contracts, outstanding_receivables, past_due, delinquent_contracts)
@@ -108,9 +123,10 @@ RETURNING id`,
 		exprs[i] = src.from(m.Column)
 	}
 	tag, err := tx.Exec(ctx, fmt.Sprintf(`
-INSERT INTO portfolio_snapshot_contracts (snapshot_id, as_of, kind, %s, servicer_row)
-SELECT $1::bigint, $2::date, $3::text, %s, to_jsonb(c) - 'loaded_at'
-  FROM %s c`, strings.Join(targets, ", "), strings.Join(exprs, ", "), src.Relation),
+INSERT INTO portfolio_snapshot_contracts (snapshot_id, as_of, kind, %s, portfolio, servicer_row)
+SELECT $1::bigint, $2::date, $3::text, %s, pl.portfolio, to_jsonb(c) - 'loaded_at'
+  FROM %s c
+  JOIN portfolio_leases pl ON pl.lease_id = %s`, strings.Join(targets, ", "), strings.Join(exprs, ", "), src.Relation, src.from("lease_id")),
 		id, s.AsOf, s.Kind)
 	if err != nil {
 		return 0, 0, fmt.Errorf("portfolio_snapshot_contracts: %w", err)

@@ -53,7 +53,11 @@ func (s terminationSummary) finish(byKey map[string]terminationGroup) terminatio
 	return s
 }
 
+// Both count the vehicle leases that are Camber's, or with ?portfolio= those of one portfolio
+// (inPortfolio, metrics.go).
+
 func (s *verventStore) handleTerminationSummary(w http.ResponseWriter, r *http.Request) {
+	portfolio := r.URL.Query().Get("portfolio")
 	sum := newTerminationSummary()
 	byKey := map[string]terminationGroup{}
 	add := func(key string, t row) {
@@ -65,6 +69,9 @@ func (s *verventStore) handleTerminationSummary(w http.ResponseWriter, r *http.R
 		byKey[key] = g
 	}
 	for _, t := range s.terminations.rows {
+		if !rowInPortfolio(t, portfolio) {
+			continue
+		}
 		stage, _ := t["stage"].(string)
 		add(stage, t)
 		if maturity, ok := t["maturity_date"].(string); ok && stage == "on lease" {
@@ -93,10 +100,10 @@ func (s *pgVervent) handleTerminationSummary(w http.ResponseWriter, r *http.Requ
 		 CROSS JOIN LATERAL (VALUES
 		       (stage),
 		       (CASE WHEN stage <> 'on lease' THEN NULL
-		             WHEN maturity_date < $1::date THEN 'past maturity'
-		             WHEN maturity_date <= $2::date THEN 'maturing' END)) g(key)
-		 WHERE g.key IS NOT NULL
-		 GROUP BY g.key`, sum.AsOf, sum.MaturingBy)
+		             WHEN maturity_date < $2::date THEN 'past maturity'
+		             WHEN maturity_date <= $3::date THEN 'maturing' END)) g(key)
+		 WHERE g.key IS NOT NULL AND `+inPortfolio+`
+		 GROUP BY g.key`, r.URL.Query().Get("portfolio"), sum.AsOf, sum.MaturingBy)
 	if err != nil {
 		serverError(w, err)
 		return

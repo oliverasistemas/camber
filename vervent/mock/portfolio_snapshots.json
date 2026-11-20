@@ -9,11 +9,11 @@
     "taken_by": "analyst@example.com",
     "servicer": "vervent",
     "source_file": null,
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 629579.51,
-    "past_due": 46589.29,
-    "delinquent_contracts": 9
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 401595.15,
+    "past_due": 37064.2,
+    "delinquent_contracts": 7
   },
   {
     "id": 15,
@@ -25,11 +25,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 629579.51,
-    "past_due": 46589.29,
-    "delinquent_contracts": 9
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 401595.15,
+    "past_due": 37064.2,
+    "delinquent_contracts": 7
   },
   {
     "id": 14,
@@ -41,11 +41,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261110_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 631761.97,
-    "past_due": 52493.49,
-    "delinquent_contracts": 11
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 403174.43,
+    "past_due": 37064.2,
+    "delinquent_contracts": 7
   },
   {
     "id": 13,
@@ -57,11 +57,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261109_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 633944.44,
-    "past_due": 52493.49,
-    "delinquent_contracts": 11
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 404753.71,
+    "past_due": 37064.2,
+    "delinquent_contracts": 7
   },
   {
     "id": 12,
@@ -73,11 +73,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261106_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 640491.85,
-    "past_due": 54052.04,
-    "delinquent_contracts": 12
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 409491.58,
+    "past_due": 38958.74,
+    "delinquent_contracts": 8
   },
   {
     "id": 11,
@@ -89,11 +89,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261105_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 642674.33,
-    "past_due": 46202.98,
-    "delinquent_contracts": 12
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 411070.88,
+    "past_due": 37511.99,
+    "delinquent_contracts": 9
   },
   {
     "id": 10,
@@ -105,11 +105,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261104_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 644856.81,
-    "past_due": 54188.99,
-    "delinquent_contracts": 13
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 412650.19,
+    "past_due": 37511.99,
+    "delinquent_contracts": 9
   },
   {
     "id": 9,
@@ -121,11 +121,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261103_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 647039.3,
-    "past_due": 48281.37,
-    "delinquent_contracts": 13
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 414229.51,
+    "past_due": 34779.4,
+    "delinquent_contracts": 9
   },
   {
     "id": 8,
@@ -137,11 +137,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261102_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 649221.72,
-    "past_due": 47720.65,
-    "delinquent_contracts": 12
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 415808.76,
+    "past_due": 34779.4,
+    "delinquent_contracts": 9
   },
   {
     "id": 7,
@@ -153,11 +153,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261030_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 655769.17,
-    "past_due": 47310.12,
-    "delinquent_contracts": 13
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 420546.66,
+    "past_due": 30175.33,
+    "delinquent_contracts": 9
   },
   {
     "id": 6,
@@ -169,11 +169,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261029_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 657951.64,
-    "past_due": 47310.12,
-    "delinquent_contracts": 13
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 422125.95,
+    "past_due": 30175.33,
+    "delinquent_contracts": 9
   },
   {
     "id": 5,
@@ -185,11 +185,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261028_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 660134.11,
-    "past_due": 45946.11,
-    "delinquent_contracts": 13
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 423705.24,
+    "past_due": 28811.32,
+    "delinquent_contracts": 9
   },
   {
     "id": 4,
@@ -201,11 +201,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261027_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 662316.55,
-    "past_due": 43376.38,
-    "delinquent_contracts": 12
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 425284.51,
+    "past_due": 28181.67,
+    "delinquent_contracts": 8
   },
   {
     "id": 3,
@@ -217,11 +217,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261026_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 664499.04,
-    "past_due": 43376.38,
-    "delinquent_contracts": 12
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 426863.82,
+    "past_due": 28181.67,
+    "delinquent_contracts": 8
   },
   {
     "id": 2,
@@ -233,11 +233,11 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261023_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 671046.47,
-    "past_due": 39923.29,
-    "delinquent_contracts": 10
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 431601.69,
+    "past_due": 26287.13,
+    "delinquent_contracts": 7
   },
   {
     "id": 1,
@@ -249,10 +249,10 @@
     "taken_by": "loader",
     "servicer": "vervent",
     "source_file": "20261022_ContractSummary_Daily_P50.csv",
-    "total_contracts": 64,
-    "active_contracts": 35,
-    "outstanding_receivables": 673228.94,
-    "past_due": 39923.29,
-    "delinquent_contracts": 10
+    "total_contracts": 46,
+    "active_contracts": 26,
+    "outstanding_receivables": 433180.99,
+    "past_due": 26287.13,
+    "delinquent_contracts": 7
   }
 ]

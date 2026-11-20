@@ -81,8 +81,8 @@ export function TakeSnapshot() {
         destroyOnHidden
       >
         <p>
-          Copies every contract as it is loaded right now, with its totals. The copy is kept as it is: later
-          servicer files don't change it.
+          Copies every contract of Camber's leases as it is loaded right now, with its totals. The copy is kept as
+          it is: later servicer files don't change it.
         </p>
         <Form form={form} layout="vertical" onFinish={submit} preserve={false}>
           <Form.Item name="name" label="Name" rules={[{ required: true, whitespace: true, message: 'Give the snapshot a name' }]}>

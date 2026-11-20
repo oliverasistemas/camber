@@ -112,7 +112,7 @@ func main() {
 		fmt.Printf("%s: %d rows (%d inserted, %d updated, %d unchanged)\n",
 			f.Name, c.Rows, c.Inserted, c.Updated, c.Skipped())
 		if f.Report.Snapshot {
-			fmt.Printf("portfolio snapshot: %d contracts as of %s\n", f.Snapshotted, f.FileDate.Format("2006-01-02"))
+			fmt.Printf("portfolio snapshot: %d contracts of Camber's leases as of %s\n", f.Snapshotted, f.FileDate.Format("2006-01-02"))
 		}
 	}
 	if err := run.Finish(conn, nil); err != nil {

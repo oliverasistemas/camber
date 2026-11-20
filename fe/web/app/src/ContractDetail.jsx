@@ -6,6 +6,7 @@ import { columns as assetColumns } from './Assets.jsx'
 import { columns as transactionColumns } from './Transactions.jsx'
 import { contractColumns as snapshotColumns, contractKey as snapshotKey } from './SnapshotDetail.jsx'
 import { useRecord } from './records.jsx'
+import { camberList } from './portfolios.jsx'
 
 // The lease number and lessee are already in the page header, so drop them from the tables.
 const assetCols = assetColumns.filter((c) => !['lease', 'name'].includes(c.dataIndex))
@@ -26,7 +27,7 @@ export default function ContractDetail() {
   const crumbs = (
     <Breadcrumb
       style={{ marginBottom: 12 }}
-      items={[{ title: <Link to="/vervent/contracts">Contracts</Link> }, { title: leaseNo }]}
+      items={[{ title: <Link to={camberList('/vervent/contracts')}>Contracts</Link> }, { title: leaseNo }]}
     />
   )
   if (c === undefined) return <Spin style={{ display: 'block', margin: '64px auto' }} />
@@ -59,6 +60,7 @@ export default function ContractDetail() {
               { label: 'Days Del', children: c.days_del },
               { label: 'Est Payoff', children: money(c.est_payoff) },
               { label: 'Dealer', children: c.dlr_name },
+              { label: 'Portfolio', children: c.camber_portfolio ?? 'Not in a portfolio' },
               {
                 label: 'Camber Lease',
                 children: c.camber_lease_id && (

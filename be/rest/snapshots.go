@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"mime"
@@ -19,13 +20,15 @@ import (
 )
 
 // Portfolio snapshots (portfolio/sql/01_portfolio_snapshots.sql): frozen, servicer-neutral copies
-// of the contracts, each with its totals. /api/snapshots serves, for both backends:
+// of the contracts of Camber's leases, each with its totals. /api/snapshots serves, for both backends:
 //
 //	GET  /                           the snapshots (list contract), newest first
 //	POST /                           take a manual snapshot of the contracts as loaded now
-//	GET  /history                    the daily snapshots' totals, oldest first: the by-day charts
+//	GET  /history                    the daily snapshots' totals, oldest first: the by-day charts.
+//	                                 ?portfolio=<name>: the totals of that portfolio's rows instead
 //	GET  /contracts                  contract rows of every snapshot (list contract), without servicer_row
 //	GET  /{id}                       one snapshot
+//	GET  /{id}/portfolios            the snapshot's totals per portfolio, computed from its rows
 //	GET  /{id}/contracts/{contract}  one contract row, with the servicer's whole row
 
 // snapshotDay is one daily snapshot's totals. The figures cover the contracts open that day.
@@ -40,8 +43,32 @@ type snapshotDay struct {
 	DelinquencyRate        float64 `json:"delinquency_rate"` // percent of active contracts
 }
 
-// finish derives the rate once the counts are in.
+// portfolioTotals is the part of a snapshot that belongs to one portfolio, totalled like the
+// snapshot itself. Portfolio is null for the rows without one: leases that are not Camber's, which
+// only snapshots taken before the lease list was loaded hold.
+type portfolioTotals struct {
+	Portfolio *string `json:"portfolio"`
+	snapshotDay
+}
+
+// add counts one snapshot contract row (mock) into the totals, by the formulas of
+// portfolio.Capture.
+func (d *snapshotDay) add(rw row) {
+	d.TotalContracts++
+	if open, _ := rw["is_open"].(bool); !open {
+		return
+	}
+	d.ActiveContracts++
+	d.OutstandingReceivables += num(rw["outstanding_receivables"])
+	d.PastDue += num(rw["past_due"])
+	if num(rw["days_delinquent"]) > 0 {
+		d.DelinquentContracts++
+	}
+}
+
+// finish rounds the sums and derives the rate once the counts are in.
 func (d snapshotDay) finish() snapshotDay {
+	d.OutstandingReceivables, d.PastDue = round2(d.OutstandingReceivables), round2(d.PastDue)
 	d.DelinquencyRate = 0
 	if d.ActiveContracts > 0 {
 		d.DelinquencyRate = float64(d.DelinquentContracts) / float64(d.ActiveContracts) * 100
@@ -100,19 +127,38 @@ func (s *pgVervent) snapshotRoutes(r chi.Router) {
 	r.Get("/history", s.handleSnapshotHistory)
 	r.Get("/contracts", s.snapshotContracts.list)
 	r.Get("/{id}", s.snapshots.get)
+	r.Get("/{id}/portfolios", s.handleSnapshotPortfolios)
 	r.Get("/{id}/contracts/{contract}", s.handleSnapshotContract)
 }
 
+// snapshotRowTotals totals portfolio_snapshot_contracts rows (alias c) by the formulas of
+// portfolio.Capture, in the order of snapshotDay's fields.
+const snapshotRowTotals = `count(*),
+		       count(*) FILTER (WHERE c.is_open),
+		       coalesce(sum(c.outstanding_receivables) FILTER (WHERE c.is_open), 0)::float8,
+		       coalesce(sum(c.past_due) FILTER (WHERE c.is_open), 0)::float8,
+		       count(*) FILTER (WHERE c.is_open AND c.days_delinquent > 0)`
+
+// handleSnapshotHistory answers with the totals frozen on each daily snapshot, or for one
+// portfolio with the totals of its rows in each; a day the portfolio has no rows in is left out.
 func (s *pgVervent) handleSnapshotHistory(w http.ResponseWriter, r *http.Request) {
 	days := []snapshotDay{}
 	if s.snapshots.db == nil { // the snapshot tables don't exist yet
 		writeJSON(w, days)
 		return
 	}
-	rows, err := s.db.Query(r.Context(), `
+	query, args := `
 		SELECT id, as_of::text, total_contracts, active_contracts, outstanding_receivables::float8,
 		       past_due::float8, delinquent_contracts
-		  FROM portfolio_snapshots WHERE kind = 'daily' ORDER BY as_of`)
+		  FROM portfolio_snapshots WHERE kind = 'daily' ORDER BY as_of`, []any{}
+	if name := r.URL.Query().Get("portfolio"); name != "" {
+		query, args = `
+		SELECT c.snapshot_id, c.as_of::text, `+snapshotRowTotals+`
+		  FROM portfolio_snapshot_contracts c
+		 WHERE c.kind = 'daily' AND c.portfolio = $1
+		 GROUP BY c.snapshot_id, c.as_of ORDER BY c.as_of`, []any{name}
+	}
+	rows, err := s.db.Query(r.Context(), query, args...)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -130,8 +176,37 @@ func (s *pgVervent) handleSnapshotHistory(w http.ResponseWriter, r *http.Request
 	writeJSON(w, days)
 }
 
-// handleCreateSnapshot copies vervent_contracts as it stands into a manual snapshot, in one
-// transaction, and answers with the new snapshot.
+func (s *pgVervent) handleSnapshotPortfolios(w http.ResponseWriter, r *http.Request) {
+	totals := []portfolioTotals{}
+	if s.snapshots.db == nil {
+		writeJSON(w, totals)
+		return
+	}
+	rows, err := s.db.Query(r.Context(), `
+		SELECT c.portfolio, c.snapshot_id, c.as_of::text, `+snapshotRowTotals+`
+		  FROM portfolio_snapshot_contracts c
+		 WHERE c.snapshot_id::text = $1
+		 GROUP BY c.portfolio, c.snapshot_id, c.as_of ORDER BY c.portfolio NULLS LAST`, chi.URLParam(r, "id"))
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	var t portfolioTotals
+	_, err = pgx.ForEachRow(rows, []any{&t.Portfolio, &t.SnapshotID, &t.AsOf, &t.TotalContracts, &t.ActiveContracts,
+		&t.OutstandingReceivables, &t.PastDue, &t.DelinquentContracts}, func() error {
+		t.snapshotDay = t.finish()
+		totals = append(totals, t)
+		return nil
+	})
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	writeJSON(w, totals)
+}
+
+// handleCreateSnapshot copies the vervent_contracts rows of Camber's leases as they stand into a
+// manual snapshot, in one transaction, and answers with the new snapshot.
 func (s *pgVervent) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) {
 	req, ok := readSnapshotRequest(w, r)
 	if !ok {
@@ -161,6 +236,10 @@ func (s *pgVervent) handleCreateSnapshot(w http.ResponseWriter, r *http.Request)
 	}
 	id, _, err := portfolio.Capture(ctx, tx, portfolio.Vervent("vervent_contracts"), portfolio.Snapshot{
 		Kind: portfolio.Manual, AsOf: *asOf, Name: req.Name, Note: req.Note, TakenBy: takenBy(r)})
+	if errors.Is(err, portfolio.ErrNoLeases) {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
 	if err != nil {
 		serverError(w, err)
 		return
@@ -216,6 +295,7 @@ func (s *verventStore) snapshotRoutes(r chi.Router) {
 		snapshots, _ := s.snapshotData()
 		snapshots.get(w, r)
 	})
+	r.Get("/{id}/portfolios", s.handleSnapshotPortfolios)
 	r.Get("/{id}/contracts/{contract}", s.handleSnapshotContract)
 }
 
@@ -228,8 +308,28 @@ func (s *verventStore) snapshotData() (snapshots, contracts dataset) {
 }
 
 func (s *verventStore) handleSnapshotHistory(w http.ResponseWriter, r *http.Request) {
-	snapshots, _ := s.snapshotData()
+	snapshots, contracts := s.snapshotData()
 	days := []snapshotDay{}
+	if name := r.URL.Query().Get("portfolio"); name != "" {
+		byID := map[string]*snapshotDay{}
+		for _, rw := range contracts.rows {
+			if rw["kind"] != portfolio.Daily || rw["portfolio"] != name {
+				continue
+			}
+			id := str(rw["snapshot_id"])
+			if byID[id] == nil {
+				asOf, _ := rw["as_of"].(string)
+				byID[id] = &snapshotDay{SnapshotID: int64(num(rw["snapshot_id"])), AsOf: asOf}
+			}
+			byID[id].add(rw)
+		}
+		for _, d := range byID {
+			days = append(days, d.finish())
+		}
+		slices.SortFunc(days, func(a, b snapshotDay) int { return strings.Compare(a.AsOf, b.AsOf) })
+		writeJSON(w, days)
+		return
+	}
 	for _, sn := range snapshots.rows {
 		if sn["kind"] != portfolio.Daily {
 			continue
@@ -247,6 +347,39 @@ func (s *verventStore) handleSnapshotHistory(w http.ResponseWriter, r *http.Requ
 	}
 	slices.SortFunc(days, func(a, b snapshotDay) int { return strings.Compare(a.AsOf, b.AsOf) })
 	writeJSON(w, days)
+}
+
+func (s *verventStore) handleSnapshotPortfolios(w http.ResponseWriter, r *http.Request) {
+	_, contracts := s.snapshotData()
+	id := chi.URLParam(r, "id")
+	byName := map[string]*portfolioTotals{} // "" for the rows without a portfolio
+	for _, rw := range contracts.rows {
+		if str(rw["snapshot_id"]) != id {
+			continue
+		}
+		name, named := rw["portfolio"].(string)
+		t := byName[name]
+		if t == nil {
+			asOf, _ := rw["as_of"].(string)
+			t = &portfolioTotals{snapshotDay: snapshotDay{SnapshotID: int64(num(rw["snapshot_id"])), AsOf: asOf}}
+			if named {
+				t.Portfolio = &name
+			}
+			byName[name] = t
+		}
+		t.add(rw)
+	}
+	totals := []portfolioTotals{}
+	for _, name := range slices.Sorted(maps.Keys(byName)) {
+		t := byName[name]
+		t.snapshotDay = t.finish()
+		totals = append(totals, *t)
+	}
+	// Sorted by name, which put the rows without a portfolio first; they go last.
+	if len(totals) > 0 && totals[0].Portfolio == nil {
+		totals = append(totals[1:], totals[0])
+	}
+	writeJSON(w, totals)
 }
 
 // handleCreateSnapshot does what portfolio.Capture does in SQL, over the mock contracts. The
@@ -278,21 +411,19 @@ func (s *verventStore) handleCreateSnapshot(w http.ResponseWriter, r *http.Reque
 	var total snapshotDay
 	contracts := make([]row, 0, len(s.contracts.rows))
 	for _, c := range s.contracts.rows {
-		rw := row{"snapshot_id": id, "as_of": asOf, "kind": portfolio.Manual}
+		if !rowInPortfolio(c, "") {
+			continue
+		}
+		rw := row{"snapshot_id": id, "as_of": asOf, "kind": portfolio.Manual, "portfolio": c["camber_portfolio"]}
 		for _, m := range portfolio.Vervent("").Columns {
 			rw[m.Column] = c[m.From]
 		}
 		contracts = append(contracts, rw)
-		total.TotalContracts++
-		if open, _ := rw["is_open"].(bool); !open {
-			continue
-		}
-		total.ActiveContracts++
-		total.OutstandingReceivables += num(rw["outstanding_receivables"])
-		total.PastDue += num(rw["past_due"])
-		if num(rw["days_delinquent"]) > 0 {
-			total.DelinquentContracts++
-		}
+		total.add(rw)
+	}
+	if len(contracts) == 0 {
+		http.Error(w, portfolio.ErrNoLeases.Error(), http.StatusConflict)
+		return
 	}
 	slices.SortFunc(contracts, func(a, b row) int { return strings.Compare(str(a["contract_no"]), str(b["contract_no"])) })
 

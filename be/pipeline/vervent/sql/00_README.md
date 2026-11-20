@@ -17,6 +17,10 @@ loader takes one from every ContractSummary file it loads, including files older
 already in `vervent_contracts`, so re-loading old files backfills them. It needs those tables to
 exist.
 
+`05_portfolio_views.sql` adds the `vervent_*_list` views: each table with `camber_portfolio`, the
+Camber portfolio of the row's lease, from `portfolio_leases` (`portfolio/sql/02_portfolios.sql`).
+Run `portfolio/sql` before these files.
+
 Run them in order. They are idempotent (`IF NOT EXISTS`) and have no schema prefix,
 so set `search_path` first if the tables should live outside `public`:
 

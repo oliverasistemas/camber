@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Alert, Col, Flex, Row, Statistic, Tag, Typography } from 'antd'
 import DataTable, { compact, compactMoney, money } from './DataTable.jsx'
 import LinkCard from './LinkCard.jsx'
 import { terminationLink, vinLink } from './records.jsx'
+import { inPortfolio, portfolioColumn, usePortfolios } from './portfolios.jsx'
 
 // stage values from the lease_terminations view, in display order.
 export const stages = [
@@ -32,7 +34,7 @@ const cards = [
   { key: 'sold', label: 'Sold', filters: () => ({ stage: 'sold' }) },
 ]
 
-const columns = [
+const columns = (portfolios) => [
   { title: 'Lease No', dataIndex: 'lease_no', fixed: 'left', render: terminationLink },
   {
     title: 'Stage',
@@ -40,6 +42,7 @@ const columns = [
     filters: stages.map((s) => ({ text: s.label, value: s.key })),
     render: stageTag,
   },
+  portfolioColumn(portfolios),
   { title: 'Vehicle', dataIndex: 'vehicle' },
   { title: 'VIN', dataIndex: 'vin', render: vinLink },
   { title: 'Lessee', dataIndex: 'lessee_name' },
@@ -65,20 +68,29 @@ const columns = [
 
 // Terminations is /servicing/terminations: every vehicle lease from the lease_terminations view, the
 // loaded part of the Master Servicing lease termination tracker. Each card filters the table below
-// to the leases it counts; each row opens the lease's tracker page.
+// to the leases it counts; each row opens the lease's tracker page. The cards count Camber's
+// leases, or those of the portfolio the table is filtered to.
 export default function Terminations() {
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState(null)
+  const portfolios = usePortfolios()
+  const [params] = useSearchParams()
+  const picked = params.get('camber_portfolio')
+  const portfolio = picked && picked !== 'null' ? picked : ''
 
   useEffect(() => {
-    fetch('/api/servicing/terminations/summary')
+    let cancelled = false
+    fetch(`/api/servicing/terminations/summary?${new URLSearchParams(portfolio ? { portfolio } : {})}`)
       .then((res) => {
         if (res.status === 401) window.location.reload()
         return res.ok ? res.json() : Promise.reject(new Error(res.statusText))
       })
-      .then(setSummary)
-      .catch((err) => setError(err.message))
-  }, [])
+      .then((s) => !cancelled && setSummary(s))
+      .catch((err) => !cancelled && setError(err.message))
+    return () => {
+      cancelled = true
+    }
+  }, [portfolio])
 
   const groups = Object.fromEntries((summary?.groups ?? []).map((g) => [g.key, g]))
 
@@ -90,7 +102,10 @@ export default function Terminations() {
           const g = groups[c.key]
           return (
             <Col key={c.key} xs={24} sm={12} lg={{ flex: '20%' }}>
-              <LinkCard to={summary ? `?${new URLSearchParams(c.filters(summary))}` : ''} loading={!summary && !error}>
+              <LinkCard
+                to={summary ? `?${new URLSearchParams({ ...c.filters(summary), ...inPortfolio(portfolio) })}` : ''}
+                loading={!summary && !error}
+              >
                 <Statistic title={c.label} value={compact(g?.units ?? 0)} suffix="leases" />
                 <Typography.Text type="secondary">
                   {!g
@@ -104,7 +119,7 @@ export default function Terminations() {
           )
         })}
       </Row>
-      <DataTable endpoint="/api/servicing/terminations" rowKey="lease_no" columns={columns} noun="leases" urlState />
+      <DataTable endpoint="/api/servicing/terminations" rowKey="lease_no" columns={columns(portfolios)} noun="leases" urlState />
     </Flex>
   )
 }

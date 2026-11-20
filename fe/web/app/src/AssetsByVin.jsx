@@ -4,6 +4,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import DataTable from './DataTable.jsx'
 import PageHeader from './PageHeader.jsx'
 import { columns } from './Assets.jsx'
+import { camberList } from './portfolios.jsx'
 
 // AssetsByVin is /vervent/assets/vin/:vin, where Copart VINs link. One matching asset opens it;
 // a re-leased vehicle has several, which are listed.
@@ -33,7 +34,7 @@ export default function AssetsByVin() {
     <>
       <Breadcrumb
         style={{ marginBottom: 12 }}
-        items={[{ title: <Link to="/vervent/assets">Assets</Link> }, { title: `VIN ${vin}` }]}
+        items={[{ title: <Link to={camberList('/vervent/assets')}>Assets</Link> }, { title: `VIN ${vin}` }]}
       />
       {result.error ? (
         <Alert type="error" showIcon message={`Failed to look up VIN ${vin}: ${result.error}`} />

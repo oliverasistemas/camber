@@ -45,6 +45,7 @@ export default function SnapshotContract() {
             size="small"
             column={{ xs: 1, sm: 2, lg: 4 }}
             items={[
+              { label: 'Portfolio', children: c.portfolio ?? 'Not in a portfolio' },
               { label: 'Status', children: c.status },
               { label: 'Commenced', children: c.commencement_date },
               { label: 'Maturity', children: c.maturity_date },

@@ -1,6 +1,6 @@
 -- lease_terminations: one row per vehicle contract (class V) with its asset, the Copart lot the vehicle
 -- went to after this lease and that lot's sale: the loaded part of the Master Servicing lease termination
--- tracker. Run after 01/02 and vervent/sql/01-02.
+-- tracker. Run after 01/02, vervent/sql/01-02 and portfolio/sql/02.
 --
 -- CREATE OR REPLACE can add columns at the end but not rename, retype, reorder or drop one: for that,
 -- DROP VIEW lease_terminations first.
@@ -122,7 +122,8 @@ SELECT lease_no,
        net_sale_proceeds                         AS copart_net_proceeds,
        sale_proceeds                             AS vervent_sale_proceeds,
        coalesce(net_sale_proceeds, NULLIF(sale_proceeds, 0))                          AS net_sale_proceeds,
-       coalesce(net_sale_proceeds, NULLIF(sale_proceeds, 0)) - NULLIF(tot_residual, 0) AS gain_loss
+       coalesce(net_sale_proceeds, NULLIF(sale_proceeds, 0)) - NULLIF(tot_residual, 0) AS gain_loss,
+       (SELECT pl.portfolio FROM portfolio_leases pl WHERE pl.lease_id = t.camber_lease_id) AS camber_portfolio
   FROM t;
 
 COMMENT ON VIEW lease_terminations IS 'One row per vehicle contract (vervent_contracts.class = V) with its asset, the Copart lot the vehicle went to after this lease and that lot''s sale. The columns of the Master Servicing lease termination tracker that Vervent and Copart supply.';
@@ -141,4 +142,5 @@ COMMENT ON COLUMN lease_terminations.lot_nbr IS 'The latest Copart lot assigned 
 COMMENT ON COLUMN lease_terminations.sale_date IS 'Copart sale date, else the Vervent SOLD DATE.';
 COMMENT ON COLUMN lease_terminations.sale_channel IS 'Copart when the lot has a Copart sale; Other for any other sold asset.';
 COMMENT ON COLUMN lease_terminations.net_sale_proceeds IS 'Copart net proceeds, else Vervent SALE PROCEEDS when not 0, USD.';
+COMMENT ON COLUMN lease_terminations.camber_portfolio IS 'Camber portfolio of the lease (portfolio_leases); empty for a lease that is not Camber''s.';
 COMMENT ON COLUMN lease_terminations.gain_loss IS 'Provisional: net_sale_proceeds minus the contract residual, USD.';

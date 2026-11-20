@@ -1,5 +1,6 @@
 [
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "MADISON",
     "lease": "5000080213",
@@ -87,6 +88,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "IL",
     "county": "COOK",
     "lease": "5000049887",
@@ -174,6 +176,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "JEFFERSON",
     "lease": "5000062722",
@@ -261,6 +264,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MA",
     "county": "NORFOLK",
     "lease": "5000098546",
@@ -348,6 +352,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "IL",
     "county": "ST CLAIR",
     "lease": "5000046782",
@@ -435,6 +440,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "IL",
     "county": "ST CLAIR",
     "lease": "5000077019",
@@ -522,6 +528,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "ST LOUIS",
     "lease": "5000058260",
@@ -609,6 +616,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "JEFFERSON",
     "lease": "5000026165",
@@ -696,6 +704,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "state": "MA",
     "county": "NORFOLK",
     "lease": "5000085581",
@@ -783,6 +792,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "state": "MA",
     "county": "NORFOLK",
     "lease": "500085581D",
@@ -870,6 +880,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "GREENE",
     "lease": "5000056599",
@@ -957,6 +968,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "ST CLAIR",
     "lease": "5000044411",
@@ -1044,6 +1056,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "MADISON",
     "lease": "5000087967",
@@ -1131,6 +1144,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "JEFFERSON",
     "lease": "5000026172",
@@ -1218,6 +1232,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "FL",
     "county": "ORANGE",
     "lease": "5000035095",
@@ -1305,6 +1320,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "MADISON",
     "lease": "5000060505",
@@ -1392,6 +1408,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "state": "MO",
     "county": "JEFFERSON",
     "lease": "5000027911",
@@ -1479,6 +1496,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "MO",
     "county": "ST LOUIS",
     "lease": "5000060549",
@@ -1566,6 +1584,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "ST LOUIS",
     "lease": "5000056856",
@@ -1653,6 +1672,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "ST LOUIS",
     "lease": "500056856D",
@@ -1740,6 +1760,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MA",
     "county": "NORFOLK",
     "lease": "5000044148",
@@ -1827,6 +1848,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "state": "TX",
     "county": "TRAVIS",
     "lease": "5000039768",
@@ -1914,6 +1936,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "JACKSON",
     "lease": "5000024009",
@@ -2001,6 +2024,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "IL",
     "county": "MADISON",
     "lease": "5000058112",
@@ -2088,6 +2112,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "JEFFERSON",
     "lease": "5000094139",
@@ -2175,6 +2200,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "MADISON",
     "lease": "5000094625",
@@ -2262,6 +2288,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MA",
     "county": "NORFOLK",
     "lease": "5000071212",
@@ -2349,6 +2376,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "ST CHARLES",
     "lease": "5000098229",
@@ -2436,6 +2464,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "JACKSON",
     "lease": "5000026659",
@@ -2523,6 +2552,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "IL",
     "county": "MADISON",
     "lease": "5000023389",
@@ -2610,6 +2640,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "JACKSON",
     "lease": "5000094156",
@@ -2697,6 +2728,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "FL",
     "county": "ORANGE",
     "lease": "5000058812",
@@ -2784,6 +2816,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "ST CHARLES",
     "lease": "5000099295",
@@ -2871,6 +2904,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "ST CHARLES",
     "lease": "5000071399",
@@ -2958,6 +2992,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "state": "IL",
     "county": "MADISON",
     "lease": "5000015750",
@@ -3045,6 +3080,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "FL",
     "county": "ORANGE",
     "lease": "5000044782",
@@ -3132,6 +3168,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "IL",
     "county": "COOK",
     "lease": "5000059230",
@@ -3219,6 +3256,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "IL",
     "county": "COOK",
     "lease": "500059230D",
@@ -3306,6 +3344,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "TX",
     "county": "TRAVIS",
     "lease": "5000049888",
@@ -3393,6 +3432,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "MO",
     "county": "JACKSON",
     "lease": "5000071939",
@@ -3480,6 +3520,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "MO",
     "county": "ST CHARLES",
     "lease": "5000028866",
@@ -3567,6 +3608,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "MO",
     "county": "GREENE",
     "lease": "5000041354",
@@ -3654,6 +3696,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "JACKSON",
     "lease": "5000073027",
@@ -3741,6 +3784,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "IL",
     "county": "ST CLAIR",
     "lease": "5000050531",
@@ -3828,6 +3872,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "TX",
     "county": "TRAVIS",
     "lease": "5000091176",
@@ -3915,6 +3960,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "MO",
     "county": "JACKSON",
     "lease": "5000075292",
@@ -4002,6 +4048,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "ST CHARLES",
     "lease": "5000031596",
@@ -4089,6 +4136,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "ST CLAIR",
     "lease": "5000050345",
@@ -4176,6 +4224,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "ST CLAIR",
     "lease": "5000096667",
@@ -4263,6 +4312,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "ST LOUIS",
     "lease": "5000042427",
@@ -4350,6 +4400,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "ST CHARLES",
     "lease": "5000085007",
@@ -4437,6 +4488,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "ST LOUIS",
     "lease": "5000090900",
@@ -4524,6 +4576,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "ST CLAIR",
     "lease": "5000031098",
@@ -4611,6 +4664,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "MADISON",
     "lease": "5000068970",
@@ -4698,6 +4752,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "state": "MO",
     "county": "GREENE",
     "lease": "5000096846",
@@ -4785,6 +4840,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "MO",
     "county": "ST LOUIS",
     "lease": "5000030405",
@@ -4872,6 +4928,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2025-2",
     "state": "IL",
     "county": "ST CLAIR",
     "lease": "5000096980",
@@ -4959,6 +5016,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "MADISON",
     "lease": "5000086277",
@@ -5046,6 +5104,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)",
     "state": "IL",
     "county": "MADISON",
     "lease": "500086277D",
@@ -5133,6 +5192,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "JACKSON",
     "lease": "5000080025",
@@ -5220,6 +5280,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MA",
     "county": "NORFOLK",
     "lease": "5000070956",
@@ -5307,6 +5368,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "ST CHARLES",
     "lease": "5000082832",
@@ -5394,6 +5456,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)",
     "state": "MO",
     "county": "GREENE",
     "lease": "5000084707",
@@ -5481,6 +5544,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "IL",
     "county": "MADISON",
     "lease": "5000031398",
@@ -5568,6 +5632,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "JACKSON",
     "lease": null,
@@ -5655,6 +5720,7 @@
     "loaded_at": "2026-11-11T06:00:00+00:00"
   },
   {
+    "camber_portfolio": null,
     "state": "MO",
     "county": "ST CHARLES",
     "lease": null,

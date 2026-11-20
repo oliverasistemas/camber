@@ -245,6 +245,14 @@ ALTER TABLE vervent_contracts ADD COLUMN IF NOT EXISTS camber_lease_id text
     GENERATED ALWAYS AS (CASE WHEN length(lease_no) >= 2 AND right(lease_no, 1) !~ '[0-9]' THEN left(lease_no, 1) || '0' || substr(lease_no, 2, length(lease_no) - 2) ELSE lease_no END) STORED;
 
 CREATE INDEX IF NOT EXISTS ix_vervent_contracts_camber_lease_id ON vervent_contracts (camber_lease_id);
+
+-- The same rule as a function, for lease numbers that are not in this table: an asset's or a
+-- transaction's (05_portfolio_views.sql) and a file's staged rows (the loader's daily snapshot).
+-- Keep it identical to the column's expression above.
+CREATE OR REPLACE FUNCTION vervent_camber_lease_id(lease_no text) RETURNS text
+LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+SELECT CASE WHEN length(lease_no) >= 2 AND right(lease_no, 1) !~ '[0-9]' THEN left(lease_no, 1) || '0' || substr(lease_no, 2, length(lease_no) - 2) ELSE lease_no END
+$$;
 CREATE INDEX IF NOT EXISTS ix_vervent_contracts_lessee_no ON vervent_contracts (lessee_no);
 CREATE INDEX IF NOT EXISTS ix_vervent_contracts_ls_status ON vervent_contracts (ls_status);
 

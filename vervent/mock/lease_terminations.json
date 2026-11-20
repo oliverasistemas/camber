@@ -54,7 +54,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)"
   },
   {
     "lease_no": "5000023389",
@@ -111,7 +112,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 6184.88,
     "net_sale_proceeds": 6184.88,
-    "gain_loss": -598.81
+    "gain_loss": -598.81,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000024009",
@@ -168,7 +170,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 15246.88,
     "net_sale_proceeds": 15246.88,
-    "gain_loss": 1125.69
+    "gain_loss": 1125.69,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000026165",
@@ -225,7 +228,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 28082.91,
     "net_sale_proceeds": 28082.91,
-    "gain_loss": 3107.36
+    "gain_loss": 3107.36,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000026172",
@@ -282,7 +286,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000026659",
@@ -339,7 +344,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000027911",
@@ -396,7 +402,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 24885.88,
     "net_sale_proceeds": 24885.88,
-    "gain_loss": 1915.4
+    "gain_loss": 1915.4,
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)"
   },
   {
     "lease_no": "5000028866",
@@ -453,7 +460,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000030405",
@@ -510,7 +518,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000031098",
@@ -567,7 +576,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 26716.56,
     "net_sale_proceeds": 26716.56,
-    "gain_loss": -1263.27
+    "gain_loss": -1263.27,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000031398",
@@ -624,7 +634,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000031596",
@@ -681,7 +692,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000035095",
@@ -738,7 +750,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000039768",
@@ -795,7 +808,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)"
   },
   {
     "lease_no": "5000041354",
@@ -852,7 +866,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 10357.28,
     "net_sale_proceeds": 10357.28,
-    "gain_loss": 614.86
+    "gain_loss": 614.86,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000042427",
@@ -909,7 +924,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000044148",
@@ -966,7 +982,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000044411",
@@ -1023,7 +1040,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 17305.87,
     "net_sale_proceeds": 17305.87,
-    "gain_loss": -1220.46
+    "gain_loss": -1220.46,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000044782",
@@ -1080,7 +1098,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 12611.25,
     "net_sale_proceeds": 12611.25,
-    "gain_loss": 661.39
+    "gain_loss": 661.39,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000046782",
@@ -1137,7 +1156,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000049887",
@@ -1194,7 +1214,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000049888",
@@ -1251,7 +1272,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000050345",
@@ -1308,7 +1330,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000050531",
@@ -1365,7 +1388,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000056599",
@@ -1422,7 +1446,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000056856",
@@ -1479,7 +1504,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 14570.02,
     "net_sale_proceeds": 14570.02,
-    "gain_loss": 1369.53
+    "gain_loss": 1369.53,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000058112",
@@ -1536,7 +1562,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 12485.35,
     "net_sale_proceeds": 12485.35,
-    "gain_loss": 457.38
+    "gain_loss": 457.38,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000058260",
@@ -1593,7 +1620,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 15447.57,
     "net_sale_proceeds": 15447.57,
-    "gain_loss": 2101.6
+    "gain_loss": 2101.6,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000058812",
@@ -1650,7 +1678,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 27751.38,
     "net_sale_proceeds": 27751.38,
-    "gain_loss": -385.09
+    "gain_loss": -385.09,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000059230",
@@ -1707,7 +1736,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000060505",
@@ -1764,7 +1794,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 9998.03,
     "net_sale_proceeds": 9998.03,
-    "gain_loss": 1503.61
+    "gain_loss": 1503.61,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000060549",
@@ -1821,7 +1852,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000062722",
@@ -1878,7 +1910,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 21065.29,
     "net_sale_proceeds": 21065.29,
-    "gain_loss": -1042.1
+    "gain_loss": -1042.1,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000068970",
@@ -1935,7 +1968,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000070956",
@@ -1992,7 +2026,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 13444.51,
     "net_sale_proceeds": 13444.51,
-    "gain_loss": -317.15
+    "gain_loss": -317.15,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000071212",
@@ -2049,7 +2084,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000071399",
@@ -2106,7 +2142,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000071939",
@@ -2163,7 +2200,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000073027",
@@ -2220,7 +2258,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000075292",
@@ -2277,7 +2316,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000077019",
@@ -2334,7 +2374,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 11568.0,
     "net_sale_proceeds": 11568.0,
-    "gain_loss": 239.3
+    "gain_loss": 239.3,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000080025",
@@ -2391,7 +2432,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 4949.21,
     "net_sale_proceeds": 4949.21,
-    "gain_loss": -262.71
+    "gain_loss": -262.71,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000080213",
@@ -2448,7 +2490,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000082832",
@@ -2505,7 +2548,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 13175.97,
     "net_sale_proceeds": 13175.97,
-    "gain_loss": -101.97
+    "gain_loss": -101.97,
+    "camber_portfolio": null
   },
   {
     "lease_no": "5000084707",
@@ -2562,7 +2606,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 7439.56,
     "net_sale_proceeds": 7439.56,
-    "gain_loss": 83.14
+    "gain_loss": 83.14,
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)"
   },
   {
     "lease_no": "5000085007",
@@ -2619,7 +2664,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000085581",
@@ -2676,7 +2722,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)"
   },
   {
     "lease_no": "5000086277",
@@ -2733,7 +2780,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 17177.56,
     "net_sale_proceeds": 17177.56,
-    "gain_loss": -298.14
+    "gain_loss": -298.14,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000087967",
@@ -2790,7 +2838,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000090900",
@@ -2847,7 +2896,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000091176",
@@ -2904,7 +2954,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000094139",
@@ -2961,7 +3012,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 32322.62,
     "net_sale_proceeds": 32322.62,
-    "gain_loss": 2770.15
+    "gain_loss": 2770.15,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000094156",
@@ -3018,7 +3070,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 33951.07,
     "net_sale_proceeds": 33951.07,
-    "gain_loss": 3553.93
+    "gain_loss": 3553.93,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000094625",
@@ -3075,7 +3128,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000096667",
@@ -3132,7 +3186,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000096846",
@@ -3189,7 +3244,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Non-Securitized)"
   },
   {
     "lease_no": "5000096980",
@@ -3246,7 +3302,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2025-2"
   },
   {
     "lease_no": "5000098229",
@@ -3303,7 +3360,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 21552.93,
     "net_sale_proceeds": 21552.93,
-    "gain_loss": 2252.41
+    "gain_loss": 2252.41,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000098546",
@@ -3360,7 +3418,8 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   },
   {
     "lease_no": "5000099295",
@@ -3417,6 +3476,7 @@
     "copart_net_proceeds": null,
     "vervent_sale_proceeds": 0,
     "net_sale_proceeds": null,
-    "gain_loss": null
+    "gain_loss": null,
+    "camber_portfolio": "Camber Credit 2026-1 (Securitized)"
   }
 ]

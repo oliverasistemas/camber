@@ -15,6 +15,10 @@
 --   manual  taken on demand from the dashboard (POST /api/snapshots), a named copy of the
 --           contracts as currently loaded.
 --
+-- A snapshot holds the contracts of Camber's leases only: the ones whose lease is in
+-- portfolio_leases (02_portfolios.sql) when it is taken. Snapshots taken before that list existed
+-- hold every contract the servicer reported, and their totals count them all.
+--
 -- The totals on the header are computed from the snapshot's own contract rows when it is taken:
 --   active_contracts         contracts with is_open
 --   outstanding_receivables  sum of outstanding_receivables over open contracts
@@ -67,6 +71,15 @@ CREATE TABLE IF NOT EXISTS portfolio_snapshot_contracts (
 
 CREATE INDEX IF NOT EXISTS ix_portfolio_snapshot_contracts_contract_no ON portfolio_snapshot_contracts (contract_no);
 
+-- The lease a contract belongs to and that lease's portfolio (02_portfolios.sql) when the snapshot
+-- was taken. Added here rather than in CREATE TABLE so that load-schema.sh also adds them to a
+-- table that already exists. A snapshot taken since then holds Camber's leases only, so every row
+-- of it has a portfolio; the rows of earlier snapshots were labelled afterwards (lease_id by
+-- vervent/sql/05_portfolio_views.sql, portfolio by portfolio/load.py), and the ones left without a
+-- portfolio are the leases that are not Camber's.
+ALTER TABLE portfolio_snapshot_contracts ADD COLUMN IF NOT EXISTS lease_id text;
+ALTER TABLE portfolio_snapshot_contracts ADD COLUMN IF NOT EXISTS portfolio text;
+
 -- The contract rows without servicer_row, for list pages: the servicer's row is some 200 fields
 -- per contract and is only wanted one contract at a time.
 -- CREATE OR REPLACE can add columns at the end but not rename, retype, reorder or drop one.
@@ -86,7 +99,9 @@ SELECT snapshot_id,
        outstanding_receivables,
        past_due,
        days_delinquent,
-       delinquency_bucket
+       delinquency_bucket,
+       lease_id,
+       portfolio
   FROM portfolio_snapshot_contracts;
 
 COMMENT ON TABLE portfolio_snapshots IS 'Frozen copies of the portfolio at a point in time: one row per snapshot with its totals. Contract rows are in portfolio_snapshot_contracts.';
@@ -122,4 +137,6 @@ COMMENT ON COLUMN portfolio_snapshot_contracts.outstanding_receivables IS 'Remai
 COMMENT ON COLUMN portfolio_snapshot_contracts.past_due IS 'Total past-due amount, USD.';
 COMMENT ON COLUMN portfolio_snapshot_contracts.days_delinquent IS 'Days delinquent.';
 COMMENT ON COLUMN portfolio_snapshot_contracts.delinquency_bucket IS 'Delinquency bucket: 1-30 ... 181+. Null = current.';
+COMMENT ON COLUMN portfolio_snapshot_contracts.lease_id IS 'Camber lease id: the lease this contract belongs to (a deficiency contract carries its lease''s id).';
+COMMENT ON COLUMN portfolio_snapshot_contracts.portfolio IS 'Portfolio of the lease when the snapshot was taken. Null only in snapshots taken before the lease list was loaded: a lease that is not Camber''s.';
 COMMENT ON COLUMN portfolio_snapshot_contracts.servicer_row IS 'The servicer''s whole contract row as it was (for vervent: the vervent_contracts columns, without loaded_at).';

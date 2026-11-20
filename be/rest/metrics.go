@@ -44,21 +44,36 @@ type verventMetrics struct {
 	TotalAssets            int           `json:"total_assets"`
 }
 
-func (s *verventStore) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, s.metrics())
+// Every figure the dashboard shows counts Camber's leases only: the rows with a camber_portfolio
+// (vervent/sql/05_portfolio_views.sql). ?portfolio=<name> on a metrics or summary endpoint narrows
+// them to that portfolio. A list is filtered the same way with camber_portfolio=<name>, or
+// camber_portfolio.ne=null for every portfolio, so a figure's list adds up to it.
+
+// inPortfolio is that condition in SQL, with the portfolio asked for (empty for any) as $1.
+const inPortfolio = `(camber_portfolio = $1 OR ($1 = '' AND camber_portfolio IS NOT NULL))`
+
+// rowInPortfolio is the same condition over a mock row.
+func rowInPortfolio(rw row, portfolio string) bool {
+	p, ok := rw["camber_portfolio"].(string)
+	return ok && (portfolio == "" || p == portfolio)
 }
 
-// metrics summarizes the portfolio. Contract figures cover open contracts only; collections are
-// cash payments in the 30 days up to the latest transaction date, which is reported as as_of,
-// and in that date's month so far.
-func (s *verventStore) metrics() verventMetrics {
-	m := verventMetrics{
-		TotalContracts: len(s.contracts.rows),
-		TotalAssets:    len(s.assets.rows),
-	}
+func (s *verventStore) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, s.metrics(r.URL.Query().Get("portfolio")))
+}
+
+// metrics summarizes Camber's leases, or those of one portfolio. Contract figures cover open
+// contracts only; collections are cash payments in the 30 days up to the latest transaction date
+// of any lease, which is reported as as_of, and in that date's month so far.
+func (s *verventStore) metrics(portfolio string) verventMetrics {
+	var m verventMetrics
 
 	buckets := map[string]int{}
 	for _, c := range s.contracts.rows {
+		if !rowInPortfolio(c, portfolio) {
+			continue
+		}
+		m.TotalContracts++
 		if open, _ := c["is_account_open"].(bool); !open {
 			continue
 		}
@@ -88,7 +103,7 @@ func (s *verventStore) metrics() verventMetrics {
 		since := asOf.AddDate(0, 0, -30).Format(time.DateOnly)
 		monthStart := asOf.Format("2006-01") + "-01"
 		for _, t := range s.transactions.rows {
-			if nonCash, _ := t["is_non_cash"].(bool); nonCash {
+			if nonCash, _ := t["is_non_cash"].(bool); nonCash || !rowInPortfolio(t, portfolio) {
 				continue
 			}
 			d, _ := t["transaction_date_key"].(string)
@@ -103,6 +118,10 @@ func (s *verventStore) metrics() verventMetrics {
 
 	statuses := map[string]int{}
 	for _, a := range s.assets.rows {
+		if !rowInPortfolio(a, portfolio) {
+			continue
+		}
+		m.TotalAssets++
 		if st, ok := a["status"].(string); ok {
 			statuses[st]++
 		}

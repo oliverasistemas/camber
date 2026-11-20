@@ -2,8 +2,9 @@ import { Tag, Typography } from 'antd'
 import { Link } from 'react-router-dom'
 import DataTable, { money } from './DataTable.jsx'
 import { contractLink } from './records.jsx'
+import { portfolioColumn, usePortfolios } from './portfolios.jsx'
 
-const columns = [
+const columns = (portfolios) => [
   { title: 'Lease No', dataIndex: 'lease_no', fixed: 'left', render: contractLink },
   // The lease a deficiency contract belongs to; it lists the lease with all of its contracts.
   {
@@ -11,6 +12,7 @@ const columns = [
     dataIndex: 'camber_lease_id',
     render: (v) => v && <Link to={`/vervent/contracts?camber_lease_id=${encodeURIComponent(v)}`}>{v}</Link>,
   },
+  portfolioColumn(portfolios),
   { title: 'Lessee', dataIndex: 'lessee_name' },
   { title: 'State', dataIndex: 'lessee_state' },
   { title: 'Asset', dataIndex: 'first_asset_desc' },
@@ -41,5 +43,6 @@ const columns = [
 ]
 
 export default function Contracts() {
-  return <DataTable endpoint="/api/vervent/contracts" rowKey="lease_no" columns={columns} noun="contracts" urlState />
+  const portfolios = usePortfolios()
+  return <DataTable endpoint="/api/vervent/contracts" rowKey="lease_no" columns={columns(portfolios)} noun="contracts" urlState />
 }

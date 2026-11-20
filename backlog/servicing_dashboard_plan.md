@@ -18,7 +18,6 @@ Monday 2026-11-23.
 
 | Needed | Blocks |
 |---|---|
-| List of Camber-owned lease IDs with portfolio labels | Phase 2 (whitelist, portfolios) |
 | Cumulative transactions file since 2025-07-01 (Drive link) | Phase 4 |
 | Validation rules: cumulative file vs Vervent CSVs | Phase 4 sign-off |
 | Prepayment formula | Phase 5, termination scenarios |
@@ -46,7 +45,16 @@ Built 2026-11-20, not yet shipped. Shipping needs `deploy/load-schema.sh` first 
    investor loan tape.
 5. **Normalized Camber lease ID.** See Phase 2 item 1; the rule can be built and tested now.
 
-## Phase 2 — data foundation (needs Brad's lease list for items 2–4)
+## Phase 2 — data foundation
+
+Built 2026-11-20 from Brad's list (`portfolio/Camber Credit - Lease IDs & Portfolios.xlsx`: 2,787
+leases in three portfolios, loaded as labelled), not yet shipped. Shipping needs
+`deploy/load-schema.sh`, then `deploy/load-portfolios.sh`, before the new image. Decisions taken:
+securitized / non-securitized stay two portfolios, not a flag; the existing daily snapshots are
+kept with every contract and their rows labelled with the portfolio; lists are not restricted by
+the server but open on Camber's leases, with the rest one removed filter away. Left open: Copart
+pages and the search box still show everything; one listed lease (`5000942391`) is not in Vervent's
+files; 196 suffixed contracts follow a lease that is not on the list (one of them open).
 
 1. **Camber lease ID.** Rule from Brad's formula: if the ID ends in a non-digit, drop that
    character and insert `0` after the first character; otherwise unchanged. Checked against the

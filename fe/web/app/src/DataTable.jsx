@@ -58,6 +58,7 @@ function useTableQuery(urlState, pageSize, defaultSort) {
 // urlState keeps the page, sort and filters in the query string: for the one main table of a list
 // page, not for tables embedded in a detail page. Filters the columns have no control for (a
 // dashboard drill-down such as days_del.gt=0, or a range or search) show as removable tags above the table.
+// col.ne=null, any value at all, reads "<title> is set", or as the column's anyLabel if it has one.
 // defaultSort (col or -col) orders the table until the user picks a sort; clearing the sort returns to it.
 // bordered wraps the table in a card; the contract drawer turns it off.
 // sums lists columns (by dataIndex) to total in a last row. The server adds them up over every row
@@ -109,19 +110,20 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
 
   const filterLabel = (param, value) => {
     const [col, op] = param.split('.')
-    const title = columns.find((c) => c.dataIndex === col)?.title ?? col.replaceAll('_', ' ')
+    const column = columns.find((c) => c.dataIndex === col)
+    const title = column?.title ?? col.replaceAll('_', ' ')
+    if (op === 'ne' && value === 'null') return column?.anyLabel ?? `${title} is set`
     return `${title} ${opSymbols[op] ?? '='} ${value}`
   }
 
   const onChange = (pagination, tableFilters, sorter) => {
-    const filters = {
-      ...Object.fromEntries(extraFilters),
-      ...Object.fromEntries(
-        Object.entries(tableFilters)
-          .filter(([, v]) => v?.length)
-          .map(([col, v]) => [col, v[0]]),
-      ),
-    }
+    const picked = Object.fromEntries(
+      Object.entries(tableFilters)
+        .filter(([, v]) => v?.length)
+        .map(([col, v]) => [col, v[0]]),
+    )
+    // A value picked for a column replaces any other filter on it (camber_portfolio.ne=null).
+    const filters = { ...Object.fromEntries(extraFilters.filter(([k]) => !(k.split('.')[0] in picked))), ...picked }
     // Clearing a sort falls back to defaultSort; clearing a descending defaultSort itself turns it
     // ascending, or the header could never leave descending.
     const cleared = query.sort === defaultSort && defaultSort?.startsWith('-') ? defaultSort.slice(1) : defaultSort
@@ -162,7 +164,7 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
       <Table
         rowKey={rowKey}
         size="small"
-        columns={columns.map((c) => ({
+        columns={columns.map(({ anyLabel, ...c }) => ({
           sorter: true,
           filterMultiple: false,
           sortOrder: c.dataIndex === sortCol ? (sortDesc ? 'descend' : 'ascend') : null,

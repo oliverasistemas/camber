@@ -43,7 +43,7 @@ type server struct {
 	allowedEmails map[string]bool // AUTH_ALLOWED_EMAILS, comma-separated, admitted regardless of domain
 }
 
-// verventAPI is the /api/vervent, /api/copart, /api/servicing, /api/loads and /api/snapshots backend: Postgres when
+// verventAPI is the /api/vervent, /api/copart, /api/servicing, /api/loads, /api/snapshots and /api/portfolios backend: Postgres when
 // DATABASE_URL is set, else the mock JSON (which has no Copart data, so /api/copart lists come back empty).
 type verventAPI interface {
 	routes(chi.Router)
@@ -51,6 +51,7 @@ type verventAPI interface {
 	servicingRoutes(chi.Router)
 	loadRoutes(chi.Router)
 	snapshotRoutes(chi.Router)
+	portfolioRoutes(chi.Router)
 	handleSearch(http.ResponseWriter, *http.Request)
 }
 

@@ -48,6 +48,10 @@ var Reports = []*Report{
 	{Name: "TransactionHistory", Table: "vervent_transactions", DDLFile: "03_vervent_transactions.sql", Key: "transaction_key", Upsert: false},
 }
 
+// computedLeaseID is the one vervent_contracts column Postgres computes rather than a file
+// supplies (01_vervent_contracts.sql); a snapshot reads it to find the lease's portfolio.
+const computedLeaseID = "camber_lease_id"
+
 var (
 	metaColumns = map[string]bool{"source_file": true, "file_date": true, "loaded_at": true}
 	dateFormats = map[string]string{"MM/DD/YYYY": "MM/DD/YYYY", "YYYYMMDD": "YYYYMMDD", "YYMMDD": "YYMMDD"}
@@ -65,7 +69,7 @@ func init() {
 		}
 		r.Columns = cols
 		if r.Snapshot {
-			known := map[string]bool{}
+			known := map[string]bool{computedLeaseID: true}
 			for _, c := range cols {
 				known[c.Name] = true
 			}

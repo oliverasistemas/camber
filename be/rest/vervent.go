@@ -26,7 +26,7 @@ const (
 
 type row = map[string]any
 
-// dataset is one Vervent table loaded from mock JSON, indexed by its primary key.
+// dataset is one table or view loaded from mock JSON, indexed by its primary key.
 type dataset struct {
 	name  string   // the table the rows mock, which names an export
 	cols  []string // the columns in file order, for exports
@@ -45,7 +45,8 @@ type verventStore struct {
 	snapshotMu        sync.RWMutex
 	snapshots         dataset
 	snapshotContracts dataset // byKey is unused: contract_no repeats per snapshot
-	terminations dataset // the lease_terminations view, without Copart data
+	terminations      dataset // the lease_terminations view, without Copart data
+	portfolios        dataset
 }
 
 func loadVervent(dir string) (*verventStore, error) {
@@ -56,14 +57,15 @@ func loadVervent(dir string) (*verventStore, error) {
 		key   string
 		dst   *dataset
 	}{
-		{"contracts.json", "vervent_contracts", "lease_no", &s.contracts},
-		{"assets.json", "vervent_assets", "asset_no", &s.assets},
-		{"transactions.json", "vervent_transactions", "transaction_key", &s.transactions},
+		{"contracts.json", "vervent_contract_list", "lease_no", &s.contracts},
+		{"assets.json", "vervent_asset_list", "asset_no", &s.assets},
+		{"transactions.json", "vervent_transaction_list", "transaction_key", &s.transactions},
 		{"load_runs.json", "load_runs", "id", &s.loadRuns},
 		{"load_files.json", "load_files", "id", &s.loadFiles},
 		{"portfolio_snapshots.json", "portfolio_snapshots", "id", &s.snapshots},
 		{"portfolio_snapshot_contracts.json", "portfolio_snapshot_contract_list", "contract_no", &s.snapshotContracts},
 		{"lease_terminations.json", "lease_terminations", "lease_no", &s.terminations},
+		{"portfolios.json", "portfolios", "name", &s.portfolios},
 	} {
 		ds, err := loadDataset(filepath.Join(dir, d.file), d.key)
 		if err != nil {
@@ -149,6 +151,10 @@ func (s *verventStore) copartRoutes(r chi.Router) {
 	r.Get("/vs-vervent", dataset{}.list)
 	r.Get("/vs-vervent/summary", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, []any{}) })
 	r.Get("/vs-vervent/{id}", dataset{}.get)
+}
+
+func (s *verventStore) portfolioRoutes(r chi.Router) {
+	r.Get("/", s.portfolios.list)
 }
 
 func (s *verventStore) servicingRoutes(r chi.Router) {
