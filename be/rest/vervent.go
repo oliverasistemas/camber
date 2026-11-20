@@ -204,6 +204,7 @@ func splitFilter(param string) (col, op string, ok bool) {
 // filterOps suffix by comparison, e.g. /contracts?days_del.gt=0. col.ne also matches nulls.
 // col.like matches values that contain the text, whatever the case.
 // sum=col,col adds "sums": the total of each of those columns over every row the filters match.
+// distinct=col,col adds "distinct": how many different values each of those columns has over them.
 // format=xlsx answers with every matching row as a workbook instead (xlsx.go).
 func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
@@ -231,10 +232,20 @@ func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	distinctCols := sumParam(q.Get("distinct"))
+	for _, col := range distinctCols {
+		if len(d.rows) > 0 {
+			if _, ok := d.rows[0][col]; !ok {
+				http.Error(w, "unknown distinct column "+col, http.StatusBadRequest)
+				return
+			}
+		}
+	}
 	q.Del("limit")
 	q.Del("offset")
 	q.Del("sort")
 	q.Del("sum")
+	q.Del("distinct")
 	export := q.Get("format") == "xlsx"
 	q.Del("format")
 	for param := range q {
@@ -277,6 +288,19 @@ func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 			sums[col] = round2(total)
 		}
 		body["sums"] = sums
+	}
+	if len(distinctCols) > 0 {
+		distinct := make(map[string]int, len(distinctCols))
+		for _, col := range distinctCols {
+			values := map[string]struct{}{}
+			for _, rw := range matched {
+				if rw[col] != nil { // like count(DISTINCT col), nulls don't count
+					values[str(rw[col])] = struct{}{}
+				}
+			}
+			distinct[col] = len(values)
+		}
+		body["distinct"] = distinct
 	}
 	writeJSON(w, body)
 }

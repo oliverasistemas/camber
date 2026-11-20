@@ -70,10 +70,11 @@ function ByPortfolio({ id, rows }) {
               render: (v) => <Link to={rows({ portfolio: v ?? 'null' })}>{v ?? 'Not in a portfolio'}</Link>,
             },
             { title: 'Outstanding Receivables', dataIndex: 'outstanding_receivables', ...right, render: money },
-            { title: 'Active', dataIndex: 'active_contracts', ...right, render: count },
+            { title: 'Active Leases', dataIndex: 'active_leases', ...right, render: count },
+            { title: 'Leases', dataIndex: 'total_leases', ...right, render: count },
             { title: 'Contracts', dataIndex: 'total_contracts', ...right, render: count },
             { title: 'Past Due', dataIndex: 'past_due', ...right, render: money },
-            { title: 'Delinquent', dataIndex: 'delinquent_contracts', ...right, render: count },
+            { title: 'Delinquent Leases', dataIndex: 'delinquent_leases', ...right, render: count },
             { title: 'Delinquency Rate', key: 'delinquency_rate', ...right, render: (_, t) => rate(t) },
           ]}
         />
@@ -96,7 +97,8 @@ function Figure({ to, title, value, formula }) {
 }
 
 // SnapshotDetail is /portfolio/snapshots/:id: a snapshot, its totals and the contract rows they
-// are the sums of. The cards and the dashboard's trend charts link here with the filter that
+// are the sums of. The counts are of leases (a lease's main and deficiency contracts are one
+// lease); the table says how many leases the contracts it lists belong to. The cards and the dashboard's trend charts link here with the filter that
 // selects the rows a figure counts (?is_open=true), spelled as the API's own parameters.
 export default function SnapshotDetail() {
   const { id } = useParams()
@@ -134,9 +136,9 @@ export default function SnapshotDetail() {
           <Col {...cardCol}>
             <Figure
               to={rows(open)}
-              title="Active contracts"
-              value={count(s.active_contracts)}
-              formula={`Open contracts, of ${count(s.total_contracts)} in the snapshot`}
+              title="Active leases"
+              value={count(s.active_leases)}
+              formula={`Leases with an open contract, of ${count(s.total_leases)}; the ${active} belong to them`}
             />
           </Col>
           <Col {...cardCol}>
@@ -152,7 +154,7 @@ export default function SnapshotDetail() {
               to={rows({ ...open, 'days_delinquent.gt': '0', sort: '-days_delinquent' })}
               title="Delinquency rate"
               value={rate(s)}
-              formula={`${count(s.delinquent_contracts)} of the ${active} have Days Del above 0`}
+              formula={`${count(s.delinquent_leases)} of the ${count(s.active_leases)} active leases have an open contract with Days Del above 0`}
             />
           </Col>
         </Row>
@@ -191,6 +193,7 @@ export default function SnapshotDetail() {
             noun="contracts"
             baseFilters={{ snapshot_id: s.id }}
             sums={['outstanding_receivables', 'past_due']}
+            distinct={{ column: 'lease_id', noun: 'leases' }}
             urlState
           />
         </div>

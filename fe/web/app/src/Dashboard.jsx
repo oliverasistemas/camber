@@ -31,6 +31,8 @@ const day = (iso, offset = 0, options) => {
 
 // Every figure links to the list of rows it counts, filtered through the query string with the
 // same conditions the metric uses (be/rest/pgstore.go handleMetrics); keep the two in step.
+// The counts are of leases: a lease's main contract and its deficiency contracts are one lease,
+// and the contract list a count links to says how many leases its rows belong to.
 // The figures count Camber's leases, or those of the portfolio picked in the header, so every
 // link carries that condition too (inPortfolio).
 const list = (path, params) => `${path}?${new URLSearchParams(params)}`
@@ -87,13 +89,13 @@ const toTrends = (days, dayLinks) => ({
   receivables: days.map((d) => ({
     date: d.as_of,
     value: d.outstanding_receivables,
-    note: `${count(d.active_contracts)} active contracts`,
+    note: `${count(d.active_leases)} active leases`,
     to: dayLinks.receivables(d.snapshot_id),
   })),
   delinquency: days.map((d) => ({
     date: d.as_of,
     value: d.delinquency_rate,
-    note: `${count(d.delinquent_contracts)} of ${count(d.active_contracts)} active contracts`,
+    note: `${count(d.delinquent_leases)} of ${count(d.active_leases)} active leases`,
     to: dayLinks.delinquent(d.snapshot_id),
   })),
 })
@@ -129,7 +131,7 @@ function TrendCard({ title, series, format, axis, delta }) {
 const toView = (m, links) => ({
   ...m,
   links,
-  delinquency: m.delinquency_buckets.map((b) => ({ label: b.bucket, value: b.contracts, to: links.bucket(b.bucket) })),
+  delinquency: m.delinquency_buckets.map((b) => ({ label: b.bucket, value: b.leases, to: links.bucket(b.bucket) })),
   assetStatus: m.asset_status.map((s) => ({ code: s.status, label: s.label, value: s.assets, to: links.assetStatus(s.status) })),
 })
 
@@ -334,9 +336,9 @@ export default function Dashboard() {
         <Col {...tileCol}>
           <Tile
             to={links.active}
-            title="Active contracts"
-            value={count(data.active_contracts)}
-            note={`${share(data.active_contracts, data.total_contracts)} of ${count(data.total_contracts)} contracts`}
+            title="Active leases"
+            value={count(data.active_leases)}
+            note={`${share(data.active_leases, data.total_leases)} of ${count(data.total_leases)} leases, ${count(data.active_contracts)} open contracts`}
           />
         </Col>
         <Col {...tileCol}>
@@ -346,8 +348,8 @@ export default function Dashboard() {
             value={compactMoney(data.outstanding_receivables)}
             exact={money(data.outstanding_receivables)}
             note={
-              data.active_contracts > 0 &&
-              `${compactMoney(data.outstanding_receivables / data.active_contracts)} average per active contract`
+              data.active_leases > 0 &&
+              `${compactMoney(data.outstanding_receivables / data.active_leases)} average per active lease`
             }
           />
         </Col>
@@ -356,7 +358,7 @@ export default function Dashboard() {
             to={links.delinquent}
             title="Delinquency rate"
             value={`${data.delinquency_rate.toFixed(1)}%`}
-            note={`${count(data.delinquent_contracts)} contracts, ${compactMoney(data.past_due)} past due`}
+            note={`${count(data.delinquent_leases)} leases, ${compactMoney(data.past_due)} past due`}
           />
         </Col>
         <Col {...tileCol}>
@@ -398,10 +400,10 @@ export default function Dashboard() {
         <Col {...chartCol}>
           <Card
             style={{ height: '100%' }}
-            title="Delinquent active contracts by days past due"
+            title="Delinquent active leases by days past due"
             extra={<Link to={links.delinquent}>View all</Link>}
           >
-            <ColumnChart data={data.delinquency} unit="contracts" axisTitle="Days past due" />
+            <ColumnChart data={data.delinquency} unit="leases" axisTitle="Days past due" />
           </Card>
         </Col>
         <Col {...chartCol}>

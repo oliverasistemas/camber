@@ -7,8 +7,9 @@ import DataTable, { dateTime, money } from './DataTable.jsx'
 export const snapshotPath = (id) => `/portfolio/snapshots/${id}`
 export const kindTag = (v) => v && <Tag color={v === 'manual' ? 'blue' : 'default'}>{v}</Tag>
 export const count = (v) => v?.toLocaleString('en-US')
-// rate is delinquent contracts as a percentage of active ones, as the dashboard shows it.
-export const rate = (s) => (s.active_contracts > 0 ? `${((s.delinquent_contracts / s.active_contracts) * 100).toFixed(2)}%` : '')
+// rate is delinquent leases as a percentage of active ones, as the dashboard shows it. A lease's
+// main contract and its deficiency contracts are one lease.
+export const rate = (s) => (s.active_leases > 0 ? `${((s.delinquent_leases / s.active_leases) * 100).toFixed(2)}%` : '')
 // title names a snapshot: a manual one by its name, a daily one by its date.
 export const title = (s) => s.name ?? `Daily snapshot, ${s.as_of}`
 
@@ -28,10 +29,11 @@ const columns = [
   },
   { title: 'Name', dataIndex: 'name', render: (v, s) => v && <Link to={snapshotPath(s.id)}>{v}</Link> },
   { title: 'Outstanding Receivables', dataIndex: 'outstanding_receivables', align: 'right', render: money },
-  { title: 'Active', dataIndex: 'active_contracts', align: 'right', render: count },
+  { title: 'Active Leases', dataIndex: 'active_leases', align: 'right', render: count },
+  { title: 'Leases', dataIndex: 'total_leases', align: 'right', render: count },
   { title: 'Contracts', dataIndex: 'total_contracts', align: 'right', render: count },
   { title: 'Past Due', dataIndex: 'past_due', align: 'right', render: money },
-  { title: 'Delinquent', dataIndex: 'delinquent_contracts', align: 'right', render: count },
+  { title: 'Delinquent Leases', dataIndex: 'delinquent_leases', align: 'right', render: count },
   // Derived from the two counts, so the server can't sort on it.
   { title: 'Delinquency Rate', key: 'delinquency_rate', align: 'right', sorter: false, render: (_, s) => rate(s) },
   { title: 'Servicer', dataIndex: 'servicer' },

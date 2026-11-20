@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { DownloadOutlined } from '@ant-design/icons'
-import { Alert, Button, Card, Flex, Table, Tag } from 'antd'
+import { Alert, Button, Card, Flex, Table, Tag, Typography } from 'antd'
 import { columnFilter } from './ColumnFilters.jsx'
 
 export const money = (v) =>
@@ -63,7 +63,10 @@ function useTableQuery(urlState, pageSize, defaultSort) {
 // bordered wraps the table in a card; the contract drawer turns it off.
 // sums lists columns (by dataIndex) to total in a last row. The server adds them up over every row
 // the filters match, not just the page shown, so the total is the figure a card links here with.
-export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters, defaultSort = null, pageSize = 20, bordered = true, urlState = false, sums }) {
+// distinct ({ column, noun }) counts the different values of a column over those rows and shows
+// it above the table ("2,160 contracts in 2,151 leases"): the figure of a card that counts leases,
+// several of whose contracts can be listed.
+export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters, defaultSort = null, pageSize = 20, bordered = true, urlState = false, sums, distinct }) {
   const [query, setQuery] = useTableQuery(urlState, pageSize, defaultSort)
   const [result, setResult] = useState({ data: [], total: 0 })
   const [loading, setLoading] = useState(true)
@@ -82,6 +85,7 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
     }
     if (query.sort) params.set('sort', query.sort)
     if (sumKey) params.set('sum', sumKey)
+    if (distinct) params.set('distinct', distinct.column)
 
     let cancelled = false
     setLoading(true)
@@ -101,7 +105,7 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
     return () => {
       cancelled = true
     }
-  }, [endpoint, baseKey, queryKey, sumKey])
+  }, [endpoint, baseKey, queryKey, sumKey, distinct?.column])
 
   // Filters with a column control belong to the table; the rest are shown as tags.
   const controlled = new Set(columns.filter((c) => c.filters).map((c) => c.dataIndex))
@@ -157,9 +161,16 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
             </Tag>
           ))}
         </Flex>
-        <Button size="small" type="text" icon={<DownloadOutlined />} style={{ marginLeft: 'auto', flex: 'none' }} href={`${endpoint}?${exportParams}`} disabled={result.total === 0}>
-          Excel
-        </Button>
+        <Flex align="center" gap="small" style={{ marginLeft: 'auto', flex: 'none' }}>
+          {distinct && result.total > 0 && result.distinct && (
+            <Typography.Text type="secondary">
+              {`${result.total.toLocaleString('en-US')} ${noun} in ${result.distinct[distinct.column].toLocaleString('en-US')} ${distinct.noun}`}
+            </Typography.Text>
+          )}
+          <Button size="small" type="text" icon={<DownloadOutlined />} href={`${endpoint}?${exportParams}`} disabled={result.total === 0}>
+            Excel
+          </Button>
+        </Flex>
       </Flex>
       <Table
         rowKey={rowKey}

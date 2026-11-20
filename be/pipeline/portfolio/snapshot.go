@@ -135,12 +135,16 @@ SELECT $1::bigint, $2::date, $3::text, %s, pl.portfolio, to_jsonb(c) - 'loaded_a
 	_, err = tx.Exec(ctx, `
 UPDATE portfolio_snapshots s
    SET total_contracts = t.total, active_contracts = t.active, outstanding_receivables = t.receivables,
-       past_due = t.past_due, delinquent_contracts = t.delinquent
+       past_due = t.past_due, delinquent_contracts = t.delinquent,
+       total_leases = t.leases, active_leases = t.active_leases, delinquent_leases = t.delinquent_leases
   FROM (SELECT count(*) AS total,
                count(*) FILTER (WHERE is_open) AS active,
                coalesce(sum(outstanding_receivables) FILTER (WHERE is_open), 0) AS receivables,
                coalesce(sum(past_due) FILTER (WHERE is_open), 0) AS past_due,
-               count(*) FILTER (WHERE is_open AND days_delinquent > 0) AS delinquent
+               count(*) FILTER (WHERE is_open AND days_delinquent > 0) AS delinquent,
+               count(DISTINCT lease_id) AS leases,
+               count(DISTINCT lease_id) FILTER (WHERE is_open) AS active_leases,
+               count(DISTINCT lease_id) FILTER (WHERE is_open AND days_delinquent > 0) AS delinquent_leases
           FROM portfolio_snapshot_contracts WHERE snapshot_id = $1) t
  WHERE s.id = $1`, id)
 	if err != nil {

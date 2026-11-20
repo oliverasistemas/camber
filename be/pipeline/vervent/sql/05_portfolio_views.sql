@@ -50,3 +50,17 @@ UPDATE portfolio_snapshot_contracts sc
    SET lease_id = vervent_camber_lease_id(sc.contract_no)
   FROM portfolio_snapshots s
  WHERE s.id = sc.snapshot_id AND s.servicer = 'vervent' AND sc.lease_id IS NULL;
+
+-- Snapshots taken before portfolio_snapshots had the lease counts: count them from the rows, by
+-- the formulas in portfolio/sql/01_portfolio_snapshots.sql. Here because the rows need the
+-- lease_id filled in just above. Does nothing once they are filled.
+UPDATE portfolio_snapshots s
+   SET total_leases = t.leases, active_leases = t.active, delinquent_leases = t.delinquent
+  FROM (SELECT snapshot_id,
+               count(DISTINCT lease_id) AS leases,
+               count(DISTINCT lease_id) FILTER (WHERE is_open) AS active,
+               count(DISTINCT lease_id) FILTER (WHERE is_open AND days_delinquent > 0) AS delinquent
+          FROM portfolio_snapshot_contracts
+         WHERE snapshot_id IN (SELECT id FROM portfolio_snapshots WHERE total_leases IS NULL)
+         GROUP BY snapshot_id) t
+ WHERE s.id = t.snapshot_id;

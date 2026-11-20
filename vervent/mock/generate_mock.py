@@ -565,6 +565,10 @@ def portfolio_snapshots(g, days=15):
             "outstanding_receivables": money(sum(r["outstanding_receivables"] or 0 for r in active)),
             "past_due": money(sum(r["past_due"] or 0 for r in active)),
             "delinquent_contracts": sum(1 for r in active if (r["days_delinquent"] or 0) > 0),
+            # A lease's main and deficiency contracts are one lease.
+            "total_leases": len({r["lease_id"] for r in rows}),
+            "active_leases": len({r["lease_id"] for r in active}),
+            "delinquent_leases": len({r["lease_id"] for r in active if (r["days_delinquent"] or 0) > 0}),
         }
         header.update(fields)
         return header, [{"snapshot_id": sid, "as_of": iso(day), "kind": kind, **r} for r in rows]

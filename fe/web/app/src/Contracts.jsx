@@ -37,7 +37,10 @@ export const columns = (portfolios) => [
   { title: 'Dealer', dataIndex: 'dlr_name' },
 ]
 
+// The dashboard counts leases: a lease's main contract and its deficiency contracts are one lease.
+const byLease = { column: 'camber_lease_id', noun: 'leases' }
+
 export default function Contracts() {
   const portfolios = usePortfolios()
-  return <DataTable endpoint="/api/vervent/contracts" rowKey="lease_no" columns={columns(portfolios)} noun="contracts" urlState />
+  return <DataTable endpoint="/api/vervent/contracts" rowKey="lease_no" columns={columns(portfolios)} noun="contracts" distinct={byLease} urlState />
 }

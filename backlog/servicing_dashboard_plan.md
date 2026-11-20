@@ -84,9 +84,9 @@ files; 196 suffixed contracts follow a lease that is not on the list (one of the
   assets, transactions and balances. Built 2026-11-20 (`/vervent/leases/:leaseId`), not yet
   shipped; shipping needs `deploy/load-schema.sh` first (the asset and transaction views gain
   `camber_lease_id`).
-- Decide with Brad how metrics treat a deficiency contract: counted with its main lease
-  (one lease, summed balances) or separately. This changes active-contract counts and
-  delinquency, so it needs sign-off before the dashboard figures move.
+- Metrics count a deficiency contract with its main lease (decided 2026-11-20, no sign-off
+  needed): one lease, active while any of its contracts is open, balances summed. Built
+  2026-11-20; shipping needs `deploy/load-schema.sh` first (lease counts on the snapshots).
 
 ## Phase 4 — historical transactions (needs Brad's file)
 
@@ -134,7 +134,7 @@ Start with what needs no new source, as agreed: collections and termination scen
 
 1. Portfolio names, and whether securitized / non-securitized is a portfolio attribute.
 2. Meaning of the `P` suffix, and the 46 suffixed contracts with no main lease.
-3. Deficiency contracts in the metrics: merged into the main lease or counted separately.
+3. Deficiency contracts in the metrics: decided 2026-11-20, merged into the main lease.
 4. Prepayment rule: repossession-based, more than 90 days before maturity, or both.
 5. PV formula for the contract residual.
 6. Outreach: who contacts, and at which checkpoints.

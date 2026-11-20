@@ -31,7 +31,9 @@ import (
 //	GET  /{id}/portfolios            the snapshot's totals per portfolio, computed from its rows
 //	GET  /{id}/contracts/{contract}  one contract row, with the servicer's whole row
 
-// snapshotDay is one daily snapshot's totals. The figures cover the contracts open that day.
+// snapshotDay is one daily snapshot's totals. The dollar figures cover the contracts open that
+// day. The lease counts take a lease's main and deficiency contracts as one lease (lease_id):
+// active while any of them is open, delinquent while an open one is past due.
 type snapshotDay struct {
 	SnapshotID             int64   `json:"snapshot_id"`
 	AsOf                   string  `json:"as_of"`
@@ -40,7 +42,10 @@ type snapshotDay struct {
 	OutstandingReceivables float64 `json:"outstanding_receivables"`
 	PastDue                float64 `json:"past_due"`
 	DelinquentContracts    int     `json:"delinquent_contracts"`
-	DelinquencyRate        float64 `json:"delinquency_rate"` // percent of active contracts
+	TotalLeases            int     `json:"total_leases"`
+	ActiveLeases           int     `json:"active_leases"`
+	DelinquentLeases       int     `json:"delinquent_leases"`
+	DelinquencyRate        float64 `json:"delinquency_rate"` // percent of active leases
 }
 
 // portfolioTotals is the part of a snapshot that belongs to one portfolio, totalled like the
@@ -51,27 +56,43 @@ type portfolioTotals struct {
 	snapshotDay
 }
 
-// add counts one snapshot contract row (mock) into the totals, by the formulas of
-// portfolio.Capture.
-func (d *snapshotDay) add(rw row) {
-	d.TotalContracts++
+// snapshotTally totals snapshot contract rows (mock) by the formulas of portfolio.Capture.
+type snapshotTally struct {
+	snapshotDay
+	leases, active, delinquent leaseSet
+}
+
+func newSnapshotTally(day snapshotDay) *snapshotTally {
+	return &snapshotTally{snapshotDay: day, leases: leaseSet{}, active: leaseSet{}, delinquent: leaseSet{}}
+}
+
+func (t *snapshotTally) add(rw row) {
+	t.TotalContracts++
+	t.leases.add(rw["lease_id"])
 	if open, _ := rw["is_open"].(bool); !open {
 		return
 	}
-	d.ActiveContracts++
-	d.OutstandingReceivables += num(rw["outstanding_receivables"])
-	d.PastDue += num(rw["past_due"])
+	t.ActiveContracts++
+	t.active.add(rw["lease_id"])
+	t.OutstandingReceivables += num(rw["outstanding_receivables"])
+	t.PastDue += num(rw["past_due"])
 	if num(rw["days_delinquent"]) > 0 {
-		d.DelinquentContracts++
+		t.DelinquentContracts++
+		t.delinquent.add(rw["lease_id"])
 	}
+}
+
+func (t *snapshotTally) finish() snapshotDay {
+	t.TotalLeases, t.ActiveLeases, t.DelinquentLeases = len(t.leases), len(t.active), len(t.delinquent)
+	return t.snapshotDay.finish()
 }
 
 // finish rounds the sums and derives the rate once the counts are in.
 func (d snapshotDay) finish() snapshotDay {
 	d.OutstandingReceivables, d.PastDue = round2(d.OutstandingReceivables), round2(d.PastDue)
 	d.DelinquencyRate = 0
-	if d.ActiveContracts > 0 {
-		d.DelinquencyRate = float64(d.DelinquentContracts) / float64(d.ActiveContracts) * 100
+	if d.ActiveLeases > 0 {
+		d.DelinquencyRate = float64(d.DelinquentLeases) / float64(d.ActiveLeases) * 100
 	}
 	return d
 }
@@ -137,7 +158,10 @@ const snapshotRowTotals = `count(*),
 		       count(*) FILTER (WHERE c.is_open),
 		       coalesce(sum(c.outstanding_receivables) FILTER (WHERE c.is_open), 0)::float8,
 		       coalesce(sum(c.past_due) FILTER (WHERE c.is_open), 0)::float8,
-		       count(*) FILTER (WHERE c.is_open AND c.days_delinquent > 0)`
+		       count(*) FILTER (WHERE c.is_open AND c.days_delinquent > 0),
+		       count(DISTINCT c.lease_id),
+		       count(DISTINCT c.lease_id) FILTER (WHERE c.is_open),
+		       count(DISTINCT c.lease_id) FILTER (WHERE c.is_open AND c.days_delinquent > 0)`
 
 // handleSnapshotHistory answers with the totals frozen on each daily snapshot, or for one
 // portfolio with the totals of its rows in each; a day the portfolio has no rows in is left out.
@@ -149,7 +173,7 @@ func (s *pgVervent) handleSnapshotHistory(w http.ResponseWriter, r *http.Request
 	}
 	query, args := `
 		SELECT id, as_of::text, total_contracts, active_contracts, outstanding_receivables::float8,
-		       past_due::float8, delinquent_contracts
+		       past_due::float8, delinquent_contracts, total_leases, active_leases, delinquent_leases
 		  FROM portfolio_snapshots WHERE kind = 'daily' ORDER BY as_of`, []any{}
 	if name := r.URL.Query().Get("portfolio"); name != "" {
 		query, args = `
@@ -165,7 +189,8 @@ func (s *pgVervent) handleSnapshotHistory(w http.ResponseWriter, r *http.Request
 	}
 	var d snapshotDay
 	_, err = pgx.ForEachRow(rows, []any{&d.SnapshotID, &d.AsOf, &d.TotalContracts, &d.ActiveContracts,
-		&d.OutstandingReceivables, &d.PastDue, &d.DelinquentContracts}, func() error {
+		&d.OutstandingReceivables, &d.PastDue, &d.DelinquentContracts,
+		&d.TotalLeases, &d.ActiveLeases, &d.DelinquentLeases}, func() error {
 		days = append(days, d.finish())
 		return nil
 	})
@@ -193,7 +218,8 @@ func (s *pgVervent) handleSnapshotPortfolios(w http.ResponseWriter, r *http.Requ
 	}
 	var t portfolioTotals
 	_, err = pgx.ForEachRow(rows, []any{&t.Portfolio, &t.SnapshotID, &t.AsOf, &t.TotalContracts, &t.ActiveContracts,
-		&t.OutstandingReceivables, &t.PastDue, &t.DelinquentContracts}, func() error {
+		&t.OutstandingReceivables, &t.PastDue, &t.DelinquentContracts,
+		&t.TotalLeases, &t.ActiveLeases, &t.DelinquentLeases}, func() error {
 		t.snapshotDay = t.finish()
 		totals = append(totals, t)
 		return nil
@@ -311,7 +337,7 @@ func (s *verventStore) handleSnapshotHistory(w http.ResponseWriter, r *http.Requ
 	snapshots, contracts := s.snapshotData()
 	days := []snapshotDay{}
 	if name := r.URL.Query().Get("portfolio"); name != "" {
-		byID := map[string]*snapshotDay{}
+		byID := map[string]*snapshotTally{}
 		for _, rw := range contracts.rows {
 			if rw["kind"] != portfolio.Daily || rw["portfolio"] != name {
 				continue
@@ -319,7 +345,7 @@ func (s *verventStore) handleSnapshotHistory(w http.ResponseWriter, r *http.Requ
 			id := str(rw["snapshot_id"])
 			if byID[id] == nil {
 				asOf, _ := rw["as_of"].(string)
-				byID[id] = &snapshotDay{SnapshotID: int64(num(rw["snapshot_id"])), AsOf: asOf}
+				byID[id] = newSnapshotTally(snapshotDay{SnapshotID: int64(num(rw["snapshot_id"])), AsOf: asOf})
 			}
 			byID[id].add(rw)
 		}
@@ -343,6 +369,9 @@ func (s *verventStore) handleSnapshotHistory(w http.ResponseWriter, r *http.Requ
 			OutstandingReceivables: num(sn["outstanding_receivables"]),
 			PastDue:                num(sn["past_due"]),
 			DelinquentContracts:    int(num(sn["delinquent_contracts"])),
+			TotalLeases:            int(num(sn["total_leases"])),
+			ActiveLeases:           int(num(sn["active_leases"])),
+			DelinquentLeases:       int(num(sn["delinquent_leases"])),
 		}.finish())
 	}
 	slices.SortFunc(days, func(a, b snapshotDay) int { return strings.Compare(a.AsOf, b.AsOf) })
@@ -352,28 +381,25 @@ func (s *verventStore) handleSnapshotHistory(w http.ResponseWriter, r *http.Requ
 func (s *verventStore) handleSnapshotPortfolios(w http.ResponseWriter, r *http.Request) {
 	_, contracts := s.snapshotData()
 	id := chi.URLParam(r, "id")
-	byName := map[string]*portfolioTotals{} // "" for the rows without a portfolio
+	byName := map[string]*snapshotTally{} // "" for the rows without a portfolio
 	for _, rw := range contracts.rows {
 		if str(rw["snapshot_id"]) != id {
 			continue
 		}
-		name, named := rw["portfolio"].(string)
-		t := byName[name]
-		if t == nil {
+		name, _ := rw["portfolio"].(string)
+		if byName[name] == nil {
 			asOf, _ := rw["as_of"].(string)
-			t = &portfolioTotals{snapshotDay: snapshotDay{SnapshotID: int64(num(rw["snapshot_id"])), AsOf: asOf}}
-			if named {
-				t.Portfolio = &name
-			}
-			byName[name] = t
+			byName[name] = newSnapshotTally(snapshotDay{SnapshotID: int64(num(rw["snapshot_id"])), AsOf: asOf})
 		}
-		t.add(rw)
+		byName[name].add(rw)
 	}
 	totals := []portfolioTotals{}
 	for _, name := range slices.Sorted(maps.Keys(byName)) {
-		t := byName[name]
-		t.snapshotDay = t.finish()
-		totals = append(totals, *t)
+		t := portfolioTotals{snapshotDay: byName[name].finish()}
+		if name != "" {
+			t.Portfolio = &name
+		}
+		totals = append(totals, t)
 	}
 	// Sorted by name, which put the rows without a portfolio first; they go last.
 	if len(totals) > 0 && totals[0].Portfolio == nil {
@@ -408,7 +434,7 @@ func (s *verventStore) handleCreateSnapshot(w http.ResponseWriter, r *http.Reque
 	}
 	id := json.Number(strconv.FormatInt(last+1, 10))
 
-	var total snapshotDay
+	tally := newSnapshotTally(snapshotDay{})
 	contracts := make([]row, 0, len(s.contracts.rows))
 	for _, c := range s.contracts.rows {
 		if !rowInPortfolio(c, "") {
@@ -419,7 +445,7 @@ func (s *verventStore) handleCreateSnapshot(w http.ResponseWriter, r *http.Reque
 			rw[m.Column] = c[m.From]
 		}
 		contracts = append(contracts, rw)
-		total.add(rw)
+		tally.add(rw)
 	}
 	if len(contracts) == 0 {
 		http.Error(w, portfolio.ErrNoLeases.Error(), http.StatusConflict)
@@ -427,6 +453,7 @@ func (s *verventStore) handleCreateSnapshot(w http.ResponseWriter, r *http.Reque
 	}
 	slices.SortFunc(contracts, func(a, b row) int { return strings.Compare(str(a["contract_no"]), str(b["contract_no"])) })
 
+	total := tally.finish()
 	amount := func(f float64) json.Number { return json.Number(strconv.FormatFloat(round2(f), 'f', 2, 64)) }
 	var note any
 	if req.Note != "" {
@@ -441,6 +468,9 @@ func (s *verventStore) handleCreateSnapshot(w http.ResponseWriter, r *http.Reque
 		"outstanding_receivables": amount(total.OutstandingReceivables),
 		"past_due":                amount(total.PastDue),
 		"delinquent_contracts":    json.Number(strconv.Itoa(total.DelinquentContracts)),
+		"total_leases":            json.Number(strconv.Itoa(total.TotalLeases)),
+		"active_leases":           json.Number(strconv.Itoa(total.ActiveLeases)),
+		"delinquent_leases":       json.Number(strconv.Itoa(total.DelinquentLeases)),
 	}
 
 	// Newest first, the order the lists are served in. New slices and a new map: handlers may

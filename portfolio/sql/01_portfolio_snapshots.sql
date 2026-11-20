@@ -24,6 +24,11 @@
 --   outstanding_receivables  sum of outstanding_receivables over open contracts
 --   past_due                 sum of past_due over open contracts
 --   delinquent_contracts     open contracts with days_delinquent > 0
+--   total_leases             leases: a lease's main contract and its deficiency (follow-on)
+--                            contracts share a lease_id and count as one lease
+--   active_leases            leases with an open contract
+--   delinquent_leases        leases with an open contract that has days_delinquent > 0
+-- The dashboard counts leases; its delinquency rate is delinquent_leases over active_leases.
 
 CREATE TABLE IF NOT EXISTS portfolio_snapshots (
     id                            bigint GENERATED ALWAYS AS IDENTITY,
@@ -43,6 +48,13 @@ CREATE TABLE IF NOT EXISTS portfolio_snapshots (
     CONSTRAINT pk_portfolio_snapshots PRIMARY KEY (id),
     CONSTRAINT ck_portfolio_snapshots_kind CHECK (kind IN ('daily', 'manual'))
 );
+
+-- The lease counts were added after the table: here rather than in CREATE TABLE so that
+-- load-schema.sh also adds them to a table that already exists. Snapshots taken before then are
+-- filled in from their rows by vervent/sql/05_portfolio_views.sql, once the rows have a lease_id.
+ALTER TABLE portfolio_snapshots ADD COLUMN IF NOT EXISTS total_leases integer;
+ALTER TABLE portfolio_snapshots ADD COLUMN IF NOT EXISTS active_leases integer;
+ALTER TABLE portfolio_snapshots ADD COLUMN IF NOT EXISTS delinquent_leases integer;
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_portfolio_snapshots_daily ON portfolio_snapshots (servicer, as_of) WHERE kind = 'daily';
 
@@ -119,6 +131,10 @@ COMMENT ON COLUMN portfolio_snapshots.active_contracts IS 'Contracts with is_ope
 COMMENT ON COLUMN portfolio_snapshots.outstanding_receivables IS 'Sum of outstanding_receivables over open contracts, USD.';
 COMMENT ON COLUMN portfolio_snapshots.past_due IS 'Sum of past_due over open contracts, USD.';
 COMMENT ON COLUMN portfolio_snapshots.delinquent_contracts IS 'Open contracts with days_delinquent > 0.';
+
+COMMENT ON COLUMN portfolio_snapshots.total_leases IS 'Leases in the snapshot: distinct lease_id over its contracts.';
+COMMENT ON COLUMN portfolio_snapshots.active_leases IS 'Leases with an open contract.';
+COMMENT ON COLUMN portfolio_snapshots.delinquent_leases IS 'Leases with an open contract that has days_delinquent > 0.';
 
 COMMENT ON TABLE portfolio_snapshot_contracts IS 'One row per contract per portfolio snapshot: the contract as it was when the snapshot was taken.';
 COMMENT ON COLUMN portfolio_snapshot_contracts.snapshot_id IS 'portfolio_snapshots.id.';

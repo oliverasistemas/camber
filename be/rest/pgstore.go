@@ -207,6 +207,7 @@ func (s *pgVervent) handleComparisonSummary(w http.ResponseWriter, r *http.Reque
 // other parameter filters on that column by exact match of its text form ("null" matches NULL)
 // or, with a filterOps suffix, by comparison in the column's own type.
 // sum=col,col adds "sums": the total of each of those columns over every row the filters match.
+// distinct=col,col adds "distinct": how many different values each of those columns has over them.
 // format=xlsx answers with every matching row as a workbook instead (xlsx.go).
 // Column names are checked against the table's columns and values are bound, never interpolated.
 func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
@@ -237,10 +238,18 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	distinctCols := sumParam(q.Get("distinct"))
+	for _, col := range distinctCols {
+		if !t.columns[col] {
+			http.Error(w, "unknown distinct column "+col, http.StatusBadRequest)
+			return
+		}
+	}
 	q.Del("limit")
 	q.Del("offset")
 	q.Del("sort")
 	q.Del("sum")
+	q.Del("distinct")
 	export := q.Get("format") == "xlsx"
 	q.Del("format")
 
@@ -298,6 +307,11 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 		aggregates += fmt.Sprintf(", coalesce(sum(%s), 0)::float8", pgx.Identifier{col}.Sanitize())
 		dest = append(dest, &sums[i])
 	}
+	distinct := make([]int, len(distinctCols))
+	for i, col := range distinctCols {
+		aggregates += fmt.Sprintf(", count(DISTINCT %s)", pgx.Identifier{col}.Sanitize())
+		dest = append(dest, &distinct[i])
+	}
 	if err := t.db.QueryRow(ctx, "SELECT "+aggregates+" FROM "+from, args...).Scan(dest...); err != nil {
 		var pgErr *pgconn.PgError
 		// Class 22 is a data exception: a comparison value that doesn't parse as the column's type.
@@ -342,6 +356,13 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 			named[col] = sums[i]
 		}
 		body["sums"] = named
+	}
+	if len(distinctCols) > 0 {
+		named := make(map[string]int, len(distinctCols))
+		for i, col := range distinctCols {
+			named[col] = distinct[i]
+		}
+		body["distinct"] = named
 	}
 	writeJSON(w, body)
 }
@@ -411,32 +432,34 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	portfolio := r.URL.Query().Get("portfolio")
 	var m verventMetrics
 	err := s.db.QueryRow(ctx, `
-		SELECT (SELECT count(*) FROM vervent_contract_list WHERE `+inPortfolio+`),
+		SELECT count(*),
+		       count(DISTINCT camber_lease_id),
 		       (SELECT count(*) FROM vervent_asset_list WHERE `+inPortfolio+`),
-		       count(*),
-		       coalesce(sum(remaining_receivables), 0)::float8,
-		       coalesce(sum(total_past_due), 0)::float8,
-		       count(*) FILTER (WHERE days_del > 0)
-		  FROM vervent_contract_list WHERE is_account_open AND `+inPortfolio, portfolio).
-		Scan(&m.TotalContracts, &m.TotalAssets, &m.ActiveContracts, &m.OutstandingReceivables, &m.PastDue,
-			&m.DelinquentContracts)
+		       count(*) FILTER (WHERE is_account_open),
+		       count(DISTINCT camber_lease_id) FILTER (WHERE is_account_open),
+		       coalesce(sum(remaining_receivables) FILTER (WHERE is_account_open), 0)::float8,
+		       coalesce(sum(total_past_due) FILTER (WHERE is_account_open), 0)::float8,
+		       count(DISTINCT camber_lease_id) FILTER (WHERE is_account_open AND days_del > 0)
+		  FROM vervent_contract_list WHERE `+inPortfolio, portfolio).
+		Scan(&m.TotalContracts, &m.TotalLeases, &m.TotalAssets, &m.ActiveContracts, &m.ActiveLeases,
+			&m.OutstandingReceivables, &m.PastDue, &m.DelinquentLeases)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
-	if m.ActiveContracts > 0 {
-		m.DelinquencyRate = float64(m.DelinquentContracts) / float64(m.ActiveContracts) * 100
+	if m.ActiveLeases > 0 {
+		m.DelinquencyRate = float64(m.DelinquentLeases) / float64(m.ActiveLeases) * 100
 	}
 
 	buckets := map[string]int{}
-	err = collectCounts(ctx, s.db, buckets, `SELECT curr_delinq, count(*) FROM vervent_contract_list
+	err = collectCounts(ctx, s.db, buckets, `SELECT curr_delinq, count(DISTINCT camber_lease_id) FROM vervent_contract_list
 		WHERE is_account_open AND days_del > 0 AND curr_delinq IS NOT NULL AND `+inPortfolio+` GROUP BY 1`, portfolio)
 	if err != nil {
 		serverError(w, err)
 		return
 	}
 	for _, b := range delinquencyBuckets {
-		m.DelinquencyBuckets = append(m.DelinquencyBuckets, bucketCount{Bucket: b, Contracts: buckets[b]})
+		m.DelinquencyBuckets = append(m.DelinquencyBuckets, bucketCount{Bucket: b, Leases: buckets[b]})
 	}
 
 	var asOf *string

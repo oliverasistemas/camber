@@ -19,8 +19,8 @@ var assetStatuses = []struct{ code, label string }{
 }
 
 type bucketCount struct {
-	Bucket    string `json:"bucket"`
-	Contracts int    `json:"contracts"`
+	Bucket string `json:"bucket"`
+	Leases int    `json:"leases"`
 }
 
 type statusCount struct {
@@ -32,11 +32,13 @@ type statusCount struct {
 type verventMetrics struct {
 	AsOf                   string        `json:"as_of"`
 	TotalContracts         int           `json:"total_contracts"`
+	TotalLeases            int           `json:"total_leases"`
 	ActiveContracts        int           `json:"active_contracts"`
+	ActiveLeases           int           `json:"active_leases"`
 	OutstandingReceivables float64       `json:"outstanding_receivables"`
 	PastDue                float64       `json:"past_due"`
-	DelinquentContracts    int           `json:"delinquent_contracts"`
-	DelinquencyRate        float64       `json:"delinquency_rate"` // percent of active contracts
+	DelinquentLeases       int           `json:"delinquent_leases"`
+	DelinquencyRate        float64       `json:"delinquency_rate"` // percent of active leases
 	Collections30d         float64       `json:"collections_30d"`
 	CollectionsMTD         float64       `json:"collections_mtd"` // the as_of month up to as_of
 	DelinquencyBuckets     []bucketCount `json:"delinquency_buckets"`
@@ -62,36 +64,52 @@ func (s *verventStore) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, s.metrics(r.URL.Query().Get("portfolio")))
 }
 
-// metrics summarizes Camber's leases, or those of one portfolio. Contract figures cover open
-// contracts only; collections are cash payments in the 30 days up to the latest transaction date
-// of any lease, which is reported as as_of, and in that date's month so far.
+// leaseSet collects the leases (Camber lease ids) a figure counts: a lease's deficiency contracts
+// share its id with the main contract, so the lease counts once however many of them qualify.
+type leaseSet map[string]struct{}
+
+func (s leaseSet) add(id any) { s[str(id)] = struct{}{} }
+
+// metrics summarizes Camber's leases, or those of one portfolio. A lease is its main contract and
+// its deficiency contracts together (camber_lease_id): it is active while any of them is open and
+// delinquent while an open one is past due, and the dollar figures add up its open contracts.
+// A delinquency bucket counts the leases with a delinquent open contract in it. Collections are
+// cash payments in the 30 days up to the latest transaction date of any lease, which is reported
+// as as_of, and in that date's month so far.
 func (s *verventStore) metrics(portfolio string) verventMetrics {
 	var m verventMetrics
 
-	buckets := map[string]int{}
+	leases, active, delinquent := leaseSet{}, leaseSet{}, leaseSet{}
+	buckets := map[string]leaseSet{}
 	for _, c := range s.contracts.rows {
 		if !rowInPortfolio(c, portfolio) {
 			continue
 		}
 		m.TotalContracts++
+		leases.add(c["camber_lease_id"])
 		if open, _ := c["is_account_open"].(bool); !open {
 			continue
 		}
 		m.ActiveContracts++
+		active.add(c["camber_lease_id"])
 		m.OutstandingReceivables += num(c["remaining_receivables"])
 		m.PastDue += num(c["total_past_due"])
 		if num(c["days_del"]) > 0 {
-			m.DelinquentContracts++
+			delinquent.add(c["camber_lease_id"])
 			if b, ok := c["curr_delinq"].(string); ok {
-				buckets[b]++
+				if buckets[b] == nil {
+					buckets[b] = leaseSet{}
+				}
+				buckets[b].add(c["camber_lease_id"])
 			}
 		}
 	}
-	if m.ActiveContracts > 0 {
-		m.DelinquencyRate = float64(m.DelinquentContracts) / float64(m.ActiveContracts) * 100
+	m.TotalLeases, m.ActiveLeases, m.DelinquentLeases = len(leases), len(active), len(delinquent)
+	if m.ActiveLeases > 0 {
+		m.DelinquencyRate = float64(m.DelinquentLeases) / float64(m.ActiveLeases) * 100
 	}
 	for _, b := range delinquencyBuckets {
-		m.DelinquencyBuckets = append(m.DelinquencyBuckets, bucketCount{Bucket: b, Contracts: buckets[b]})
+		m.DelinquencyBuckets = append(m.DelinquencyBuckets, bucketCount{Bucket: b, Leases: len(buckets[b])})
 	}
 
 	for _, t := range s.transactions.rows {

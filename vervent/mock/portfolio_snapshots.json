@@ -13,7 +13,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 401595.15,
     "past_due": 37064.2,
-    "delinquent_contracts": 7
+    "delinquent_contracts": 7,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 7
   },
   {
     "id": 15,
@@ -29,7 +32,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 401595.15,
     "past_due": 37064.2,
-    "delinquent_contracts": 7
+    "delinquent_contracts": 7,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 7
   },
   {
     "id": 14,
@@ -45,7 +51,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 403174.43,
     "past_due": 37064.2,
-    "delinquent_contracts": 7
+    "delinquent_contracts": 7,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 7
   },
   {
     "id": 13,
@@ -61,7 +70,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 404753.71,
     "past_due": 37064.2,
-    "delinquent_contracts": 7
+    "delinquent_contracts": 7,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 7
   },
   {
     "id": 12,
@@ -77,7 +89,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 409491.58,
     "past_due": 38958.74,
-    "delinquent_contracts": 8
+    "delinquent_contracts": 8,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 8
   },
   {
     "id": 11,
@@ -93,7 +108,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 411070.88,
     "past_due": 37511.99,
-    "delinquent_contracts": 9
+    "delinquent_contracts": 9,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 9
   },
   {
     "id": 10,
@@ -109,7 +127,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 412650.19,
     "past_due": 37511.99,
-    "delinquent_contracts": 9
+    "delinquent_contracts": 9,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 9
   },
   {
     "id": 9,
@@ -125,7 +146,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 414229.51,
     "past_due": 34779.4,
-    "delinquent_contracts": 9
+    "delinquent_contracts": 9,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 9
   },
   {
     "id": 8,
@@ -141,7 +165,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 415808.76,
     "past_due": 34779.4,
-    "delinquent_contracts": 9
+    "delinquent_contracts": 9,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 9
   },
   {
     "id": 7,
@@ -157,7 +184,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 420546.66,
     "past_due": 30175.33,
-    "delinquent_contracts": 9
+    "delinquent_contracts": 9,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 9
   },
   {
     "id": 6,
@@ -173,7 +203,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 422125.95,
     "past_due": 30175.33,
-    "delinquent_contracts": 9
+    "delinquent_contracts": 9,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 9
   },
   {
     "id": 5,
@@ -189,7 +222,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 423705.24,
     "past_due": 28811.32,
-    "delinquent_contracts": 9
+    "delinquent_contracts": 9,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 9
   },
   {
     "id": 4,
@@ -205,7 +241,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 425284.51,
     "past_due": 28181.67,
-    "delinquent_contracts": 8
+    "delinquent_contracts": 8,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 8
   },
   {
     "id": 3,
@@ -221,7 +260,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 426863.82,
     "past_due": 28181.67,
-    "delinquent_contracts": 8
+    "delinquent_contracts": 8,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 8
   },
   {
     "id": 2,
@@ -237,7 +279,10 @@
     "active_contracts": 26,
     "outstanding_receivables": 431601.69,
     "past_due": 26287.13,
-    "delinquent_contracts": 7
+    "delinquent_contracts": 7,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 7
   },
   {
     "id": 1,
@@ -253,6 +298,9 @@
     "active_contracts": 26,
     "outstanding_receivables": 433180.99,
     "past_due": 26287.13,
-    "delinquent_contracts": 7
+    "delinquent_contracts": 7,
+    "total_leases": 43,
+    "active_leases": 26,
+    "delinquent_leases": 7
   }
 ]
