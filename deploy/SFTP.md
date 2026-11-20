@@ -5,11 +5,11 @@ counterparty has its own chrooted user. This file covers who sends what, what
 has arrived, and how a file gets from the drop box into the cambercredit
 database. Loading itself is described in [`README.md`](README.md#loading-a-vervent-drop).
 
-## Status (checked 2026-11-18)
+## Status (checked 2026-11-19)
 
 | User | uid | Sends | Since | Files received | Auth | Ingested |
 |---|---|---|---|---|---|---|
-| `vervent` | 1001 | Daily servicer reports (AssetSummary, ContractSummary, TransactionHistory CSVs) | 2026-10-06 | 28 files on 9 processing days, last 2026-11-17 | password only | Manually; everything through 2026-11-17 is loaded (11-16 and 11-17 on 2026-11-18, run 4) |
+| `vervent` | 1001 | Daily servicer reports (AssetSummary, ContractSummary, TransactionHistory CSVs) | 2026-10-06 | 31 files on 10 processing days, last 2026-11-19 | password only | Manually; everything through 2026-11-19 is loaded (11-19 on 2026-11-19, run 5). No file was sent for 2026-11-18 |
 | `westlake` | 1002 | Not defined yet (boarding) | account exists | none | password only | n/a |
 | `naln` | 1003 | One combined PDF per funded loan (they can't split it per Funding Checklist document) | 2026-10-30 | 2 test files (2026-11-04 empty `.txt`, 2026-11-05 `NALN TESTING.pdf`), no real loans yet | password only | Nothing reads them yet |
 
@@ -34,9 +34,12 @@ Folders are the day the processor moved the files, not the as-of date.
 | `2026-11-13` | as-of 2026-11-13 |
 | `2026-11-16` | as-of 2026-11-16 |
 | `2026-11-17` | as-of 2026-11-17 |
+| `2026-11-19` | as-of 2026-11-19 |
 
 Nothing arrived between 2026-10-21 and 2026-11-10, nor on 2026-11-14 or 2026-11-15
-(weekend). From 2026-11-12 to 2026-11-16 each drop was processed the same afternoon UTC; 2026-11-17 arrived late evening (23:08 UTC). Only the `*_Daily_P50.csv`
+(weekend). Nothing arrived for 2026-11-18 either, a Wednesday: there is no `processed/2026-11-18`
+folder and no `20261118_*` file, so that day is missing from the transactions and from the daily
+contract history. From 2026-11-12 to 2026-11-16 each drop was processed the same afternoon UTC; 2026-11-17 arrived late evening (23:08 UTC) and 2026-11-19 in the evening (19:55 UTC). Only the `*_Daily_P50.csv`
 files from 2026-11-10 on are in the `vervent/` format that the Vervent loader
 reads; the October files predate it.
 
@@ -146,8 +149,10 @@ NALN: there is no loader. Nothing else to do yet.
 - Ingest is manual end to end. Both pods are on the same node, so the app (or
   a CronJob running `/app/load-vervent` from the app image) could read `/srv/sftp/vervent/processed`
   directly.
-- Vervent's daily cadence: business days since 2026-11-10 (11-10 to 11-17, none on the 11-14/15 weekend),
-  after a gap from 2026-10-21 to 2026-11-10. Not yet confirmed as the contract.
+- Vervent's daily cadence: business days since 2026-11-10 (none on the 11-14/15 weekend), after a
+  gap from 2026-10-21 to 2026-11-10, but 2026-11-18 was skipped. Not yet confirmed as the
+  contract, and nobody has asked Vervent for the 11-18 files. If they arrive late, loading them
+  is safe and fills that day in `vervent_contract_snapshots`.
 - Westlake has an account but has never connected, and nobody has said what
   they will send.
 - NALN has only sent tests. A real funded-loan PDF still needs a destination
