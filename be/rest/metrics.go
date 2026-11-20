@@ -38,6 +38,7 @@ type verventMetrics struct {
 	DelinquentContracts    int           `json:"delinquent_contracts"`
 	DelinquencyRate        float64       `json:"delinquency_rate"` // percent of active contracts
 	Collections30d         float64       `json:"collections_30d"`
+	CollectionsMTD         float64       `json:"collections_mtd"` // the as_of month up to as_of
 	DelinquencyBuckets     []bucketCount `json:"delinquency_buckets"`
 	AssetStatus            []statusCount `json:"asset_status"`
 	TotalAssets            int           `json:"total_assets"`
@@ -48,7 +49,8 @@ func (s *verventStore) handleMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 // metrics summarizes the portfolio. Contract figures cover open contracts only; collections are
-// cash payments in the 30 days up to the latest transaction date, which is reported as as_of.
+// cash payments in the 30 days up to the latest transaction date, which is reported as as_of,
+// and in that date's month so far.
 func (s *verventStore) metrics() verventMetrics {
 	m := verventMetrics{
 		TotalContracts: len(s.contracts.rows),
@@ -84,10 +86,17 @@ func (s *verventStore) metrics() verventMetrics {
 	}
 	if asOf, err := time.Parse(time.DateOnly, m.AsOf); err == nil {
 		since := asOf.AddDate(0, 0, -30).Format(time.DateOnly)
+		monthStart := asOf.Format("2006-01") + "-01"
 		for _, t := range s.transactions.rows {
-			nonCash, _ := t["is_non_cash"].(bool)
-			if d, _ := t["transaction_date_key"].(string); !nonCash && d > since {
+			if nonCash, _ := t["is_non_cash"].(bool); nonCash {
+				continue
+			}
+			d, _ := t["transaction_date_key"].(string)
+			if d > since {
 				m.Collections30d += num(t["payment_amount"])
+			}
+			if d >= monthStart && d <= m.AsOf {
+				m.CollectionsMTD += num(t["payment_amount"])
 			}
 		}
 	}
@@ -107,6 +116,7 @@ func (s *verventStore) metrics() verventMetrics {
 	m.OutstandingReceivables = round2(m.OutstandingReceivables)
 	m.PastDue = round2(m.PastDue)
 	m.Collections30d = round2(m.Collections30d)
+	m.CollectionsMTD = round2(m.CollectionsMTD)
 	return m
 }
 

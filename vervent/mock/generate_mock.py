@@ -83,6 +83,14 @@ def sql_columns(path):
     return cols
 
 
+def camber_lease_id(lease_no):
+    """The computed vervent_contracts.camber_lease_id (../sql/01_vervent_contracts.sql): a lease number
+    ending in a non-digit loses that character and gets a 0 after its first one."""
+    if len(lease_no) >= 2 and not lease_no[-1].isdigit():
+        return lease_no[0] + "0" + lease_no[1:-1]
+    return lease_no
+
+
 def blank_row(cols):
     """Unpopulated columns: 0 for money/rates (as in the extracts), null for everything else."""
     return {c: (0 if t.startswith("numeric") else None) for c, t in cols}
@@ -244,6 +252,7 @@ class Generator:
             "loaded_at": LOADED_AT,
         })
         c["down"] = c["booked_down"]
+        c["camber_lease_id"] = camber_lease_id(lease_no)
         self.next_account += 1
         self.next_customer += 1
         self.contracts.append(c)

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Alert, Card, Flex, Table, Tag } from 'antd'
+import { DownloadOutlined } from '@ant-design/icons'
+import { Alert, Button, Card, Flex, Table, Tag } from 'antd'
+import { columnFilter } from './ColumnFilters.jsx'
 
 export const money = (v) =>
   v == null ? '' : Number(v).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
@@ -19,7 +21,7 @@ export const bytes = (v) =>
   v == null ? '' : `${compact(v)}B`
 
 // Filter parameters can carry a comparison suffix (days_del.gt=0); see filterOps in be/rest/vervent.go.
-const opSymbols = { gt: '>', gte: '≥', lt: '<', lte: '≤', ne: '≠' }
+const opSymbols = { gt: '>', gte: '≥', lt: '<', lte: '≤', ne: '≠', like: 'contains' }
 
 // Query string parameters that are not column filters.
 const reserved = ['page', 'limit', 'sort']
@@ -49,11 +51,13 @@ function useTableQuery(urlState, pageSize, defaultSort) {
 }
 
 // DataTable shows one /api/vervent/*, /api/copart/* or /api/servicing/* list with server-side paging, sorting and filtering.
-// Every column is sortable; a column with `filters` filters on its dataIndex by exact match.
+// Every column is sortable and can be filtered: a column with `filters` by exact match on one of
+// those values, any other by a date range, number range or text search (ColumnFilters.jsx).
+// The Excel button downloads every row the current filters match, in the current order.
 // baseFilters are fixed column filters always sent, e.g. { lease: '5000080213' }.
 // urlState keeps the page, sort and filters in the query string: for the one main table of a list
 // page, not for tables embedded in a detail page. Filters the columns have no control for (a
-// dashboard drill-down such as days_del.gt=0) show as removable tags above the table.
+// dashboard drill-down such as days_del.gt=0, or a range or search) show as removable tags above the table.
 // defaultSort (col or -col) orders the table until the user picks a sort; clearing the sort returns to it.
 // bordered wraps the table in a card; the contract drawer turns it off.
 // sums lists columns (by dataIndex) to total in a last row. The server adds them up over every row
@@ -131,18 +135,30 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
     setQuery({ ...query, page: 1, filters })
   }
 
+  // setColumnFilter replaces every filter on col (col, col.gte, col.like, ...) with params.
+  const setColumnFilter = (col, params) => {
+    const others = Object.entries(query.filters).filter(([k]) => k !== col && !k.startsWith(`${col}.`))
+    setQuery({ ...query, page: 1, filters: { ...Object.fromEntries(others), ...params } })
+  }
+
+  const exportParams = new URLSearchParams({ ...baseFilters, ...query.filters, format: 'xlsx' })
+  if (query.sort) exportParams.set('sort', query.sort)
+
   const table = (
     <>
       {error && <Alert type="error" showIcon message={`Failed to load ${noun}: ${error}`} style={{ margin: bordered ? 16 : '0 0 16px' }} />}
-      {extraFilters.length > 0 && (
-        <Flex gap="small" wrap style={{ padding: bordered ? '12px 16px' : '0 0 12px' }}>
+      <Flex justify="space-between" align="center" gap="small" style={{ padding: bordered ? '8px 16px' : '0 0 8px' }}>
+        <Flex gap="small" wrap>
           {extraFilters.map(([param, value]) => (
             <Tag key={param} closable onClose={() => removeFilter(param)} style={{ margin: 0 }}>
               {filterLabel(param, value)}
             </Tag>
           ))}
         </Flex>
-      )}
+        <Button size="small" type="text" icon={<DownloadOutlined />} style={{ marginLeft: 'auto', flex: 'none' }} href={`${endpoint}?${exportParams}`} disabled={result.total === 0}>
+          Excel
+        </Button>
+      </Flex>
       <Table
         rowKey={rowKey}
         size="small"
@@ -150,7 +166,9 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
           sorter: true,
           filterMultiple: false,
           sortOrder: c.dataIndex === sortCol ? (sortDesc ? 'descend' : 'ascend') : null,
-          ...(c.filters && { filteredValue: query.filters[c.dataIndex] ? [query.filters[c.dataIndex]] : null }),
+          ...(c.filters
+            ? { filteredValue: query.filters[c.dataIndex] ? [query.filters[c.dataIndex]] : null }
+            : columnFilter(c, query.filters, setColumnFilter)),
           ...c,
         }))}
         dataSource={result.data}

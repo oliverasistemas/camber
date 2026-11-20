@@ -227,7 +227,8 @@
     "credit_score": 766,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000080213"
   },
   {
     "account_key": 2000000000101,
@@ -457,7 +458,8 @@
     "credit_score": 612,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000049887"
   },
   {
     "account_key": 2000000000102,
@@ -687,7 +689,8 @@
     "credit_score": 739,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000062722"
   },
   {
     "account_key": 2000000000103,
@@ -917,7 +920,8 @@
     "credit_score": 813,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000098546"
   },
   {
     "account_key": 2000000000104,
@@ -1147,7 +1151,8 @@
     "credit_score": 693,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000046782"
   },
   {
     "account_key": 2000000000105,
@@ -1377,7 +1382,8 @@
     "credit_score": 786,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000077019"
   },
   {
     "account_key": 2000000000106,
@@ -1607,7 +1613,8 @@
     "credit_score": 695,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000058260"
   },
   {
     "account_key": 2000000000107,
@@ -1837,7 +1844,8 @@
     "credit_score": 736,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000026165"
   },
   {
     "account_key": 2000000000108,
@@ -2067,7 +2075,8 @@
     "credit_score": 681,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000085581"
   },
   {
     "account_key": 2000000000109,
@@ -2297,7 +2306,8 @@
     "credit_score": null,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000085581"
   },
   {
     "account_key": 2000000000110,
@@ -2527,7 +2537,8 @@
     "credit_score": 717,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000056599"
   },
   {
     "account_key": 2000000000111,
@@ -2757,7 +2768,8 @@
     "credit_score": 716,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000044411"
   },
   {
     "account_key": 2000000000112,
@@ -2987,7 +2999,8 @@
     "credit_score": 605,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000087967"
   },
   {
     "account_key": 2000000000113,
@@ -3217,7 +3230,8 @@
     "credit_score": 792,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000026172"
   },
   {
     "account_key": 2000000000114,
@@ -3447,7 +3461,8 @@
     "credit_score": 810,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000035095"
   },
   {
     "account_key": 2000000000115,
@@ -3677,7 +3692,8 @@
     "credit_score": 730,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000060505"
   },
   {
     "account_key": 2000000000116,
@@ -3907,7 +3923,8 @@
     "credit_score": 811,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000027911"
   },
   {
     "account_key": 2000000000117,
@@ -4137,7 +4154,8 @@
     "credit_score": 666,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000060549"
   },
   {
     "account_key": 2000000000118,
@@ -4367,7 +4385,8 @@
     "credit_score": 674,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000056856"
   },
   {
     "account_key": 2000000000119,
@@ -4597,7 +4616,8 @@
     "credit_score": null,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000056856"
   },
   {
     "account_key": 2000000000120,
@@ -4827,7 +4847,8 @@
     "credit_score": 774,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000044148"
   },
   {
     "account_key": 2000000000121,
@@ -5057,7 +5078,8 @@
     "credit_score": 782,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000039768"
   },
   {
     "account_key": 2000000000122,
@@ -5287,7 +5309,8 @@
     "credit_score": 735,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000024009"
   },
   {
     "account_key": 2000000000123,
@@ -5517,7 +5540,8 @@
     "credit_score": 575,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000058112"
   },
   {
     "account_key": 2000000000124,
@@ -5747,7 +5771,8 @@
     "credit_score": 787,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000094139"
   },
   {
     "account_key": 2000000000125,
@@ -5977,7 +6002,8 @@
     "credit_score": 690,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000094625"
   },
   {
     "account_key": 2000000000126,
@@ -6207,7 +6233,8 @@
     "credit_score": 723,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000071212"
   },
   {
     "account_key": 2000000000127,
@@ -6437,7 +6464,8 @@
     "credit_score": 565,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000098229"
   },
   {
     "account_key": 2000000000128,
@@ -6667,7 +6695,8 @@
     "credit_score": 768,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000026659"
   },
   {
     "account_key": 2000000000129,
@@ -6897,7 +6926,8 @@
     "credit_score": 650,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000023389"
   },
   {
     "account_key": 2000000000130,
@@ -7127,7 +7157,8 @@
     "credit_score": 680,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000094156"
   },
   {
     "account_key": 2000000000131,
@@ -7357,7 +7388,8 @@
     "credit_score": 678,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000058812"
   },
   {
     "account_key": 2000000000132,
@@ -7587,7 +7619,8 @@
     "credit_score": 677,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000099295"
   },
   {
     "account_key": 2000000000133,
@@ -7817,7 +7850,8 @@
     "credit_score": 602,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000071399"
   },
   {
     "account_key": 2000000000134,
@@ -8047,7 +8081,8 @@
     "credit_score": 765,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000015750"
   },
   {
     "account_key": 2000000000135,
@@ -8277,7 +8312,8 @@
     "credit_score": 811,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000044782"
   },
   {
     "account_key": 2000000000136,
@@ -8507,7 +8543,8 @@
     "credit_score": 730,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000059230"
   },
   {
     "account_key": 2000000000137,
@@ -8737,7 +8774,8 @@
     "credit_score": null,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000059230"
   },
   {
     "account_key": 2000000000138,
@@ -8967,7 +9005,8 @@
     "credit_score": 576,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000049888"
   },
   {
     "account_key": 2000000000139,
@@ -9197,7 +9236,8 @@
     "credit_score": 679,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000071939"
   },
   {
     "account_key": 2000000000140,
@@ -9427,7 +9467,8 @@
     "credit_score": 669,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000028866"
   },
   {
     "account_key": 2000000000141,
@@ -9657,7 +9698,8 @@
     "credit_score": 815,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000041354"
   },
   {
     "account_key": 2000000000142,
@@ -9887,7 +9929,8 @@
     "credit_score": 663,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000073027"
   },
   {
     "account_key": 2000000000143,
@@ -10117,7 +10160,8 @@
     "credit_score": 642,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000050531"
   },
   {
     "account_key": 2000000000144,
@@ -10347,7 +10391,8 @@
     "credit_score": 684,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000091176"
   },
   {
     "account_key": 2000000000145,
@@ -10577,7 +10622,8 @@
     "credit_score": 594,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000075292"
   },
   {
     "account_key": 2000000000146,
@@ -10807,7 +10853,8 @@
     "credit_score": 591,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000031596"
   },
   {
     "account_key": 2000000000147,
@@ -11037,7 +11084,8 @@
     "credit_score": 591,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000050345"
   },
   {
     "account_key": 2000000000148,
@@ -11267,7 +11315,8 @@
     "credit_score": 707,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000096667"
   },
   {
     "account_key": 2000000000149,
@@ -11497,7 +11546,8 @@
     "credit_score": 697,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000042427"
   },
   {
     "account_key": 2000000000150,
@@ -11727,7 +11777,8 @@
     "credit_score": 674,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000085007"
   },
   {
     "account_key": 2000000000151,
@@ -11957,7 +12008,8 @@
     "credit_score": 605,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000090900"
   },
   {
     "account_key": 2000000000152,
@@ -12187,7 +12239,8 @@
     "credit_score": 691,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000031098"
   },
   {
     "account_key": 2000000000153,
@@ -12417,7 +12470,8 @@
     "credit_score": 767,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000068970"
   },
   {
     "account_key": 2000000000154,
@@ -12647,7 +12701,8 @@
     "credit_score": 823,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000096846"
   },
   {
     "account_key": 2000000000155,
@@ -12877,7 +12932,8 @@
     "credit_score": 794,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000030405"
   },
   {
     "account_key": 2000000000156,
@@ -13107,7 +13163,8 @@
     "credit_score": 608,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000096980"
   },
   {
     "account_key": 2000000000157,
@@ -13337,7 +13394,8 @@
     "credit_score": 814,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000086277"
   },
   {
     "account_key": 2000000000158,
@@ -13567,7 +13625,8 @@
     "credit_score": null,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000086277"
   },
   {
     "account_key": 2000000000159,
@@ -13797,7 +13856,8 @@
     "credit_score": 660,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000080025"
   },
   {
     "account_key": 2000000000160,
@@ -14027,7 +14087,8 @@
     "credit_score": 790,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000070956"
   },
   {
     "account_key": 2000000000161,
@@ -14257,7 +14318,8 @@
     "credit_score": 748,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000082832"
   },
   {
     "account_key": 2000000000162,
@@ -14487,7 +14549,8 @@
     "credit_score": 567,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000084707"
   },
   {
     "account_key": 2000000000163,
@@ -14717,6 +14780,7 @@
     "credit_score": 760,
     "source_file": "20261111_ContractSummary_Daily_P50.csv",
     "file_date": "2026-11-11",
-    "loaded_at": "2026-11-11T06:00:00+00:00"
+    "loaded_at": "2026-11-11T06:00:00+00:00",
+    "camber_lease_id": "5000031398"
   }
 ]

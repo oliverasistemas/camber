@@ -234,6 +234,17 @@ CREATE TABLE IF NOT EXISTS vervent_contracts (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ix_vervent_contracts_account_key ON vervent_contracts (account_key);
+-- camber_lease_id: the lease a contract belongs to, by Camber's rule for Vervent's numbering. Vervent
+-- books a lease's deficiency (and similar follow-on contracts) under the lease number with its
+-- second character dropped and a letter appended (5000012345 -> 500012345D); the rule undoes that:
+-- a lease_no that ends in a non-digit loses that character and gets a 0 after its first character.
+-- A lease and its follow-on contracts then share one id; any other lease_no is its own id.
+-- Computed by Postgres, not loaded, and added here rather than in CREATE TABLE so that
+-- load-schema.sh also adds it to a table that already exists. It is the table's last column.
+ALTER TABLE vervent_contracts ADD COLUMN IF NOT EXISTS camber_lease_id text
+    GENERATED ALWAYS AS (CASE WHEN length(lease_no) >= 2 AND right(lease_no, 1) !~ '[0-9]' THEN left(lease_no, 1) || '0' || substr(lease_no, 2, length(lease_no) - 2) ELSE lease_no END) STORED;
+
+CREATE INDEX IF NOT EXISTS ix_vervent_contracts_camber_lease_id ON vervent_contracts (camber_lease_id);
 CREATE INDEX IF NOT EXISTS ix_vervent_contracts_lessee_no ON vervent_contracts (lessee_no);
 CREATE INDEX IF NOT EXISTS ix_vervent_contracts_ls_status ON vervent_contracts (ls_status);
 
@@ -467,3 +478,4 @@ COMMENT ON COLUMN vervent_contracts.credit_score IS '[CREDIT SCORE] Lessee credi
 COMMENT ON COLUMN vervent_contracts.source_file IS 'Name of the CSV file the row was loaded from.';
 COMMENT ON COLUMN vervent_contracts.file_date IS 'Business date from the file-name prefix (YYYYMMDD_...). On upsert tables, guards against overwriting newer data with an older file.';
 COMMENT ON COLUMN vervent_contracts.loaded_at IS 'Timestamp the row was inserted or last updated.';
+COMMENT ON COLUMN vervent_contracts.camber_lease_id IS 'Computed, not loaded. The lease this contract belongs to: lease_no, or for a lease_no ending in a letter (a deficiency or other follow-on contract) the number of the lease it follows.';

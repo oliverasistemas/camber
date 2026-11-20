@@ -59,6 +59,12 @@ export default function ContractDetail() {
               { label: 'Days Del', children: c.days_del },
               { label: 'Est Payoff', children: money(c.est_payoff) },
               { label: 'Dealer', children: c.dlr_name },
+              {
+                label: 'Camber Lease',
+                children: c.camber_lease_id && (
+                  <Link to={`/vervent/contracts?camber_lease_id=${encodeURIComponent(c.camber_lease_id)}`}>{c.camber_lease_id}</Link>
+                ),
+              },
             ]}
           />
         </Card>

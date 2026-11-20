@@ -316,8 +316,10 @@ func (s *verventStore) handleCreateSnapshot(w http.ResponseWriter, r *http.Reque
 	// still be reading the old ones.
 	byKey := maps.Clone(s.snapshots.byKey)
 	byKey[id.String()] = snapshot
-	s.snapshots = dataset{rows: append([]row{snapshot}, s.snapshots.rows...), byKey: byKey}
-	s.snapshotContracts = dataset{rows: append(contracts, s.snapshotContracts.rows...)}
+	s.snapshots = dataset{name: s.snapshots.name, cols: s.snapshots.cols,
+		rows: append([]row{snapshot}, s.snapshots.rows...), byKey: byKey}
+	s.snapshotContracts = dataset{name: s.snapshotContracts.name, cols: s.snapshotContracts.cols,
+		rows: append(contracts, s.snapshotContracts.rows...)}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

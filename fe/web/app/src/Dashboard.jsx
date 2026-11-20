@@ -50,6 +50,13 @@ const links = {
       sort: '-payment_amount',
     })
   },
+  // Cash transactions from the first of as_of's month.
+  collectionsMonth: (asOf) =>
+    list('/vervent/transactions', {
+      'transaction_date_key.gte': `${String(asOf).slice(0, 7)}-01`,
+      'is_non_cash.ne': 'true',
+      sort: '-payment_amount',
+    }),
 }
 
 // The trend charts plot the daily portfolio snapshots. A day links to its snapshot, filtered the
@@ -215,14 +222,15 @@ function Tile({ to, title, value, exact, note }) {
   )
 }
 
-const tileCol = { xs: 24, sm: 12, lg: 6 }
+// Five tiles: they share the row on a wide screen and wrap below that.
+const tileCol = { flex: '1 1 220px' }
 const chartCol = { xs: 24, lg: 12 }
 
 // Loading: placeholders in the shape of the tiles and charts, so the page does not jump.
 function Loading() {
   return (
     <Row gutter={[16, 16]}>
-      {[0, 1, 2, 3].map((i) => (
+      {[0, 1, 2, 3, 4].map((i) => (
         <Col key={i} {...tileCol}>
           <Card>
             <Skeleton active title={{ width: '60%' }} paragraph={{ rows: 2 }} />
@@ -323,6 +331,15 @@ export default function Dashboard() {
             value={compactMoney(data.collections_30d)}
             exact={money(data.collections_30d)}
             note={asOf && `Cash payments, ${day(data.as_of, -29)} to ${day(data.as_of)}`}
+          />
+        </Col>
+        <Col {...tileCol}>
+          <Tile
+            to={links.collectionsMonth(data.as_of)}
+            title={`Collections, ${day(data.as_of, 0, { month: 'long', day: undefined }) || 'this month'} to date`}
+            value={compactMoney(data.collections_mtd)}
+            exact={money(data.collections_mtd)}
+            note={asOf && `Cash payments, ${day(`${data.as_of.slice(0, 7)}-01`)} to ${day(data.as_of)}`}
           />
         </Col>
         <Col {...chartCol}>

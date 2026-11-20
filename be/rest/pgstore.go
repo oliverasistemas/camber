@@ -22,6 +22,7 @@ type pgTable struct {
 	name    string
 	key     string
 	columns map[string]bool // whitelist for sort and filter column names
+	ordered []pgColumn      // the columns in table order, for exports
 	order   string          // default ORDER BY and tie-break for a requested sort; the key if empty
 }
 
@@ -77,7 +78,11 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 			db.Close()
 			return nil, fmt.Errorf("table %s not found; run deploy/load-schema.sh first", t.name)
 		}
-		*t.dst = pgTable{db: db, name: t.name, key: t.key, columns: cols}
+		names := make(map[string]bool, len(cols))
+		for _, c := range cols {
+			names[c.name] = true
+		}
+		*t.dst = pgTable{db: db, name: t.name, key: t.key, columns: names, ordered: cols}
 	}
 	// Newest first, as generate_mock.py writes the mock rows.
 	s.snapshots.order = `"as_of" DESC, "id" DESC`
@@ -85,21 +90,33 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 	return s, nil
 }
 
-func tableColumns(ctx context.Context, db *pgxpool.Pool, table string) (map[string]bool, error) {
-	rows, err := db.Query(ctx, `SELECT column_name FROM information_schema.columns
-		WHERE table_schema = current_schema() AND table_name = $1`, table)
+// pgColumn is a table column and how an export writes its values.
+type pgColumn struct {
+	name string
+	kind cellKind
+}
+
+// tableColumns returns the table's (or view's) columns in table order; none if it doesn't exist.
+func tableColumns(ctx context.Context, db *pgxpool.Pool, table string) ([]pgColumn, error) {
+	rows, err := db.Query(ctx, `SELECT column_name, data_type FROM information_schema.columns
+		WHERE table_schema = current_schema() AND table_name = $1 ORDER BY ordinal_position`, table)
 	if err != nil {
 		return nil, err
 	}
-	names, err := pgx.CollectRows(rows, pgx.RowTo[string])
-	if err != nil {
-		return nil, err
-	}
-	cols := make(map[string]bool, len(names))
-	for _, n := range names {
-		cols[n] = true
-	}
-	return cols, nil
+	var cols []pgColumn
+	var name, dataType string
+	_, err = pgx.ForEachRow(rows, []any{&name, &dataType}, func() error {
+		c := pgColumn{name: name}
+		switch dataType {
+		case "smallint", "integer", "bigint", "numeric", "real", "double precision":
+			c.kind = cellNumber
+		case "date":
+			c.kind = cellDate
+		}
+		cols = append(cols, c)
+		return nil
+	})
+	return cols, err
 }
 
 func (s *pgVervent) routes(r chi.Router) {
@@ -183,6 +200,7 @@ func (s *pgVervent) handleComparisonSummary(w http.ResponseWriter, r *http.Reque
 // other parameter filters on that column by exact match of its text form ("null" matches NULL)
 // or, with a filterOps suffix, by comparison in the column's own type.
 // sum=col,col adds "sums": the total of each of those columns over every row the filters match.
+// format=xlsx answers with every matching row as a workbook instead (xlsx.go).
 // Column names are checked against the table's columns and values are bound, never interpolated.
 func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 	if t.db == nil { // an optional table that doesn't exist
@@ -216,6 +234,8 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 	q.Del("offset")
 	q.Del("sort")
 	q.Del("sum")
+	export := q.Get("format") == "xlsx"
+	q.Del("format")
 
 	var where []string
 	var args []any
@@ -241,6 +261,8 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 		args = append(args, vals[0])
 		if op == "" {
 			where = append(where, fmt.Sprintf("%s::text = $%d", ident, len(args)))
+		} else if op == "like" {
+			where = append(where, fmt.Sprintf("position(lower($%d) in lower(%s::text)) > 0", len(args), ident))
 		} else {
 			where = append(where, fmt.Sprintf("%s %s $%d", ident, filterOps[op], len(args)))
 		}
@@ -284,6 +306,10 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 		serverError(w, err)
 		return
 	}
+	if export {
+		t.export(w, r, total, from, order, args)
+		return
+	}
 	rows, err := t.db.Query(ctx, fmt.Sprintf("SELECT row_to_json(t)::text FROM %s ORDER BY %s LIMIT %d OFFSET %d",
 		from, order, limit, offset), args...)
 	if err != nil {
@@ -311,6 +337,45 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 		body["sums"] = named
 	}
 	writeJSON(w, body)
+}
+
+// export streams every row of the list query (from, order, args) as a workbook, with each column
+// read as text and written by its type.
+func (t pgTable) export(w http.ResponseWriter, r *http.Request, total int, from, order string, args []any) {
+	if total > maxExportRows {
+		http.Error(w, tooManyRowsToExport, http.StatusBadRequest)
+		return
+	}
+	names := make([]string, len(t.ordered))
+	exprs := make([]string, len(t.ordered))
+	kinds := make([]cellKind, len(t.ordered))
+	for i, c := range t.ordered {
+		names[i], kinds[i] = c.name, c.kind
+		exprs[i] = "t." + pgx.Identifier{c.name}.Sanitize() + "::text"
+	}
+	rows, err := t.db.Query(r.Context(), fmt.Sprintf("SELECT %s FROM %s ORDER BY %s", strings.Join(exprs, ", "), from, order), args...)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	defer rows.Close()
+	x := startXLSX(w, t.name, names)
+	values := make([]*string, len(names))
+	for rows.Next() {
+		for i, raw := range rows.RawValues() {
+			values[i] = nil
+			if raw != nil {
+				s := string(raw)
+				values[i] = &s
+			}
+		}
+		x.row(values, kinds)
+	}
+	x.keep(rows.Err())
+	// The status line has gone out, so a failure can only cut the download short.
+	if err := x.close(); err != nil {
+		log.Printf("export of %s: %v", t.name, err)
+	}
 }
 
 func (t pgTable) get(w http.ResponseWriter, r *http.Request) {
@@ -369,10 +434,13 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	var asOf *string
 	err = s.db.QueryRow(ctx, `
 		WITH a AS (SELECT max(transaction_date_key) AS d FROM vervent_transactions)
-		SELECT a.d::text, coalesce(sum(t.payment_amount), 0)::float8
+		SELECT a.d::text,
+		       coalesce(sum(t.payment_amount) FILTER (WHERE t.transaction_date_key > a.d - 30), 0)::float8,
+		       coalesce(sum(t.payment_amount) FILTER (WHERE t.transaction_date_key >= date_trunc('month', a.d)::date), 0)::float8
 		  FROM a LEFT JOIN vervent_transactions t
-		    ON t.transaction_date_key > a.d - 30 AND t.is_non_cash IS NOT TRUE
-		 GROUP BY a.d`).Scan(&asOf, &m.Collections30d)
+		    -- the last 30 days and the month to date both fall within the last 31 days
+		    ON t.transaction_date_key > a.d - 31 AND t.is_non_cash IS NOT TRUE
+		 GROUP BY a.d`).Scan(&asOf, &m.Collections30d, &m.CollectionsMTD)
 	if err != nil {
 		serverError(w, err)
 		return
@@ -396,6 +464,7 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	m.OutstandingReceivables = round2(m.OutstandingReceivables)
 	m.PastDue = round2(m.PastDue)
 	m.Collections30d = round2(m.Collections30d)
+	m.CollectionsMTD = round2(m.CollectionsMTD)
 	writeJSON(w, m)
 }
 

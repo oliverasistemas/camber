@@ -4,9 +4,12 @@ import (
 	"cmp"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -25,6 +28,8 @@ type row = map[string]any
 
 // dataset is one Vervent table loaded from mock JSON, indexed by its primary key.
 type dataset struct {
+	name  string   // the table the rows mock, which names an export
+	cols  []string // the columns in file order, for exports
 	rows  []row
 	byKey map[string]row
 }
@@ -46,23 +51,25 @@ type verventStore struct {
 func loadVervent(dir string) (*verventStore, error) {
 	var s verventStore
 	for _, d := range []struct {
-		file string
-		key  string
-		dst  *dataset
+		file  string
+		table string
+		key   string
+		dst   *dataset
 	}{
-		{"contracts.json", "lease_no", &s.contracts},
-		{"assets.json", "asset_no", &s.assets},
-		{"transactions.json", "transaction_key", &s.transactions},
-		{"load_runs.json", "id", &s.loadRuns},
-		{"load_files.json", "id", &s.loadFiles},
-		{"portfolio_snapshots.json", "id", &s.snapshots},
-		{"portfolio_snapshot_contracts.json", "contract_no", &s.snapshotContracts},
-		{"lease_terminations.json", "lease_no", &s.terminations},
+		{"contracts.json", "vervent_contracts", "lease_no", &s.contracts},
+		{"assets.json", "vervent_assets", "asset_no", &s.assets},
+		{"transactions.json", "vervent_transactions", "transaction_key", &s.transactions},
+		{"load_runs.json", "load_runs", "id", &s.loadRuns},
+		{"load_files.json", "load_files", "id", &s.loadFiles},
+		{"portfolio_snapshots.json", "portfolio_snapshots", "id", &s.snapshots},
+		{"portfolio_snapshot_contracts.json", "portfolio_snapshot_contract_list", "contract_no", &s.snapshotContracts},
+		{"lease_terminations.json", "lease_terminations", "lease_no", &s.terminations},
 	} {
 		ds, err := loadDataset(filepath.Join(dir, d.file), d.key)
 		if err != nil {
 			return nil, err
 		}
+		ds.name = d.table
 		*d.dst = ds
 	}
 	return &s, nil
@@ -85,7 +92,42 @@ func loadDataset(path, key string) (dataset, error) {
 	for _, r := range rows {
 		byKey[str(r[key])] = r
 	}
-	return dataset{rows: rows, byKey: byKey}, nil
+	cols, err := firstRowKeys(f)
+	if err != nil {
+		return dataset{}, fmt.Errorf("decoding %s: %w", path, err)
+	}
+	return dataset{cols: cols, rows: rows, byKey: byKey}, nil
+}
+
+// firstRowKeys returns the keys of the first object of a JSON array of objects in the order they
+// are written, which decoding into a map loses.
+func firstRowKeys(f *os.File) ([]string, error) {
+	if _, err := f.Seek(0, io.SeekStart); err != nil {
+		return nil, err
+	}
+	dec := json.NewDecoder(f)
+	if _, err := dec.Token(); err != nil { // [
+		return nil, err
+	}
+	if !dec.More() {
+		return nil, nil
+	}
+	if _, err := dec.Token(); err != nil { // {
+		return nil, err
+	}
+	var keys []string
+	for dec.More() {
+		key, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		var value json.RawMessage
+		if err := dec.Decode(&value); err != nil {
+			return nil, err
+		}
+		keys = append(keys, key.(string))
+	}
+	return keys, nil
 }
 
 func (s *verventStore) routes(r chi.Router) {
@@ -135,7 +177,10 @@ func (s *verventStore) handleLoadFileDownload(w http.ResponseWriter, r *http.Req
 
 // filterOps are the comparisons a filter parameter can ask for with a suffix, e.g. days_del.gt=0,
 // and their SQL operators. Without a suffix the filter is an exact match.
-var filterOps = map[string]string{"gt": ">", "gte": ">=", "lt": "<", "lte": "<=", "ne": "IS DISTINCT FROM"}
+// like is the exception: it matches values containing the text, ignoring case, and has no operator.
+var filterOps = map[string]string{"gt": ">", "gte": ">=", "lt": "<", "lte": "<=", "ne": "IS DISTINCT FROM", "like": ""}
+
+const tooManyRowsToExport = "too many rows to export; narrow the filters"
 
 // splitFilter splits a filter parameter into its column and operator ("" for exact match).
 func splitFilter(param string) (col, op string, ok bool) {
@@ -151,7 +196,9 @@ func splitFilter(param string) (col, op string, ok bool) {
 // last either way. Any other query parameter except limit/offset filters on the column of that
 // name by exact match, e.g. /transactions?contract_number=5000080213&trans=200, or with a
 // filterOps suffix by comparison, e.g. /contracts?days_del.gt=0. col.ne also matches nulls.
+// col.like matches values that contain the text, whatever the case.
 // sum=col,col adds "sums": the total of each of those columns over every row the filters match.
+// format=xlsx answers with every matching row as a workbook instead (xlsx.go).
 func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	limit, err := intParam(q.Get("limit"), defaultPageLimit)
@@ -182,6 +229,8 @@ func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 	q.Del("offset")
 	q.Del("sort")
 	q.Del("sum")
+	export := q.Get("format") == "xlsx"
+	q.Del("format")
 	for param := range q {
 		if _, _, ok := splitFilter(param); !ok {
 			http.Error(w, "unknown filter operator in "+param, http.StatusBadRequest)
@@ -199,6 +248,10 @@ func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 		slices.SortStableFunc(matched, func(a, b row) int {
 			return compareValues(a[sortCol], b[sortCol], desc)
 		})
+	}
+	if export {
+		d.export(w, matched)
+		return
 	}
 	page := matched[min(offset, len(matched)):min(offset+limit, len(matched))]
 
@@ -220,6 +273,40 @@ func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 		body["sums"] = sums
 	}
 	writeJSON(w, body)
+}
+
+var isoDate = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
+
+// export writes rows as a workbook. The mock has no column types, so each value is written by
+// what it is: numbers as numbers, YYYY-MM-DD strings as dates.
+func (d dataset) export(w http.ResponseWriter, rows []row) {
+	if len(rows) > maxExportRows {
+		http.Error(w, tooManyRowsToExport, http.StatusBadRequest)
+		return
+	}
+	x := startXLSX(w, d.name, d.cols)
+	values := make([]*string, len(d.cols))
+	kinds := make([]cellKind, len(d.cols))
+	for _, rw := range rows {
+		for i, col := range d.cols {
+			values[i], kinds[i] = nil, cellText
+			v := rw[col]
+			if v == nil {
+				continue
+			}
+			s := str(v)
+			values[i] = &s
+			if _, ok := v.(json.Number); ok {
+				kinds[i] = cellNumber
+			} else if isoDate.MatchString(s) {
+				kinds[i] = cellDate
+			}
+		}
+		x.row(values, kinds)
+	}
+	if err := x.close(); err != nil {
+		log.Printf("export of %s: %v", d.name, err)
+	}
 }
 
 // sumParam splits the sum parameter into its column names.
@@ -273,6 +360,8 @@ func filterMatch(v any, op, want string) bool {
 		return str(v) == want
 	case "ne":
 		return str(v) != want
+	case "like":
+		return v != nil && strings.Contains(strings.ToLower(str(v)), strings.ToLower(want))
 	}
 	if v == nil {
 		return false
