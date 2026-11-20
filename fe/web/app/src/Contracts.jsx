@@ -1,17 +1,12 @@
 import { Tag, Typography } from 'antd'
-import { Link } from 'react-router-dom'
 import DataTable, { money } from './DataTable.jsx'
-import { contractLink } from './records.jsx'
+import { contractLink, leaseLink } from './records.jsx'
 import { portfolioColumn, usePortfolios } from './portfolios.jsx'
 
-const columns = (portfolios) => [
+export const columns = (portfolios) => [
   { title: 'Lease No', dataIndex: 'lease_no', fixed: 'left', render: contractLink },
-  // The lease a deficiency contract belongs to; it lists the lease with all of its contracts.
-  {
-    title: 'Camber Lease',
-    dataIndex: 'camber_lease_id',
-    render: (v) => v && <Link to={`/vervent/contracts?camber_lease_id=${encodeURIComponent(v)}`}>{v}</Link>,
-  },
+  // The lease a deficiency contract belongs to; it opens the lease with all of its contracts.
+  { title: 'Camber Lease', dataIndex: 'camber_lease_id', render: leaseLink },
   portfolioColumn(portfolios),
   { title: 'Lessee', dataIndex: 'lessee_name' },
   { title: 'State', dataIndex: 'lessee_state' },

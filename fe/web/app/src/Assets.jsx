@@ -1,6 +1,6 @@
 import { Tag } from 'antd'
 import DataTable, { money } from './DataTable.jsx'
-import { assetLink, contractLink } from './records.jsx'
+import { assetLink, contractLink, leaseLink } from './records.jsx'
 import { portfolioColumn, usePortfolios } from './portfolios.jsx'
 
 export const statusColors = { NLSE: 'green', ULSE: 'blue', USLD: 'default', URIN: 'orange', NRIV: 'gold' }
@@ -33,9 +33,12 @@ export const columns = [
   { title: 'Dealer', dataIndex: 'dealer_name' },
 ]
 
-// The list page adds the portfolio after the lease; the tables embedded in a lease's page don't need it.
+// The list page adds the Camber lease and the portfolio after the lease; the tables embedded in a
+// lease's page don't need them.
+const camberLease = { title: 'Camber Lease', dataIndex: 'camber_lease_id', render: leaseLink }
+
 export default function Assets() {
   const portfolios = usePortfolios()
-  const withPortfolio = columns.flatMap((c) => (c.dataIndex === 'lease' ? [c, portfolioColumn(portfolios)] : [c]))
+  const withPortfolio = columns.flatMap((c) => (c.dataIndex === 'lease' ? [c, camberLease, portfolioColumn(portfolios)] : [c]))
   return <DataTable endpoint="/api/vervent/assets" rowKey="asset_no" columns={withPortfolio} noun="assets" urlState />
 }

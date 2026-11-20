@@ -5,7 +5,7 @@ import PageHeader from './PageHeader.jsx'
 import { columns as assetColumns } from './Assets.jsx'
 import { columns as transactionColumns } from './Transactions.jsx'
 import { contractColumns as snapshotColumns, contractKey as snapshotKey } from './SnapshotDetail.jsx'
-import { useRecord } from './records.jsx'
+import { leaseLink, useRecord } from './records.jsx'
 import { camberList } from './portfolios.jsx'
 
 // The lease number and lessee are already in the page header, so drop them from the tables.
@@ -61,12 +61,7 @@ export default function ContractDetail() {
               { label: 'Est Payoff', children: money(c.est_payoff) },
               { label: 'Dealer', children: c.dlr_name },
               { label: 'Portfolio', children: c.camber_portfolio ?? 'Not in a portfolio' },
-              {
-                label: 'Camber Lease',
-                children: c.camber_lease_id && (
-                  <Link to={`/vervent/contracts?camber_lease_id=${encodeURIComponent(c.camber_lease_id)}`}>{c.camber_lease_id}</Link>
-                ),
-              },
+              { label: 'Camber Lease', children: leaseLink(c.camber_lease_id) },
             ]}
           />
         </Card>

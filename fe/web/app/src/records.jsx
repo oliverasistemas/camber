@@ -28,6 +28,8 @@ export function useRecord(endpoint) {
 
 // Cross-links between records, for table columns and detail pages.
 export const contractLink = (leaseNo) => leaseNo && <Link to={`/vervent/contracts/${encodeURIComponent(leaseNo)}`}>{leaseNo}</Link>
+// A lease under its Camber lease id: the main contract and its deficiency contracts together.
+export const leaseLink = (leaseId) => leaseId && <Link to={`/vervent/leases/${encodeURIComponent(leaseId)}`}>{leaseId}</Link>
 export const terminationLink = (leaseNo) => leaseNo && <Link to={`/servicing/terminations/${encodeURIComponent(leaseNo)}`}>{leaseNo}</Link>
 export const assetLink = (assetNo, label = assetNo) => assetNo != null && <Link to={`/vervent/assets/${assetNo}`}>{label}</Link>
 export const transactionLink = (key) => key != null && <Link to={`/vervent/transactions/${encodeURIComponent(key)}`}>{key}</Link>

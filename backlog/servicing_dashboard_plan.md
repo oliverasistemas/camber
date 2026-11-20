@@ -81,7 +81,9 @@ files; 196 suffixed contracts follow a lease that is not on the list (one of the
 ## Phase 3 — consolidated lease view
 
 - One page per Camber lease ID: the main contract, its deficiency contracts, and their combined
-  assets, transactions and balances.
+  assets, transactions and balances. Built 2026-11-20 (`/vervent/leases/:leaseId`), not yet
+  shipped; shipping needs `deploy/load-schema.sh` first (the asset and transaction views gain
+  `camber_lease_id`).
 - Decide with Brad how metrics treat a deficiency contract: counted with its main lease
   (one lease, summed balances) or separately. This changes active-contract counts and
   delinquency, so it needs sign-off before the dashboard figures move.

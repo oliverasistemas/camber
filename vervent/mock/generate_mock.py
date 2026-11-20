@@ -112,10 +112,12 @@ def camber_portfolio(lease_no):
     return None
 
 
-def blank_row(cols, lease_no=None):
+def blank_row(cols, lease_no=None, lease_id=True):
     """Unpopulated columns: 0 for money/rates (as in the extracts), null for everything else.
-    camber_portfolio comes first, as in the views."""
+    camber_portfolio comes first, as in the views, then camber_lease_id on an asset or transaction
+    row (lease_id=False for a contract, whose table has it as its last column)."""
     return {"camber_portfolio": camber_portfolio(lease_no),
+            **({"camber_lease_id": camber_lease_id(lease_no) if lease_no else None} if lease_id else {}),
             **{c: (0 if t.startswith("numeric") else None) for c, t in cols}}
 
 
@@ -168,7 +170,7 @@ class Generator:
 
     def contract(self, lease_no, who, dealer, vehicle, *, deficiency_of=None):
         r = self.rng
-        c = blank_row(self.c_cols, lease_no)
+        c = blank_row(self.c_cols, lease_no, lease_id=False)
         is_def = deficiency_of is not None
         miles = random.Random(lease_no)  # its own stream, so the mileage terms don't shift every other draw
         if is_def:
