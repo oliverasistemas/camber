@@ -1,0 +1,159 @@
+New Message from Russell Abrams  Show  Ignore
+
+Skip to content
+Using Camber Credit Mail with screen readers
+
+1 of 74
+Master Servicing - Lease Termination Report (Draft Template - 2026.11.17)
+Inbox
+Summarize this email
+
+Brad Moore
+Attachments
+Nov 17, 2026, 8:15 PM (3 days ago)
+to Russell, Zoe, me, Benjamin
+
+Hi all,
+
+Attached is an initial draft of the Master Servicing template for lease terminations. The template includes the information we need to track for:
+Vehicle statuses
+Pre-lease termination outreach to record customer intent (return vehicle, purchase, etc.)
+Lease termination dates/scenarios and potential amounts due at lease termination for remaining lease payments, the contract residual, past-due balances, and PPT
+Vehicle returns and inspections, including documenting vehicle condition, excess mileage/wear fees, disposition fees, and MMR values
+Billing at lease termination to calculate the amounts due based on the lease termination type and when the invoices were sent to the customer
+Vehicle sales, including calculating any residual shortfalls due following the sale and when the invoices were sent to the customer
+Collections and accounts receivable, including tracking of any amounts waived or charged off
+The date that the title was released following the vehicle sale
+The template also includes a sample data override layer that we should create to correct values in our reports that are validated through a different source. Example: Camber lease tape lists an annual mileage allowance of 15k mi/year, but the lease agreement states 12k mi/year.
+
+I am also working on templates for the dashboards to sit on top of this data, but I wanted to start by defining the template for what is needed to effectively manage lease terminations.
+
+Please review and let me know if you have any immediate feedback or questions. I will also schedule time for us to review the template in more detail.
+
+Thank you,
+Brad
+
+--
+Camber Credit Logo
+Brad Moore
+COO, Platform & Servicing, Camber Credit
++1 (951) 973-9115  |  brad@cambercredit.com  |  www.cambercredit.com
+152 West 57th Street, 7th Floor, New York, NY 10019
+ One attachment
+  •  Scanned by Gmail
+
+Russell Abrams
+Attachments
+Nov 17, 2026, 11:10 PM (3 days ago)
+to Brad, Zoe, me, Benjamin
+
+Hi Brad
+Thanks for sending the template. I am attaching the master servicing vehicle management spreadsheet sent from you on Oct 14. it seems to have a lot of relevant information for managing the process, especially MMR values and loan payments to predict cars we would lose the most on if the lease is terminated. It also has good information on reserve pricing etc.
+did you review the front end dashboard that Adolfo set up so we can expand it as it seems to already have the data from Vervent and Copart, but clearly needs more data being shown to properly manage the process.
+russell
+--
+Chief Investment Officer
+Camber Credit
+152 West 57th St, 7th Fl
+NY, NY 10019
+www.cambercredit.com
+
+ One attachment
+  •  Scanned by Gmail
+
+Brad Moore
+Attachments
+11:53 AM (2 minutes ago)
+to me, Russell, Zoe, Benjamin
+
+Hi Adolfo,
+
+Attached is an updated Lease Termination Report template, which we will discuss during our meeting at 10:30 AM today.
+
+Russell - This template incorporates many fields from the original Master Servicing Vehicle Management template, as well as a few additional fields I added after reviewing the template further.
+
+Thank you,
+Brad
+ One attachment
+  •  Scanned by Gmail
+
+Russell Abrams
+11:55 AM (0 minutes ago)
+to Brad, me, Zoe, Benjamin
+
+Please get the data filled as well asap both the historical we are missing and other data
+It is best to have imperfect and working front end than waiting for all the data and additional fields
+
+
+Chief Investment Officer
+Camber Credit
+152 West 57th St, 7th Fl
+NY, NY 10019
+www.cambercredit.com
+
+
+On Fri, Nov 20, 2026 at 9:53 AM Brad Moore <brad@cambercredit.com> wrote:
+Hi Adolfo,
+
+Attached is an updated Lease Termination Report template, which we will discuss during our meeting at 10:30 AM today.
+
+Russell - This template incorporates many fields from the original Master Servicing Vehicle Management template, as well as a few additional fields I added after reviewing the template further.
+
+Thank you,
+Brad
+
+On Tue, Nov 17, 2026 at 9:10 PM Russell Abrams <russell@cambercredit.com> wrote:
+Hi Brad
+Thanks for sending the template. I am attaching the master servicing vehicle management spreadsheet sent from you on Oct 14. it seems to have a lot of relevant information for managing the process, especially MMR values and loan payments to predict cars we would lose the most on if the lease is terminated. It also has good information on reserve pricing etc.
+did you review the front end dashboard that Adolfo set up so we can expand it as it seems to already have the data from Vervent and Copart, but clearly needs more data being shown to properly manage the process.
+russell
+
+On Tue, Nov 17, 2026 at 6:15 PM Brad Moore <brad@cambercredit.com> wrote:
+Hi all,
+
+Attached is an initial draft of the Master Servicing template for lease terminations. The template includes the information we need to track for:
+Vehicle statuses
+Pre-lease termination outreach to record customer intent (return vehicle, purchase, etc.)
+Lease termination dates/scenarios and potential amounts due at lease termination for remaining lease payments, the contract residual, past-due balances, and PPT
+Vehicle returns and inspections, including documenting vehicle condition, excess mileage/wear fees, disposition fees, and MMR values
+Billing at lease termination to calculate the amounts due based on the lease termination type and when the invoices were sent to the customer
+Vehicle sales, including calculating any residual shortfalls due following the sale and when the invoices were sent to the customer
+Collections and accounts receivable, including tracking of any amounts waived or charged off
+The date that the title was released following the vehicle sale
+The template also includes a sample data override layer that we should create to correct values in our reports that are validated through a different source. Example: Camber lease tape lists an annual mileage allowance of 15k mi/year, but the lease agreement states 12k mi/year.
+
+I am also working on templates for the dashboards to sit on top of this data, but I wanted to start by defining the template for what is needed to effectively manage lease terminations.
+
+Please review and let me know if you have any immediate feedback or questions. I will also schedule time for us to review the template in more detail.
+
+Thank you,
+Brad
+
+--
+Camber Credit Logo
+Brad Moore
+COO, Platform & Servicing, Camber Credit
++1 (951) 973-9115  |  brad@cambercredit.com  |  www.cambercredit.com
+152 West 57th Street, 7th Floor, New York, NY 10019
+
+
+--
+Chief Investment Officer
+Camber Credit
+152 West 57th St, 7th Fl
+NY, NY 10019
+www.cambercredit.com
+
+
+
+--
+Camber Credit Logo
+Brad Moore
+COO, Platform & Servicing, Camber Credit
++1 (951) 973-9115  |  brad@cambercredit.com  |  www.cambercredit.com
+152 West 57th Street, 7th Floor, New York, NY 10019
+
+
+
+
+Displaying Master Servicing - Lease Termination Report (Template - 2026.11.20).xlsx.
