@@ -9,7 +9,8 @@ the extracts so the data behaves like the real thing.
 
     python3 generate_mock.py            # writes contracts.json, assets.json, transactions.json
                                         # the load history, load_runs.json and load_files.json,
-                                        # the daily history, contract_snapshots.json,
+                                        # the portfolio snapshots, portfolio_snapshots.json and
+                                        # portfolio_snapshot_contracts.json,
                                         # and the lease_terminations view, lease_terminations.json
     python3 generate_mock.py --contracts 200 --seed 7
 """
@@ -465,23 +466,38 @@ def business_days(end, n):
     return days[::-1]
 
 
-def contract_snapshots(g, days=15):
-    """vervent_contract_snapshots rows (../sql/05_vervent_contract_snapshots.sql): each contract's
-    receivables and delinquency on each of the last few business days. The last day equals the
-    contract row; earlier days run the clock back (more receivable left, fewer days delinquent),
-    and a few contracts that are current today were delinquent for a while and cured. Newest day
-    first, then lease number: the order the API lists them in."""
+# portfolio_snapshot_contracts column -> vervent_contracts column: verventColumns in
+# be/pipeline/portfolio/snapshot.go.
+SNAPSHOT_COLUMNS = {
+    "contract_no": "lease_no", "status": "ls_status", "is_open": "is_account_open",
+    "commencement_date": "commence_date", "maturity_date": "maturity_date", "term_months": "term",
+    "original_cost": "orig_cost", "residual": "tot_residual", "monthly_payment": "curr_pymt",
+    "outstanding_receivables": "remaining_receivables", "past_due": "total_past_due",
+    "days_delinquent": "days_del", "delinquency_bucket": "curr_delinq",
+}
+
+
+def portfolio_snapshots(g, days=15):
+    """portfolio_snapshots and portfolio_snapshot_contract_list rows
+    (../../portfolio/sql/01_portfolio_snapshots.sql): a daily snapshot for each of the last few
+    business days and one manual snapshot of the last day.
+
+    The last day's rows equal the contract rows; earlier days run the clock back (more receivable
+    left, fewer days delinquent), and a few contracts that are current today were delinquent for a
+    while and cured. Each snapshot's totals are computed from its rows, as portfolio.Capture does.
+    Both lists are newest first, the order the API serves them in. servicer_row is left out: the
+    mock API fills it from contracts.json."""
     rng = random.Random(g.rng.random())
-    cols = [c for c, _ in sql_columns(SQL_DIR / "05_vervent_contract_snapshots.sql")]
-    rows = []
-    for c in g.contracts:
+    dates = business_days(AS_OF, days)
+    by_day = {day: [] for day in dates}
+    for c in sorted(g.contracts, key=lambda c: c["lease_no"]):
         pmt = c["curr_pymt"] or 0
         # (first, last) days back of a delinquency that has since cured
         cured = None
         if c["is_account_open"] and not c["days_del"] and rng.random() < 0.25:
             last = rng.randint(1, 12)
             cured = (last + rng.randint(3, 20), last)
-        for day in business_days(AS_OF, days):
+        for day in dates:
             back = (AS_OF - day).days
             if c["commence_date"] and c["commence_date"] > iso(day):
                 continue  # not booked yet
@@ -490,23 +506,44 @@ def contract_snapshots(g, days=15):
                 days_del = cured[0] - back + 1
             bucket = next((b for lim, b in DELINQ_BUCKETS if days_del and days_del <= lim),
                           "181+" if days_del > 180 else None)
-            past_due = money(pmt * (days_del // 30 + (1 if days_del else 0)))
             remaining = c["remaining_receivables"]
             if c["is_account_open"]:
                 remaining = money(remaining + pmt * back / 30)
-            row = dict.fromkeys(cols)
-            row.update({k: c[k] for k in cols if k in c})
+            row = {col: c[src] for col, src in SNAPSHOT_COLUMNS.items()}
             row.update({
-                "file_date": iso(day), "remaining_receivables": remaining,
-                "past_due_receivables": past_due, "total_past_due": past_due,
-                "days_del": days_del, "curr_delinq": bucket,
-                "source_file": f"{day:%Y%m%d}_ContractSummary_Daily_P50.csv",
-                "loaded_at": datetime(day.year, day.month, day.day, 6, 5, tzinfo=timezone.utc).isoformat(),
+                "outstanding_receivables": remaining,
+                "past_due": money(pmt * (days_del // 30 + (1 if days_del else 0))),
+                "days_delinquent": days_del, "delinquency_bucket": bucket,
             })
-            rows.append(row)
-    rows.sort(key=lambda r: r["lease_no"])
-    rows.sort(key=lambda r: r["file_date"], reverse=True)
-    return rows
+            by_day[day].append(row)
+
+    def snapshot(sid, kind, day, rows, **fields):
+        active = [r for r in rows if r["is_open"]]
+        header = {
+            "id": sid, "kind": kind, "as_of": iso(day), "name": None, "note": None,
+            "taken_at": datetime(day.year, day.month, day.day, 6, 5, tzinfo=timezone.utc).isoformat(),
+            "taken_by": "loader", "servicer": "vervent", "source_file": None,
+            "total_contracts": len(rows), "active_contracts": len(active),
+            "outstanding_receivables": money(sum(r["outstanding_receivables"] or 0 for r in active)),
+            "past_due": money(sum(r["past_due"] or 0 for r in active)),
+            "delinquent_contracts": sum(1 for r in active if (r["days_delinquent"] or 0) > 0),
+        }
+        header.update(fields)
+        return header, [{"snapshot_id": sid, "as_of": iso(day), "kind": kind, **r} for r in rows]
+
+    snapshots, contracts = [], []
+    for sid, day in enumerate(dates, start=1):
+        header, rows = snapshot(sid, "daily", day, by_day[day],
+                                source_file=f"{day:%Y%m%d}_ContractSummary_Daily_P50.csv")
+        snapshots.append(header)
+        contracts.append(rows)
+    header, rows = snapshot(len(dates) + 1, "manual", AS_OF, by_day[AS_OF], name="Investor update, November",
+                            note="Portfolio as presented in the November investor update.",
+                            taken_by="analyst@example.com",
+                            taken_at=datetime(AS_OF.year, AS_OF.month, AS_OF.day, 15, 30, tzinfo=timezone.utc).isoformat())
+    snapshots.append(header)
+    contracts.append(rows)
+    return snapshots[::-1], [r for rows in contracts[::-1] for r in rows]
 
 
 def lease_terminations(g):
@@ -566,9 +603,10 @@ def main():
     g = Generator(args.seed)
     g.run(args.contracts)
     runs, files = load_history(g)
-    snapshots = contract_snapshots(g)
+    snapshots, snapshot_contracts = portfolio_snapshots(g)
     for name, rows in [("contracts", g.contracts), ("assets", g.assets), ("transactions", g.transactions),
-                       ("load_runs", runs), ("load_files", files), ("contract_snapshots", snapshots),
+                       ("load_runs", runs), ("load_files", files),
+                       ("portfolio_snapshots", snapshots), ("portfolio_snapshot_contracts", snapshot_contracts),
                        ("lease_terminations", lease_terminations(g))]:
         path = args.out / f"{name}.json"
         path.write_text(json.dumps(rows, indent=2) + "\n")

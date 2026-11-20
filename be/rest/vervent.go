@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -34,7 +35,11 @@ type verventStore struct {
 	transactions dataset
 	loadRuns     dataset
 	loadFiles    dataset
-	snapshots    dataset // vervent_contract_snapshots: byKey is unused, lease_no repeats per day
+	// Portfolio snapshots (snapshots.go). Taking a snapshot replaces both datasets under
+	// snapshotMu; their handlers read them through snapshotData.
+	snapshotMu        sync.RWMutex
+	snapshots         dataset
+	snapshotContracts dataset // byKey is unused: contract_no repeats per snapshot
 	terminations dataset // the lease_terminations view, without Copart data
 }
 
@@ -50,7 +55,8 @@ func loadVervent(dir string) (*verventStore, error) {
 		{"transactions.json", "transaction_key", &s.transactions},
 		{"load_runs.json", "id", &s.loadRuns},
 		{"load_files.json", "id", &s.loadFiles},
-		{"contract_snapshots.json", "lease_no", &s.snapshots},
+		{"portfolio_snapshots.json", "id", &s.snapshots},
+		{"portfolio_snapshot_contracts.json", "contract_no", &s.snapshotContracts},
 		{"lease_terminations.json", "lease_no", &s.terminations},
 	} {
 		ds, err := loadDataset(filepath.Join(dir, d.file), d.key)
@@ -84,10 +90,8 @@ func loadDataset(path, key string) (dataset, error) {
 
 func (s *verventStore) routes(r chi.Router) {
 	r.Get("/metrics", s.handleMetrics)
-	r.Get("/metrics/history", s.handleMetricsHistory)
 	r.Get("/contracts", s.contracts.list)
 	r.Get("/contracts/{id}", s.contracts.get)
-	r.Get("/contract-snapshots", s.snapshots.list)
 	r.Get("/assets", s.assets.list)
 	r.Get("/assets/{id}", s.assets.get)
 	r.Get("/transactions", s.transactions.list)
@@ -147,6 +151,7 @@ func splitFilter(param string) (col, op string, ok bool) {
 // last either way. Any other query parameter except limit/offset filters on the column of that
 // name by exact match, e.g. /transactions?contract_number=5000080213&trans=200, or with a
 // filterOps suffix by comparison, e.g. /contracts?days_del.gt=0. col.ne also matches nulls.
+// sum=col,col adds "sums": the total of each of those columns over every row the filters match.
 func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	limit, err := intParam(q.Get("limit"), defaultPageLimit)
@@ -166,9 +171,17 @@ func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	sumCols := sumParam(q.Get("sum"))
+	for _, col := range sumCols {
+		if msg := d.checkSum(col); msg != "" {
+			http.Error(w, msg, http.StatusBadRequest)
+			return
+		}
+	}
 	q.Del("limit")
 	q.Del("offset")
 	q.Del("sort")
+	q.Del("sum")
 	for param := range q {
 		if _, _, ok := splitFilter(param); !ok {
 			http.Error(w, "unknown filter operator in "+param, http.StatusBadRequest)
@@ -189,12 +202,47 @@ func (d dataset) list(w http.ResponseWriter, r *http.Request) {
 	}
 	page := matched[min(offset, len(matched)):min(offset+limit, len(matched))]
 
-	writeJSON(w, map[string]any{
+	body := map[string]any{
 		"total":  len(matched),
 		"limit":  limit,
 		"offset": offset,
 		"data":   page,
-	})
+	}
+	if len(sumCols) > 0 {
+		sums := make(map[string]float64, len(sumCols))
+		for _, col := range sumCols {
+			var total float64
+			for _, rw := range matched {
+				total += num(rw[col])
+			}
+			sums[col] = round2(total)
+		}
+		body["sums"] = sums
+	}
+	writeJSON(w, body)
+}
+
+// sumParam splits the sum parameter into its column names.
+func sumParam(v string) []string {
+	if v == "" {
+		return nil
+	}
+	return strings.Split(v, ",")
+}
+
+// checkSum returns why col can't be summed ("" if it can): like Postgres, only a column that
+// exists and holds numbers.
+func (d dataset) checkSum(col string) string {
+	for i, rw := range d.rows {
+		v, ok := rw[col]
+		if i == 0 && !ok {
+			return "unknown sum column " + col
+		}
+		if _, isNum := v.(json.Number); v != nil && !isNum {
+			return "sum needs numeric columns"
+		}
+	}
+	return ""
 }
 
 func (d dataset) get(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,348 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"maps"
+	"mime"
+	"net/http"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+	"unicode/utf8"
+
+	"camber/pipeline/portfolio"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
+)
+
+// Portfolio snapshots (portfolio/sql/01_portfolio_snapshots.sql): frozen, servicer-neutral copies
+// of the contracts, each with its totals. /api/snapshots serves, for both backends:
+//
+//	GET  /                           the snapshots (list contract), newest first
+//	POST /                           take a manual snapshot of the contracts as loaded now
+//	GET  /history                    the daily snapshots' totals, oldest first: the by-day charts
+//	GET  /contracts                  contract rows of every snapshot (list contract), without servicer_row
+//	GET  /{id}                       one snapshot
+//	GET  /{id}/contracts/{contract}  one contract row, with the servicer's whole row
+
+// snapshotDay is one daily snapshot's totals. The figures cover the contracts open that day.
+type snapshotDay struct {
+	SnapshotID             int64   `json:"snapshot_id"`
+	AsOf                   string  `json:"as_of"`
+	TotalContracts         int     `json:"total_contracts"`
+	ActiveContracts        int     `json:"active_contracts"`
+	OutstandingReceivables float64 `json:"outstanding_receivables"`
+	PastDue                float64 `json:"past_due"`
+	DelinquentContracts    int     `json:"delinquent_contracts"`
+	DelinquencyRate        float64 `json:"delinquency_rate"` // percent of active contracts
+}
+
+// finish derives the rate once the counts are in.
+func (d snapshotDay) finish() snapshotDay {
+	d.DelinquencyRate = 0
+	if d.ActiveContracts > 0 {
+		d.DelinquencyRate = float64(d.DelinquentContracts) / float64(d.ActiveContracts) * 100
+	}
+	return d
+}
+
+const (
+	maxSnapshotName = 200
+	maxSnapshotNote = 2000
+)
+
+type snapshotRequest struct {
+	Name string `json:"name"`
+	Note string `json:"note"`
+}
+
+// readSnapshotRequest reads the body of POST /api/snapshots, or answers with the error and
+// returns false. Requiring a JSON content type keeps a cross-site form post from taking one.
+func readSnapshotRequest(w http.ResponseWriter, r *http.Request) (snapshotRequest, bool) {
+	var req snapshotRequest
+	if mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt != "application/json" {
+		http.Error(w, "content type must be application/json", http.StatusUnsupportedMediaType)
+		return req, false
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<16)).Decode(&req); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return req, false
+	}
+	req.Name, req.Note = strings.TrimSpace(req.Name), strings.TrimSpace(req.Note)
+	switch {
+	case req.Name == "":
+		http.Error(w, "name is required", http.StatusBadRequest)
+	case utf8.RuneCountInString(req.Name) > maxSnapshotName:
+		http.Error(w, fmt.Sprintf("name is longer than %d characters", maxSnapshotName), http.StatusBadRequest)
+	case utf8.RuneCountInString(req.Note) > maxSnapshotNote:
+		http.Error(w, fmt.Sprintf("note is longer than %d characters", maxSnapshotNote), http.StatusBadRequest)
+	default:
+		return req, true
+	}
+	return req, false
+}
+
+func takenBy(r *http.Request) string {
+	user, _ := r.Context().Value(userKey{}).(User)
+	return user.Email
+}
+
+const noContractsToSnapshot = "no contracts are loaded, so there is nothing to snapshot"
+
+// Postgres
+
+func (s *pgVervent) snapshotRoutes(r chi.Router) {
+	r.Get("/", s.snapshots.list)
+	r.Post("/", s.handleCreateSnapshot)
+	r.Get("/history", s.handleSnapshotHistory)
+	r.Get("/contracts", s.snapshotContracts.list)
+	r.Get("/{id}", s.snapshots.get)
+	r.Get("/{id}/contracts/{contract}", s.handleSnapshotContract)
+}
+
+func (s *pgVervent) handleSnapshotHistory(w http.ResponseWriter, r *http.Request) {
+	days := []snapshotDay{}
+	if s.snapshots.db == nil { // the snapshot tables don't exist yet
+		writeJSON(w, days)
+		return
+	}
+	rows, err := s.db.Query(r.Context(), `
+		SELECT id, as_of::text, total_contracts, active_contracts, outstanding_receivables::float8,
+		       past_due::float8, delinquent_contracts
+		  FROM portfolio_snapshots WHERE kind = 'daily' ORDER BY as_of`)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	var d snapshotDay
+	_, err = pgx.ForEachRow(rows, []any{&d.SnapshotID, &d.AsOf, &d.TotalContracts, &d.ActiveContracts,
+		&d.OutstandingReceivables, &d.PastDue, &d.DelinquentContracts}, func() error {
+		days = append(days, d.finish())
+		return nil
+	})
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	writeJSON(w, days)
+}
+
+// handleCreateSnapshot copies vervent_contracts as it stands into a manual snapshot, in one
+// transaction, and answers with the new snapshot.
+func (s *pgVervent) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) {
+	req, ok := readSnapshotRequest(w, r)
+	if !ok {
+		return
+	}
+	if s.snapshots.db == nil {
+		http.Error(w, "the snapshot tables don't exist; apply portfolio/sql first", http.StatusServiceUnavailable)
+		return
+	}
+	ctx := r.Context()
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	defer tx.Rollback(ctx)
+
+	// The data is as of the newest file any contract came from.
+	var asOf *string
+	if err := tx.QueryRow(ctx, `SELECT max(file_date)::text FROM vervent_contracts`).Scan(&asOf); err != nil {
+		serverError(w, err)
+		return
+	}
+	if asOf == nil {
+		http.Error(w, noContractsToSnapshot, http.StatusConflict)
+		return
+	}
+	id, _, err := portfolio.Capture(ctx, tx, portfolio.Vervent("vervent_contracts"), portfolio.Snapshot{
+		Kind: portfolio.Manual, AsOf: *asOf, Name: req.Name, Note: req.Note, TakenBy: takenBy(r)})
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	var body string
+	if err := tx.QueryRow(ctx, `SELECT row_to_json(t)::text FROM portfolio_snapshots t WHERE id = $1`, id).Scan(&body); err != nil {
+		serverError(w, err)
+		return
+	}
+	if err := tx.Commit(ctx); err != nil {
+		serverError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte(body))
+}
+
+func (s *pgVervent) handleSnapshotContract(w http.ResponseWriter, r *http.Request) {
+	if s.snapshots.db == nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	var body string
+	err := s.db.QueryRow(r.Context(), `SELECT row_to_json(t)::text FROM portfolio_snapshot_contracts t
+		WHERE snapshot_id::text = $1 AND contract_no = $2`, chi.URLParam(r, "id"), chi.URLParam(r, "contract")).Scan(&body)
+	if err == pgx.ErrNoRows {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		serverError(w, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(body))
+}
+
+// Mock
+
+func (s *verventStore) snapshotRoutes(r chi.Router) {
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		snapshots, _ := s.snapshotData()
+		snapshots.list(w, r)
+	})
+	r.Post("/", s.handleCreateSnapshot)
+	r.Get("/history", s.handleSnapshotHistory)
+	r.Get("/contracts", func(w http.ResponseWriter, r *http.Request) {
+		_, contracts := s.snapshotData()
+		contracts.list(w, r)
+	})
+	r.Get("/{id}", func(w http.ResponseWriter, r *http.Request) {
+		snapshots, _ := s.snapshotData()
+		snapshots.get(w, r)
+	})
+	r.Get("/{id}/contracts/{contract}", s.handleSnapshotContract)
+}
+
+// snapshotData returns the snapshot datasets as they are now. A dataset is never changed in
+// place (handleCreateSnapshot swaps in new ones), so the copies can be read without the lock.
+func (s *verventStore) snapshotData() (snapshots, contracts dataset) {
+	s.snapshotMu.RLock()
+	defer s.snapshotMu.RUnlock()
+	return s.snapshots, s.snapshotContracts
+}
+
+func (s *verventStore) handleSnapshotHistory(w http.ResponseWriter, r *http.Request) {
+	snapshots, _ := s.snapshotData()
+	days := []snapshotDay{}
+	for _, sn := range snapshots.rows {
+		if sn["kind"] != portfolio.Daily {
+			continue
+		}
+		asOf, _ := sn["as_of"].(string)
+		days = append(days, snapshotDay{
+			SnapshotID:             int64(num(sn["id"])),
+			AsOf:                   asOf,
+			TotalContracts:         int(num(sn["total_contracts"])),
+			ActiveContracts:        int(num(sn["active_contracts"])),
+			OutstandingReceivables: num(sn["outstanding_receivables"]),
+			PastDue:                num(sn["past_due"]),
+			DelinquentContracts:    int(num(sn["delinquent_contracts"])),
+		}.finish())
+	}
+	slices.SortFunc(days, func(a, b snapshotDay) int { return strings.Compare(a.AsOf, b.AsOf) })
+	writeJSON(w, days)
+}
+
+// handleCreateSnapshot does what portfolio.Capture does in SQL, over the mock contracts. The
+// snapshot lasts until the process exits.
+func (s *verventStore) handleCreateSnapshot(w http.ResponseWriter, r *http.Request) {
+	req, ok := readSnapshotRequest(w, r)
+	if !ok {
+		return
+	}
+	s.snapshotMu.Lock()
+	defer s.snapshotMu.Unlock()
+
+	asOf := ""
+	for _, c := range s.contracts.rows {
+		if d, _ := c["file_date"].(string); d > asOf {
+			asOf = d
+		}
+	}
+	if asOf == "" {
+		http.Error(w, noContractsToSnapshot, http.StatusConflict)
+		return
+	}
+	var last int64
+	for _, sn := range s.snapshots.rows {
+		last = max(last, int64(num(sn["id"])))
+	}
+	id := json.Number(strconv.FormatInt(last+1, 10))
+
+	var total snapshotDay
+	contracts := make([]row, 0, len(s.contracts.rows))
+	for _, c := range s.contracts.rows {
+		rw := row{"snapshot_id": id, "as_of": asOf, "kind": portfolio.Manual}
+		for _, m := range portfolio.Vervent("").Columns {
+			rw[m.Column] = c[m.From]
+		}
+		contracts = append(contracts, rw)
+		total.TotalContracts++
+		if open, _ := rw["is_open"].(bool); !open {
+			continue
+		}
+		total.ActiveContracts++
+		total.OutstandingReceivables += num(rw["outstanding_receivables"])
+		total.PastDue += num(rw["past_due"])
+		if num(rw["days_delinquent"]) > 0 {
+			total.DelinquentContracts++
+		}
+	}
+	slices.SortFunc(contracts, func(a, b row) int { return strings.Compare(str(a["contract_no"]), str(b["contract_no"])) })
+
+	amount := func(f float64) json.Number { return json.Number(strconv.FormatFloat(round2(f), 'f', 2, 64)) }
+	var note any
+	if req.Note != "" {
+		note = req.Note
+	}
+	snapshot := row{
+		"id": id, "kind": portfolio.Manual, "as_of": asOf, "name": req.Name, "note": note,
+		"taken_at": time.Now().UTC().Format(time.RFC3339), "taken_by": takenBy(r),
+		"servicer": "vervent", "source_file": nil,
+		"total_contracts":         json.Number(strconv.Itoa(total.TotalContracts)),
+		"active_contracts":        json.Number(strconv.Itoa(total.ActiveContracts)),
+		"outstanding_receivables": amount(total.OutstandingReceivables),
+		"past_due":                amount(total.PastDue),
+		"delinquent_contracts":    json.Number(strconv.Itoa(total.DelinquentContracts)),
+	}
+
+	// Newest first, the order the lists are served in. New slices and a new map: handlers may
+	// still be reading the old ones.
+	byKey := maps.Clone(s.snapshots.byKey)
+	byKey[id.String()] = snapshot
+	s.snapshots = dataset{rows: append([]row{snapshot}, s.snapshots.rows...), byKey: byKey}
+	s.snapshotContracts = dataset{rows: append(contracts, s.snapshotContracts.rows...)}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(snapshot)
+}
+
+// handleSnapshotContract returns one contract row of a snapshot. The mock files don't carry
+// servicer_row (some 200 fields per contract per snapshot), so it is filled with the contract as
+// the mock has it now, which a real snapshot would have frozen.
+func (s *verventStore) handleSnapshotContract(w http.ResponseWriter, r *http.Request) {
+	_, contracts := s.snapshotData()
+	id, contract := chi.URLParam(r, "id"), chi.URLParam(r, "contract")
+	for _, rw := range contracts.rows {
+		if str(rw["snapshot_id"]) != id || rw["contract_no"] != contract {
+			continue
+		}
+		out := maps.Clone(rw)
+		out["servicer_row"] = nil
+		if c, ok := s.contracts.byKey[contract]; ok {
+			servicerRow := maps.Clone(c)
+			delete(servicerRow, "loaded_at")
+			out["servicer_row"] = servicerRow
+		}
+		writeJSON(w, out)
+		return
+	}
+	http.Error(w, "not found", http.StatusNotFound)
+}

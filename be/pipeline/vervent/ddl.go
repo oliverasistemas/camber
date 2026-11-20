@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 
+	"camber/pipeline/portfolio"
+
 	"github.com/jackc/pgx/v5"
 )
 
@@ -34,25 +36,14 @@ type Report struct {
 	Key     string
 	Upsert  bool // false: append-only (ON CONFLICT DO NOTHING)
 	Columns []Column
-	// Snapshot, if set, is a history table that gets one row per Key per file date: the listed
-	// columns of every row in the file, whether or not the main table took the row.
-	Snapshot *Snapshot
-}
-
-// Snapshot is a per-file-date history of a few of a report's columns (sql/05_*.sql). Its table
-// has those columns under the same names plus file_date, source_file and loaded_at, with primary
-// key (file_date, <report key>).
-type Snapshot struct {
-	Table   string
-	Columns []string // table column names, the report's key included
+	// Snapshot: every file of this report is also taken as that day's portfolio snapshot
+	// (camber/pipeline/portfolio), whether or not the main table took its rows.
+	Snapshot bool
 }
 
 // Reports in load order within a day: contracts, assets, transactions.
 var Reports = []*Report{
-	{Name: "ContractSummary", Table: "vervent_contracts", DDLFile: "01_vervent_contracts.sql", Key: "lease_no", Upsert: true,
-		Snapshot: &Snapshot{Table: "vervent_contract_snapshots", Columns: []string{
-			"lease_no", "ls_status", "account_status", "is_account_open", "remaining_receivables",
-			"past_due_receivables", "total_past_due", "days_del", "curr_delinq"}}},
+	{Name: "ContractSummary", Table: "vervent_contracts", DDLFile: "01_vervent_contracts.sql", Key: "lease_no", Upsert: true, Snapshot: true},
 	{Name: "AssetSummary", Table: "vervent_assets", DDLFile: "02_vervent_assets.sql", Key: "asset_no", Upsert: true},
 	{Name: "TransactionHistory", Table: "vervent_transactions", DDLFile: "03_vervent_transactions.sql", Key: "transaction_key", Upsert: false},
 }
@@ -73,14 +64,14 @@ func init() {
 			panic(fmt.Sprintf("vervent DDL %s: %v", r.DDLFile, err))
 		}
 		r.Columns = cols
-		if r.Snapshot != nil {
+		if r.Snapshot {
 			known := map[string]bool{}
 			for _, c := range cols {
 				known[c.Name] = true
 			}
-			for _, name := range r.Snapshot.Columns {
-				if !known[name] {
-					panic(fmt.Sprintf("vervent snapshot %s: %s has no column %s", r.Snapshot.Table, r.Table, name))
+			for _, m := range portfolio.Vervent("").Columns {
+				if !known[m.From] {
+					panic(fmt.Sprintf("portfolio snapshot: %s has no column %s (for %s)", r.Table, m.From, m.Column))
 				}
 			}
 		}

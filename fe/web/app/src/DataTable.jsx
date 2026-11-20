@@ -56,12 +56,15 @@ function useTableQuery(urlState, pageSize, defaultSort) {
 // dashboard drill-down such as days_del.gt=0) show as removable tags above the table.
 // defaultSort (col or -col) orders the table until the user picks a sort; clearing the sort returns to it.
 // bordered wraps the table in a card; the contract drawer turns it off.
-export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters, defaultSort = null, pageSize = 20, bordered = true, urlState = false }) {
+// sums lists columns (by dataIndex) to total in a last row. The server adds them up over every row
+// the filters match, not just the page shown, so the total is the figure a card links here with.
+export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters, defaultSort = null, pageSize = 20, bordered = true, urlState = false, sums }) {
   const [query, setQuery] = useTableQuery(urlState, pageSize, defaultSort)
   const [result, setResult] = useState({ data: [], total: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const baseKey = JSON.stringify(baseFilters ?? {})
+  const sumKey = sums?.join(',') ?? ''
   const queryKey = JSON.stringify(query)
 
   useEffect(() => {
@@ -73,6 +76,7 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
       params.set(col, value)
     }
     if (query.sort) params.set('sort', query.sort)
+    if (sumKey) params.set('sum', sumKey)
 
     let cancelled = false
     setLoading(true)
@@ -92,7 +96,7 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
     return () => {
       cancelled = true
     }
-  }, [endpoint, baseKey, queryKey])
+  }, [endpoint, baseKey, queryKey, sumKey])
 
   // Filters with a column control belong to the table; the rest are shown as tags.
   const controlled = new Set(columns.filter((c) => c.filters).map((c) => c.dataIndex))
@@ -153,6 +157,21 @@ export default function DataTable({ endpoint, rowKey, columns, noun, baseFilters
         loading={loading}
         scroll={{ x: 'max-content' }}
         onChange={onChange}
+        summary={
+          result.sums && result.total > 0
+            ? () => (
+                <Table.Summary.Row style={{ fontWeight: 600 }}>
+                  {columns.map((c, i) => (
+                    <Table.Summary.Cell key={c.dataIndex} index={i} align={c.align}>
+                      {c.dataIndex in result.sums
+                        ? (c.render ?? String)(result.sums[c.dataIndex], {})
+                        : i === 0 && `Total, ${result.total.toLocaleString('en-US')} ${noun}`}
+                    </Table.Summary.Cell>
+                  ))}
+                </Table.Summary.Row>
+              )
+            : undefined
+        }
         // An embedded table whose rows all fit on its first page needs no pager.
         pagination={
           !urlState && result.total <= pageSize

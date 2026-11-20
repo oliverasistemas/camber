@@ -152,7 +152,7 @@ NALN: there is no loader. Nothing else to do yet.
 - Vervent's daily cadence: business days since 2026-11-10 (none on the 11-14/15 weekend), after a
   gap from 2026-10-21 to 2026-11-10, but 2026-11-18 was skipped. Not yet confirmed as the
   contract, and nobody has asked Vervent for the 11-18 files. If they arrive late, loading them
-  is safe and fills that day in `vervent_contract_snapshots`.
+  is safe and takes that day's daily portfolio snapshot (`portfolio_snapshots`).
 - Westlake has an account but has never connected, and nobody has said what
   they will send.
 - NALN has only sent tests. A real funded-loan PDF still needs a destination

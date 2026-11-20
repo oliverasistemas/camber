@@ -1,10 +1,16 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu } from 'antd'
-import { AuditOutlined, CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined } from '@ant-design/icons'
+import { AuditOutlined, CameraOutlined, CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined } from '@ant-design/icons'
 import Logo from './Logo.jsx'
 
 const sections = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+  {
+    key: '/portfolio',
+    icon: <CameraOutlined />,
+    label: 'Portfolio',
+    children: [{ key: '/portfolio/snapshots', label: 'Snapshots' }],
+  },
   {
     key: '/servicing',
     icon: <AuditOutlined />,
@@ -71,7 +77,7 @@ export default function Sidebar({ collapsed }) {
         mode="inline"
         items={sections}
         selectedKeys={current ? [current] : []}
-        defaultOpenKeys={['/servicing', '/vervent', '/copart', '/loads']}
+        defaultOpenKeys={['/portfolio', '/servicing', '/vervent', '/copart', '/loads']}
         onClick={({ key }) => navigate(key)}
         style={{ borderInlineEnd: 0, marginTop: 8 }}
       />

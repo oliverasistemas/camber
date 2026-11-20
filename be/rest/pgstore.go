@@ -31,7 +31,9 @@ type pgVervent struct {
 	copartInventory, copartSales    pgTable
 	copartVsVervent                 pgTable // a view
 	loadRuns, loadFiles             pgTable // optional: left empty until 04_load_history.sql is applied
-	snapshots                       pgTable // optional: left empty until 05_vervent_contract_snapshots.sql is applied
+	// Portfolio snapshots (snapshots.go); optional: left empty until portfolio/sql is applied.
+	// snapshotContracts is the portfolio_snapshot_contract_list view.
+	snapshots, snapshotContracts pgTable
 	terminations                    pgTable // a view; optional: left empty until 04_lease_terminations.sql is applied
 }
 
@@ -58,7 +60,8 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		{"copart_vs_vervent", "lot_nbr", &s.copartVsVervent, false},
 		{"load_runs", "id", &s.loadRuns, true},
 		{"load_files", "id", &s.loadFiles, true},
-		{"vervent_contract_snapshots", "lease_no", &s.snapshots, true},
+		{"portfolio_snapshots", "id", &s.snapshots, true},
+		{"portfolio_snapshot_contract_list", "contract_no", &s.snapshotContracts, true},
 		{"lease_terminations", "lease_no", &s.terminations, true},
 	} {
 		cols, err := tableColumns(ctx, db, t.name)
@@ -76,8 +79,9 @@ func openPGVervent(ctx context.Context, dsn string) (*pgVervent, error) {
 		}
 		*t.dst = pgTable{db: db, name: t.name, key: t.key, columns: cols}
 	}
-	// One row per contract per day: newest day first, as generate_mock.py writes the mock rows.
-	s.snapshots.order = `"file_date" DESC, "lease_no"`
+	// Newest first, as generate_mock.py writes the mock rows.
+	s.snapshots.order = `"as_of" DESC, "id" DESC`
+	s.snapshotContracts.order = `"as_of" DESC, "snapshot_id" DESC, "contract_no"`
 	return s, nil
 }
 
@@ -100,10 +104,8 @@ func tableColumns(ctx context.Context, db *pgxpool.Pool, table string) (map[stri
 
 func (s *pgVervent) routes(r chi.Router) {
 	r.Get("/metrics", s.handleMetrics)
-	r.Get("/metrics/history", s.handleMetricsHistory)
 	r.Get("/contracts", s.contracts.list)
 	r.Get("/contracts/{id}", s.contracts.get)
-	r.Get("/contract-snapshots", s.snapshots.list)
 	r.Get("/assets", s.assets.list)
 	r.Get("/assets/{id}", s.assets.get)
 	r.Get("/transactions", s.transactions.list)
@@ -180,6 +182,7 @@ func (s *pgVervent) handleComparisonSummary(w http.ResponseWriter, r *http.Reque
 // list mirrors dataset.list: limit/offset paging, sort=col or sort=-col with nulls last, and any
 // other parameter filters on that column by exact match of its text form ("null" matches NULL)
 // or, with a filterOps suffix, by comparison in the column's own type.
+// sum=col,col adds "sums": the total of each of those columns over every row the filters match.
 // Column names are checked against the table's columns and values are bound, never interpolated.
 func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 	if t.db == nil { // an optional table that doesn't exist
@@ -202,9 +205,17 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unknown sort column "+sortCol, http.StatusBadRequest)
 		return
 	}
+	sumCols := sumParam(q.Get("sum"))
+	for _, col := range sumCols {
+		if !t.columns[col] {
+			http.Error(w, "unknown sum column "+col, http.StatusBadRequest)
+			return
+		}
+	}
 	q.Del("limit")
 	q.Del("offset")
 	q.Del("sort")
+	q.Del("sum")
 
 	var where []string
 	var args []any
@@ -252,10 +263,22 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	var total int
-	if err := t.db.QueryRow(ctx, "SELECT count(*) FROM "+from, args...).Scan(&total); err != nil {
+	sums := make([]float64, len(sumCols))
+	aggregates, dest := "count(*)", []any{&total}
+	for i, col := range sumCols {
+		aggregates += fmt.Sprintf(", coalesce(sum(%s), 0)::float8", pgx.Identifier{col}.Sanitize())
+		dest = append(dest, &sums[i])
+	}
+	if err := t.db.QueryRow(ctx, "SELECT "+aggregates+" FROM "+from, args...).Scan(dest...); err != nil {
+		var pgErr *pgconn.PgError
 		// Class 22 is a data exception: a comparison value that doesn't parse as the column's type.
-		if pgErr := (*pgconn.PgError)(nil); errors.As(err, &pgErr) && strings.HasPrefix(pgErr.Code, "22") {
+		if errors.As(err, &pgErr) && strings.HasPrefix(pgErr.Code, "22") {
 			http.Error(w, "invalid filter value", http.StatusBadRequest)
+			return
+		}
+		// 42883: there is no sum() for the column's type.
+		if errors.As(err, &pgErr) && pgErr.Code == "42883" && len(sumCols) > 0 {
+			http.Error(w, "sum needs numeric columns", http.StatusBadRequest)
 			return
 		}
 		serverError(w, err)
@@ -279,7 +302,15 @@ func (t pgTable) list(w http.ResponseWriter, r *http.Request) {
 	if page == nil {
 		page = []json.RawMessage{}
 	}
-	writeJSON(w, map[string]any{"total": total, "limit": limit, "offset": offset, "data": page})
+	body := map[string]any{"total": total, "limit": limit, "offset": offset, "data": page}
+	if len(sumCols) > 0 {
+		named := make(map[string]float64, len(sumCols))
+		for i, col := range sumCols {
+			named[col] = sums[i]
+		}
+		body["sums"] = named
+	}
+	writeJSON(w, body)
 }
 
 func (t pgTable) get(w http.ResponseWriter, r *http.Request) {
@@ -366,36 +397,6 @@ func (s *pgVervent) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	m.PastDue = round2(m.PastDue)
 	m.Collections30d = round2(m.Collections30d)
 	writeJSON(w, m)
-}
-
-// handleMetricsHistory computes the same figures as verventStore.metricsHistory, in SQL.
-func (s *pgVervent) handleMetricsHistory(w http.ResponseWriter, r *http.Request) {
-	days := []metricsDay{}
-	if s.snapshots.db == nil { // the snapshot table doesn't exist yet
-		writeJSON(w, days)
-		return
-	}
-	rows, err := s.db.Query(r.Context(), `
-		SELECT file_date::text, count(*), count(*) FILTER (WHERE is_account_open),
-		       coalesce(sum(remaining_receivables) FILTER (WHERE is_account_open), 0)::float8,
-		       coalesce(sum(total_past_due) FILTER (WHERE is_account_open), 0)::float8,
-		       count(*) FILTER (WHERE is_account_open AND days_del > 0)
-		  FROM vervent_contract_snapshots GROUP BY file_date ORDER BY file_date`)
-	if err != nil {
-		serverError(w, err)
-		return
-	}
-	var d metricsDay
-	_, err = pgx.ForEachRow(rows, []any{&d.FileDate, &d.TotalContracts, &d.ActiveContracts, &d.OutstandingReceivables,
-		&d.PastDue, &d.DelinquentContracts}, func() error {
-		days = append(days, d.finish())
-		return nil
-	})
-	if err != nil {
-		serverError(w, err)
-		return
-	}
-	writeJSON(w, days)
 }
 
 // collectCounts runs a "SELECT key, count" query into dst.

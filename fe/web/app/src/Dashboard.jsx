@@ -52,27 +52,30 @@ const links = {
   },
 }
 
-// A day on a trend chart links to that day's rows in the contract history, filtered the way
-// metricsDay counts them (be/rest/metrics.go), so the list total equals the day's count.
-const history = '/vervent/contracts/history'
+// The trend charts plot the daily portfolio snapshots. A day links to its snapshot, filtered the
+// way the snapshot's totals count its rows (portfolio/sql/01_portfolio_snapshots.sql), so the
+// rows listed are the ones behind the day's figure and their total equals it.
+const snapshot = (id, params) => list(`/portfolio/snapshots/${id}`, params)
+const openOnly = { is_open: 'true' }
 const dayLinks = {
-  receivables: (date) => list(history, { file_date: date, ...active, sort: '-remaining_receivables' }),
-  delinquent: (date) => list(history, { file_date: date, ...delinquent, sort: '-days_del' }),
+  receivables: (id) => snapshot(id, { ...openOnly, sort: '-outstanding_receivables' }),
+  delinquent: (id) => snapshot(id, { ...openOnly, 'days_delinquent.gt': '0', sort: '-days_delinquent' }),
 }
+const byDay = '/portfolio/snapshots?kind=daily'
 
-// toTrends reshapes /api/vervent/metrics/history into the two series.
+// toTrends reshapes /api/snapshots/history into the two series.
 const toTrends = (days) => ({
   receivables: days.map((d) => ({
-    date: d.file_date,
+    date: d.as_of,
     value: d.outstanding_receivables,
     note: `${count(d.active_contracts)} active contracts`,
-    to: dayLinks.receivables(d.file_date),
+    to: dayLinks.receivables(d.snapshot_id),
   })),
   delinquency: days.map((d) => ({
-    date: d.file_date,
+    date: d.as_of,
     value: d.delinquency_rate,
     note: `${count(d.delinquent_contracts)} of ${count(d.active_contracts)} active contracts`,
-    to: dayLinks.delinquent(d.file_date),
+    to: dayLinks.delinquent(d.snapshot_id),
   })),
 })
 
@@ -84,10 +87,11 @@ const change = (series, format) => {
 }
 
 // TrendCard: a trend chart in a card, or a note while there are not yet two days to connect.
+// The card links to the daily snapshots, the same figures as a table.
 function TrendCard({ title, series, format, axis, delta }) {
   const enough = series.length >= 2
   return (
-    <Card style={{ height: '100%' }} title={title}>
+    <Card style={{ height: '100%' }} title={title} extra={<Link to={byDay}>View by day</Link>}>
       {enough ? (
         <>
           <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
@@ -247,7 +251,7 @@ export default function Dashboard() {
         if (res.status === 401) window.location.reload()
         return res.ok ? res.json() : Promise.reject(new Error(res.statusText))
       })
-    Promise.all([get('/api/vervent/metrics'), get('/api/vervent/metrics/history')])
+    Promise.all([get('/api/vervent/metrics'), get('/api/snapshots/history')])
       .then(([m, days]) => setData({ ...toView(m), trends: toTrends(days) }))
       .catch((err) => setError(err.message))
   }, [])

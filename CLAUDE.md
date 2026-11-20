@@ -23,13 +23,13 @@ cd fe/web/app && npm install && npm run dev
 ```
 
 - `SESSION_SECRET` is the only required env var. The Google OAuth client JSON (`client_secret_*.json` at the repo root, gitignored) must exist or the API exits at startup.
-- Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless every `vervent_*`/`copart_*` table and the `copart_vs_vervent` view exist (`load_runs`/`load_files`, `vervent_contract_snapshots` and the `lease_terminations` view are optional: without them their pages are empty).
+- Without `DATABASE_URL` the API serves `vervent/mock/*.json` and all Copart endpoints return empty lists. Set `DATABASE_URL` to use Postgres; the API then exits at startup unless every `vervent_*`/`copart_*` table and the `copart_vs_vervent` view exist (`load_runs`/`load_files`, the `portfolio_snapshots` tables and the `lease_terminations` view are optional: without them their pages are empty).
 - Other env: `ADDR`, `FRONTEND_URL`, `GOOGLE_REDIRECT_URL`, `GOOGLE_CLIENT_SECRET_FILE`, `VERVENT_MOCK_DIR`, `STATIC_DIR`, `AUTH_ALLOWED_DOMAIN`, `AUTH_ALLOWED_EMAILS` (see `be/rest/main.go`), and `LOAD_FILES_DIR` (see `be/rest/loadfiles.go`).
 
 ### Local Postgres
 
 ```sh
-for f in vervent/sql/0*.sql copart/sql/0*.sql; do psql -d cambercredit -v ON_ERROR_STOP=1 -f "$f"; done
+for f in vervent/sql/0*.sql copart/sql/0*.sql portfolio/sql/0*.sql; do psql -d cambercredit -v ON_ERROR_STOP=1 -f "$f"; done
 (cd be && DATABASE_URL=postgres:///cambercredit go run ./pipeline/cmd/load-vervent "$PWD"/../vervent/20261111_*_Daily_P50.csv)
 python3 copart/load.py copart/CamberSalesInventorySalesReport_2026-10-05.xlsx   # needs openpyxl
 ```
@@ -52,7 +52,7 @@ Commit history follows this as two commits: the change, then "Ship app image X.Y
 
 ### The DDL is the source of truth
 
-`vervent/sql/0*.sql` and `copart/sql/0*.sql` drive everything downstream:
+`vervent/sql/0*.sql` and `copart/sql/0*.sql` drive everything downstream (`portfolio/sql` holds the snapshot tables, which no vendor file loads into):
 
 - `vervent/sql` is a symlink to `be/pipeline/vervent/sql`, which lives inside the Go module so the loader can `embed` it (a DDL change needs a rebuild of the loader).
 - Each `COMMENT ON COLUMN` starts with the source file's header in `[brackets]`; date columns end with `Source format <fmt>`. The loaders (`be/pipeline/vervent/ddl.go`, `copart/load.py`) parse the DDL with regexes to build the column mapping, and refuse a file whose headers don't match. **Adding or renaming a column means editing the DDL and its comment in that format** — not the loader.
@@ -66,7 +66,15 @@ Type/naming conventions and source-data quirks are documented in `vervent/sql/00
 
 Every table carries `source_file`, `file_date` (parsed from the file name), `loaded_at`. Each file loads in one transaction via an all-text staging table, oldest file first. Contracts, assets and both Copart tables upsert on their key guarded by `file_date <=` so an older file never overwrites newer data; transactions are append-only (`ON CONFLICT DO NOTHING`). Re-loading is always safe. Rows that vanish from later files are not deleted. There are no foreign keys (orphans exist and files arrive in any order).
 
-Because the contract upsert overwrites each day with the next, the loader also writes every ContractSummary file's rows to `vervent_contract_snapshots` (`vervent/sql/05_vervent_contract_snapshots.sql`, key `(file_date, lease_no)`): the few columns behind the receivables and delinquency metrics, one row per contract per file date, in the same transaction. This is not guarded by `file_date`, so re-loading an old ContractSummary file backfills its day. The copied columns are listed in `Report.Snapshot` in `be/pipeline/vervent/ddl.go` and must match the DDL. The API serves it as `/api/vervent/contract-snapshots` (list contract, newest day first) and aggregates it per day in `/api/vervent/metrics/history`; the mock rows are `vervent/mock/contract_snapshots.json`. The table is optional at startup, like the load history.
+### Portfolio snapshots
+
+A snapshot is a frozen copy of the portfolio at a point in time (`portfolio/sql/01_portfolio_snapshots.sql`): a `portfolio_snapshots` row with the totals as they were, and one `portfolio_snapshot_contracts` row per contract. The tables are **servicer-neutral so they outlive Vervent**: columns are named for what they mean (`contract_no`, `is_open`, `outstanding_receivables`, `days_delinquent`, …) and each contract row keeps the servicer's whole row in `servicer_row` (jsonb). Nothing that reads snapshots uses Vervent column names. The mapping from `vervent_contracts` is `verventColumns` in `be/pipeline/portfolio/snapshot.go`, mirrored by `SNAPSHOT_COLUMNS` in `generate_mock.py`; a new servicer adds a mapping there.
+
+- `daily`: the loader takes one from every ContractSummary file, in the file's transaction and from the staged rows, so it is not guarded by `file_date` and re-loading an old file rebuilds that day (same snapshot id). The loader fails if the tables don't exist.
+- `manual`: `POST /api/snapshots {name, note}` (the "Take snapshot" button) copies `vervent_contracts` as it stands. Snapshots are create-only.
+- Both go through `portfolio.Capture`, which copies the rows and then computes the header totals from them: active = `is_open`; outstanding receivables and past due = sums over open contracts; delinquent = open with `days_delinquent > 0`. **The dashboard's by-day charts and anything by-day read these totals**, not the Vervent tables.
+- `/api/snapshots` (`be/rest/snapshots.go`, both backends): the snapshots and `/contracts` (the `portfolio_snapshot_contract_list` view, which leaves out `servicer_row`) speak the list contract; `/history` is the daily totals oldest first; `/{id}/contracts/{contract}` is one row with `servicer_row`. The mock rows are `vervent/mock/portfolio_snapshots.json` and `portfolio_snapshot_contracts.json`, without `servicer_row` (the mock API fills it from `contracts.json`).
+- A snapshot with full rows is about 19 MB for ~5,900 contracts, so daily snapshots grow the database by roughly that per file.
 
 The Vervent loader records every run and every file it attempts in `load_runs` / `load_files` (`vervent/sql/04_load_history.sql`, package `be/pipeline/history`): the run row is committed first, a file's `ok` row commits in the same transaction as its data, and a `failed` row is written after the rollback (on a fresh connection if the run was interrupted). A run still `running` means the process died. Copart loads are not recorded yet. The dashboard lists the history under Loads (`/api/loads/runs`, `/api/loads/files`; `Loads.jsx`), with mock rows from `generate_mock.py`. A file's page offers the original for download (`/api/loads/files/{id}/download`, `be/rest/loadfiles.go`): the app pod mounts the SFTP drop box's `vervent/processed` folder read-only as `LOAD_FILES_DIR` and serves the file of that name whose SHA-256 matches the recorded one, so files that never passed through the drop box (Copart, anything deleted from it) have no download.
 
@@ -81,14 +89,14 @@ Keys: `vervent_contracts.lease_no`, `vervent_assets.asset_no`, `vervent_transact
 - `main.go` — routing, Google OIDC sign-in, HMAC-signed stateless session cookie, SPA fallback handler. Access is granted to `AUTH_ALLOWED_EMAILS` or to Workspace accounts whose `hd` claim matches `AUTH_ALLOWED_DOMAIN` (the email suffix alone is deliberately not trusted).
 - Two interchangeable implementations of the `verventAPI` interface: `pgstore.go` (Postgres) and `vervent.go` (in-memory mock JSON). **They must stay behaviorally identical** — same routes, same list contract, same metrics (`metrics.go` holds the shared types and the mock computation; `pgstore.go` reimplements it in SQL). A new endpoint needs both, plus a stub in the mock's `copartRoutes` if it is Copart-only.
 - `search.go` — `GET /api/search?q=` behind the header search box (`GlobalSearch.jsx`): substring match on lease number and VIN across contracts, assets and Copart inventory, a few rows per group. Implemented for both backends like everything else.
-- Generic list contract for every table/view: `?limit=&offset=&sort=col|-col` (nulls last), and any other query param is an exact-match filter on that column's text form (`null` matches NULL). A `.gt`/`.gte`/`.lt`/`.lte`/`.ne` suffix compares instead (`days_del.gt=0`; `.ne` also matches NULL). Response is `{total, limit, offset, data}`. Exposing a new table or view is one entry in `openPGVervent` plus two route lines.
+- Generic list contract for every table/view: `?limit=&offset=&sort=col|-col` (nulls last), and any other query param is an exact-match filter on that column's text form (`null` matches NULL). A `.gt`/`.gte`/`.lt`/`.lte`/`.ne` suffix compares instead (`days_del.gt=0`; `.ne` also matches NULL). `sum=col,col` adds `sums` to the response: each column's total over every row the filters match. Response is `{total, limit, offset, data}`. Exposing a new table or view is one entry in `openPGVervent` plus two route lines.
 
 ### Frontend (`fe/web/app`, React 19 + Ant Design 5 + React Router 7, plain JSX)
 
-- `App.jsx` gates everything on `GET /api/me`, owns the sidebar (`sections`) and top-level routes; `Servicing.jsx`, `Vervent.jsx`, `Copart.jsx` and `Loads.jsx` own their sub-routes.
+- `App.jsx` gates everything on `GET /api/me`, owns the sidebar (`sections`) and top-level routes; `Portfolio.jsx`, `Servicing.jsx`, `Vervent.jsx`, `Copart.jsx` and `Loads.jsx` own their sub-routes.
 - `DataTable.jsx` is the one table component: it speaks the list contract above (server-side paging/sort/filter), so a list page is mostly a column definition. With `urlState` (set on every list page's main table, not on tables embedded in detail pages) the page, sort and filters live in the query string, spelled exactly like the API parameters; filters without a column control render as removable tags. `records.jsx` has `useRecord` for detail pages and the cross-link helpers (`contractLink`, `assetLink`, `vinLink`).
 - **Every card is actionable and drills down: card → filtered list → single record.** A card or chart mark that shows a figure links (`LinkCard.jsx`, or a `Link` per bar) to the list page of the rows it counts, with the filter expressed in the query string using the same conditions the metric uses, so the list total equals the figure. Every list row links on to its record's detail page. A new metric therefore needs a filter the list contract can express, and a new table needs a detail route.
-- The dashboard's two trend charts (`TrendChart.jsx`, hand-drawn SVG, no chart library) plot `/api/vervent/metrics/history`. Each day's point links to `/vervent/contracts/history` (`ContractHistory.jsx`) filtered to that `file_date` with the metric's conditions; its rows link to the contract, whose page also lists its own daily history.
+- The dashboard's two trend charts (`TrendChart.jsx`, hand-drawn SVG, no chart library) plot `/api/snapshots/history`, the daily portfolio snapshots. Each day's point links to that snapshot's page (`/portfolio/snapshots/:id`, `SnapshotDetail.jsx`) filtered with the metric's conditions; the page shows the frozen totals with their formulas and the contract rows, and `DataTable`'s `sums` prop adds a totals row computed by the server, so the rows listed add up to the figure. Its rows link to the contract as the snapshot froze it (`SnapshotContract.jsx`). `/portfolio/snapshots` (`Snapshots.jsx`) lists every snapshot; with `kind=daily` it is the charts as a table. A contract's page lists the daily snapshots it is in.
 - All fetches are relative `/api/...` with cookie auth; a 401 triggers a page reload to fall back to the login screen.
 
 ### Deployment shape

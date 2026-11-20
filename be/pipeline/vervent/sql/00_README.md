@@ -10,12 +10,12 @@ Column meanings are in `../20261111_DataDictionary_P50.txt`, and each column's
 | `01_vervent_contracts.sql` | `vervent_contracts` | ContractSummary | 225 | `lease_no` | upsert (latest wins) |
 | `02_vervent_assets.sql` | `vervent_assets` | AssetSummary | 82 | `asset_no` | upsert (latest wins) |
 | `03_vervent_transactions.sql` | `vervent_transactions` | TransactionHistory | 46 | `transaction_key` | append |
-| `05_vervent_contract_snapshots.sql` | `vervent_contract_snapshots` | ContractSummary | 9 of 225 | `(file_date, lease_no)` | one set of rows per file date |
 
-`vervent_contract_snapshots` is the daily history of the contract fields behind the receivables
-and delinquency metrics (`vervent_contracts` only keeps each contract's latest state). The loader
-fills it from every ContractSummary file it loads, including files older than the data already in
-`vervent_contracts`, so re-loading old files backfills it.
+`vervent_contracts` only keeps each contract's latest state. The day-by-day history is in the
+portfolio snapshots (`portfolio/sql/01_portfolio_snapshots.sql`), which are servicer-neutral: the
+loader takes one from every ContractSummary file it loads, including files older than the data
+already in `vervent_contracts`, so re-loading old files backfills them. It needs those tables to
+exist.
 
 Run them in order. They are idempotent (`IF NOT EXISTS`) and have no schema prefix,
 so set `search_path` first if the tables should live outside `public`:

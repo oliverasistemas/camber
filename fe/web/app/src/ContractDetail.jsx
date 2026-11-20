@@ -4,7 +4,7 @@ import DataTable, { money } from './DataTable.jsx'
 import PageHeader from './PageHeader.jsx'
 import { columns as assetColumns } from './Assets.jsx'
 import { columns as transactionColumns } from './Transactions.jsx'
-import { columns as historyColumns, snapshotKey } from './ContractHistory.jsx'
+import { contractColumns as snapshotColumns, contractKey as snapshotKey } from './SnapshotDetail.jsx'
 import { useRecord } from './records.jsx'
 
 // The lease number and lessee are already in the page header, so drop them from the tables.
@@ -12,7 +12,10 @@ const assetCols = assetColumns.filter((c) => !['lease', 'name'].includes(c.dataI
 const transactionCols = transactionColumns.filter(
   (c) => !['contract_number', 'name'].includes(c.dataIndex),
 )
-const historyCols = historyColumns.filter((c) => c.dataIndex !== 'lease_no').map(({ filters, ...c }) => c)
+// One row per daily portfolio snapshot the contract is in; the date opens its row in that snapshot.
+const historyCols = snapshotColumns
+  .filter((c) => !['contract_no', 'monthly_payment', 'residual', 'maturity_date'].includes(c.dataIndex))
+  .map(({ filters, ...c }) => c)
 
 // ContractDetail is /vervent/contracts/:leaseNo: the contract, its assets, its transactions and
 // its day-by-day receivables and delinquency.
@@ -84,11 +87,11 @@ export default function ContractDetail() {
         <div>
           <Typography.Title level={5}>Daily history</Typography.Title>
           <DataTable
-            endpoint="/api/vervent/contract-snapshots"
+            endpoint="/api/snapshots/contracts"
             rowKey={snapshotKey}
             columns={historyCols}
             noun="days"
-            baseFilters={{ lease_no: c.lease_no }}
+            baseFilters={{ contract_no: c.lease_no, kind: 'daily' }}
             pageSize={10}
           />
         </div>
