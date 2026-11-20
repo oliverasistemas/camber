@@ -1,31 +1,85 @@
-MEETING NOTES
-Date:      2026-11-20
+MEETING NOTES - SERVICING DASHBOARD
+Date:      2026-11-20 (36 min)
 Attendees: Brad Moore, Zoe Svec, Adolfo Olivera
+Purpose:   Define requirements for the new servicing dashboard.
+Sources:   Adolfo's handwritten notes merged with the Fathom automated notes.
+           Where the two disagree, both versions are kept and the point is
+           listed under OPEN QUESTIONS.
+Next:      Meet Monday 2026-11-23 to review progress.
+
+
+KEY TAKEAWAYS
+-------------
+  - Data cleanup: filter the Vervent data to the ~2,500 leases Camber owns
+    (out of ~6,000 received) and consolidate deficiency contracts into their
+    main lease with a normalized ID.
+  - Data backfill: use Brad's cumulative Excel file for transaction history
+    since July 2025, instead of a Vervent backfill (possible fees, long
+    timeline).
+  - Dashboard scope: a web front-end for managing lease terminations that
+    replaces the current Excel process.
+  - New metrics: collections for the current month next to the last 30 days,
+    plus calculations for residual loss forecasting and lessee payoff
+    scenarios.
 
 
 ACTION ITEMS
 ------------
 Brad
-  - Provide the list of lease IDs Camber owns, to whitelist (~2,500 leases).
+  - Email the list of Camber-owned lease IDs with portfolio labels to Adolfo.
+  - Upload the cumulative transactions file (since 2025-07-01) to Google
+    Drive and share the link with Adolfo.
+  - Email Jeremy (Vervent) about the transaction backfill status and fees.
+  - Define and document the validation that compares the cumulative Excel
+    file against the Vervent CSVs.
   - Provide the full formula for the prepayment boolean.
 
 Adolfo
-  - Servicing dashboard: add a card with current month collections.
-  - Normalize Camber IDs so deficiency and main contracts unify (formula below).
-  - Filter the incoming leases to Brad's whitelist once received.
+  - Add collections metrics: current month and trailing 30 days.
+  - Implement the normalized Camber lease ID; consolidate main and
+    deficiency contract views.
+  - Filter to the owned leases once Brad's list arrives.
   - Create the Portfolio entity and assign every lease a portfolio parent.
-  - Termination report: add the data points listed in section 2.
-  - Portfolio snapshots: daily and on demand.
-  - Lease transactions view with filters and .xlsx export.
+  - Backfill historical transactions from Brad's Excel file and validate it
+    by cross-referencing totals against other reports.
+  - Enable column filters and date-range helpers across dashboard tables.
+  - Add download to Excel (.xlsx), including the lease transactions view.
+  - Reorder status columns to 90 / 60 / 30 / current.
+  - Add the termination calculations (section 4), starting with collections
+    and termination scenarios.
+  - Document all calculation logic and field definitions.
+  - Email meeting notes and follow-ups to Brad and Zoe.
+
+All
+  - Meet Monday 2026-11-23 to review progress.
 
 
-1. SERVICING DASHBOARD
-----------------------
-1.1 Current month collections
-  - Add a card showing collections for the current month.
+1. DATA FOUNDATION AND CLEANUP
+------------------------------
+1.1 Lease whitelist
+  - Problem: we receive all central bank leases from Vervent (~6,000), but
+    Camber owns only ~2,500.
+  - Solution: filter the dashboard to Camber-owned leases only.
+  - Brad will provide the whitelist of lease IDs, with each lease's
+    portfolio.
 
-1.2 Camber ID normalization
-  - Unify deficiency contracts with their main contracts under one ID.
+1.2 Portfolio entity
+  - Create a Portfolio entity; every lease must have a portfolio parent.
+  - Portfolios, per Adolfo's notes:
+      Camber-2025-1
+      Camber-2025-2
+      Camber-2026-1
+  - Portfolios, per Fathom:
+      Camber Credit 2026-1 (securitized)
+      Camber Credit 2025-2
+      Camber Credit 2026-1 (non-securitized)
+  - The two lists differ; see OPEN QUESTIONS.
+
+1.3 Camber ID normalization
+  - Problem: Vervent creates separate deficiency contracts for one lease,
+    which fragments the data.
+  - Solution: consolidate all contracts of a lease into a single view using
+    a normalized ID.
   - Formula to apply:
 
       =LET(x,TRIM([@LEASE]&""),IF(NOT(ISNUMBER(--RIGHT(x,1))),LEFT(x,1)&"0"&MID(x,2,LEN(x)-2),x))
@@ -33,28 +87,59 @@ Adolfo
   - What it does: trims the lease ID; if the last character is not a digit,
     it drops that last character and inserts a "0" after the first character.
     Otherwise the ID is left as is.
-
-1.3 Lease whitelist
-  - We are receiving all central bank leases, but Camber only owns ~2,500.
-  - Brad will provide the list of lease IDs to whitelist.
-
-1.4 Portfolio entity
-  - Create a Portfolio entity; every lease must have a portfolio parent.
-  - Current portfolios:
-      Camber-2025-1
-      Camber-2025-2
-      Camber-2026-1
+  - Fathom describes it as: remove the "D" and add a leading "0"
+    (D1234 -> 01234). That does not match the formula; see OPEN QUESTIONS.
 
 
-2. TERMINATIONS AND TERMINATION REPORT
+2. HISTORICAL TRANSACTION DATA
+------------------------------
+  - Problem: the dashboard lacks historical transaction data.
+  - Vervent option: a backfill from July 2025 to present, but Vervent has
+    hinted at fees and a long timeline.
+  - Camber option: Brad has a cumulative Excel file of all transactions
+    since July 2025.
+  - Decision: use Brad's Excel file.
+  - Brad uploads the file to Google Drive (it is large) and still follows up
+    with Vervent on backfill status and fees.
+  - Adolfo validates its accuracy by cross-referencing totals against other
+    reports; Brad defines and documents the validation against the Vervent
+    CSVs.
+
+
+3. DASHBOARD FUNCTIONALITY AND UI
+---------------------------------
+3.1 Goal
+  - A web front-end that replaces the Excel-based lease termination
+    management process.
+
+3.2 Collections card
+  - Add collections for the current month, to compare against the existing
+    collections for the last 30 days.
+
+3.3 Filters
+  - Enable filtering on all columns.
+  - Custom date ranges with helpers (This Month, Last Month).
+
+3.4 Export
+  - Download to Excel (.xlsx) for ad-hoc analysis.
+  - Lease transactions view with filters and .xlsx export.
+
+3.5 Snapshots
+  - Portfolio snapshots generated daily and on demand.
+  - Purpose: a stable dataset for ad-hoc analysis, and the basis for the
+    monthly investor loan tapes.
+
+
+4. TERMINATIONS AND TERMINATION REPORT
 --------------------------------------
-Report data points:
-
-2.1 Manheim Market Report (MMR) values
+4.1 Manheim Market Report (MMR) values
   - MMR value at T-30, T-60 and T-90 days.
+  - Future: integrate the Manheim API for automated MMR values (at lease
+    signing, 12 months ago, today, and at maturity).
 
-2.2 Vehicle status progression
-  - Vehicle status at T-30, T-60 and T-90 days.
+4.2 Vehicle status progression
+  - Vehicle status at T-90, T-60, T-30 and current, with the columns in that
+    order.
   - Possible statuses:
       With Lessee - Original Term
       With Lessee - Extension
@@ -64,24 +149,48 @@ Report data points:
       Theft / Unrecovered
       Sold
 
-2.3 Camber calculations
-  - LTV, remaining payments, etc. need to be calculated.
+4.3 Residual loss forecasting
+  - Expected gain/loss on the vehicle sale.
+  - Formula: Contract Residual Value - MMR Value.
+  - Contract Residual Value comes from Camber's lease tape (not Vervent) and
+    must be manually overrideable.
 
-2.4 Outreach (future)
-  - Camber will contact the lessee to ask about their intent with the lease.
-  - Record the intent together with the date of the contact.
-  - The report shows the recorded intent at T-30, T-60 and T-90 days.
+4.4 Lessee outreach tracking (future)
+  - Camber's notes: Camber will contact the lessee to ask about their intent
+    with the lease; the intent is recorded with the date of the contact, and
+    the report shows the recorded intent at T-30, T-60 and T-90 days.
+  - Fathom: track whether Vervent contacted the lessee at 180, 120, 90, 60
+    and 30 days before maturity. A date in the field means the contact
+    occurred; blank means it did not.
+  - Later: track the lessee's latest recorded intent (e.g. Buy, Return,
+    Undecided).
+  - Who contacts and at which checkpoints differ; see OPEN QUESTIONS.
 
-2.5 Prepayment boolean
-  - Based on whether the car was repossessed or not.
-  - Brad will provide the full formula.
+4.5 Lessee payoff scenarios (Camber calculations)
+  - Purpose: identify lessees who could lower their monthly payment by
+    purchasing the vehicle.
+  - Required fields:
+      Total Payoff Amount
+      Loan-to-Value (LTV)
+      New Monthly Payment (with a loan)
 
-2.6 Contract residual value
+4.6 Lease termination scenarios (Camber calculations)
+  - Termination Date: manual entry field.
+  - Prepayment boolean:
+      Adolfo's notes: based on whether the car was repossessed or not; Brad
+      will provide the full formula.
+      Fathom: a lease terminated more than 90 days before maturity is a
+      prepayment.
+    See OPEN QUESTIONS.
+  - Remaining payments: number and dollar value of the remaining payments at
+    termination.
 
-2.7 Remaining payments if the vehicle is returned by the lessee
-  - Total dollar value of the remaining payments.
-  - NPV of the remaining payments, using the lessor's yield.
-  - Formula:
+4.7 Present value calculations
+  - Purpose: remove the interest portion from the remaining payments to get
+    the true principal owed, in case the vehicle is returned by the lessee.
+  - Method: present-value the remaining payments and the contract residual
+    value at the lessor's yield.
+  - Formula for the remaining payments:
 
       =IF([@[Remaining Lease Payments as of Termination Date ($)]]="","",[@[Remaining Lease Payments as of Termination Date ($)]]/(1+[@[Lease_DCF]]*(DAYS([@[maturity_date]],[@[Termination Date]])/2)/365))
 
@@ -93,22 +202,21 @@ Report data points:
   - Lease_DCF is the lessor's yield.
 
 
-3. SNAPSHOTS
-------------
-  - Portfolio snapshots should be generated daily and on demand.
-
-
-4. LEASE TRANSACTIONS
----------------------
-  - Lease transactions view with filters.
-  - Ability to export as an .xlsx file.
-
-
 OPEN QUESTIONS
 --------------
-  - 2.2: the original note read "Vehicle status progression values (MMR values)
-    at T-30, T-60 and T-90 days". Assumed "(MMR values)" was carried over from
-    the line above and that this item is the vehicle status at each point.
-  - 1.4: which lease belongs to which portfolio (source of the assignment not
-    discussed).
-  - 2.1: source of the MMR values (not discussed).
+  - 1.2 Portfolio names: Adolfo's notes list Camber-2025-1, Camber-2025-2
+    and Camber-2026-1; Fathom lists 2026-1 twice (securitized and
+    non-securitized) and no 2025-1. Confirm the names with Brad; his lease
+    list with portfolio labels should settle it.
+  - 1.2 Whether securitized / non-securitized is an attribute the Portfolio
+    entity needs.
+  - 1.3 ID normalization: the Excel formula keeps the first character and
+    drops a trailing non-digit; Fathom's example drops a leading "D"
+    (D1234 -> 01234). Confirm with real deficiency IDs which is right.
+  - 4.4 Outreach: who makes the contact (Camber or Vervent), and whether the
+    checkpoints are 90/60/30 or 180/120/90/60/30.
+  - 4.6 Prepayment: repossession-based, the >90-days-before-maturity rule,
+    or both. Brad's formula should settle it.
+  - 4.7 Formula for the present value of the contract residual value (only
+    the remaining-payments formula was provided).
+  - 4.1 Source of MMR values until the Manheim API is integrated.
